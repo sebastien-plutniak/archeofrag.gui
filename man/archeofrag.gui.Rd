@@ -25,8 +25,8 @@ Note that the  optional determination of graph planarity in  the \code{\link[arc
 }
 
 \examples{
-    \dontrun{
     # launching the app:
-    archeofrag.gui()
+    if(interactive()){
+     archeofrag.gui()
     }
 }

@@ -36,8 +36,6 @@ This [R Shiny application](https://analytics.huma-num.fr/Sebastien.Plutniak/arch
 
 - [**Abstract**](#abstract)
 - [**Installation**](#installation)
-  - [R package](#r-package)
-  - [GUI version](#gui-version)
 - [**About archeofrag**](#about-archeofrag)
 - [**archeofrag.gui features**](#archeofrag.gui-features)
   - [Reporting bugs](#reporting-bugs)
