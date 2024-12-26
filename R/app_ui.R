@@ -27,14 +27,16 @@ $(function () {
 
 
 ui <- shinyUI(fluidPage(  # UI ----
-                          theme = shinytheme("cosmo"),  # slate  flatly
+                          theme = shinythemes::shinytheme("cosmo"),  # slate  flatly
                           tags$head(
                             tags$style(HTML(css)),
                             tags$script(HTML(js))
                           ),
                           sidebarLayout(
                             sidebarPanel(
-                              h3(div(HTML("<a href=https://github.com/sebastien-plutniak/archeofrag.gui title='Go to the archeofrag.gui page' target=_blank>archeofrag.gui</a> v",  as.character(utils::packageVersion("archeofrag.gui")) ))),
+                              h3(div(HTML("<a href=https://github.com/sebastien-plutniak/archeofrag.gui title='Go to the archeofrag.gui page' target=_blank>archeofrag.gui</a> v",
+                                          as.character(utils::packageVersion("archeofrag.gui"))
+                                          ))),
                               div(HTML("using <a href=https://github.com/sebastien-plutniak/archeofrag title='Go to the archeofrag page' target=_blank>archeofrag</a> v",  as.character(utils::packageVersion("archeofrag")) )),
                               h3("Input data"),
                               uiOutput("dataset.selector"),
@@ -296,6 +298,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   fluidRow( # .. plots----
                                                       h1("Results"),
                                                       uiOutput("simul.graph.nr"),
+                                                      textOutput("n.objects"),
                                                         column(10, align="center",
                                                           tableOutput("summary.tab"))
                                                   ), # end fluidrow 
@@ -348,6 +351,18 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            column(1, uiOutput("edges.plot.download.button"),
                                                                   style="padding-top:80px;")
                                                   ), #end fluidrow
+                                                  fluidRow(
+                                                    h2("Object count"),
+                                                    column(10, align="center",
+                                                           HTML("<div style=width:40%;, align=left><p>
+                                                                The number of objects (i.e. sets of connected fragments). This value is equal to the 'initial objects number', unless one of the 'Information loss' parameters is not null.
+                                                                </p></div>")
+                                                    )),
+                                                  fluidRow(column(10,
+                                                                  imageOutput("test.simul.objects.plot", height = "200px", width= "100%")),
+                                                           column(1, uiOutput("objects.plot.download.button"),
+                                                                  style="padding-top:80px;")
+                                                  ), #end fluidrow                                                  
                                                   fluidRow(
                                                     h2("Connection strength"),
                                                     column(10, align="center",

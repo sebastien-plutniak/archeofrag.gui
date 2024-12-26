@@ -1,7 +1,6 @@
 server <- function(input, output, session) { 
   .data <- NULL  
   value <- NULL
-  
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
     checkboxInput("parallelize",
@@ -267,10 +266,10 @@ server <- function(input, output, session) {
     
     # check if the data is complete for weighting parameter
     check.and.delete.frag <- function(g, var){
-      values <- vertex_attr(g, var)
+      values <- igraph::vertex_attr(g, var)
       idx <- is.na(values) | values == ""
       if(sum(idx)){ 
-        g <- delete_vertices(graph, idx) 
+        g <- igraph::delete_vertices(graph, idx) 
         showNotification(paste0("Incomplete values in '", var, "'. ", as.character(sum(idx)), " fragments removed."),
                          duration = 10, type = "message")
       }
@@ -497,6 +496,7 @@ server <- function(input, output, session) {
     data.frame(
       "admixture" = round(archeofrag::frag.layers.admixture(g, "layer", verbose = FALSE), 3),
       "cohes" = rbind(archeofrag::frag.layers.cohesion(g, "layer", verbose = FALSE)),
+      "n.objects" = as.integer(igraph::components(g)$no),
       "e.obs" = igraph::gsize(g),
       "balance.obs" = table(igraph::V(g)$layer)[1] / igraph::gorder(g),
       "weights.sum" = sum(igraph::E(g)$weight),
@@ -627,7 +627,7 @@ server <- function(input, output, session) {
     hypotheses.df <- hypotheses()
     if(is.null(hypotheses.df)) return()
     
-    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "edges", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
+    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "edges", "n.objects", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
     hypotheses.df <- hypotheses.df[, c("admixture", "cohesion1", "cohesion2", "edges", "balance", "weightsum", "hypothesis")]
     
     summary.df <- archeofrag::frag.simul.summarise(graph.selected(), 
@@ -641,7 +641,8 @@ server <- function(input, output, session) {
     summary.df
   })
   
-  output$summary.tab <- renderTable({summary.tab()}, rownames=T)
+  output$summary.tab <- renderTable({summary.tab()}, rownames = TRUE)
+  
   
   
   # .. plot cohesion ####
@@ -751,6 +752,40 @@ server <- function(input, output, session) {
     if(is.null(test.simul.edges.plot())) return()
     downloadButton("edges.plot.download", "as SVG") 
   })
+  
+  
+  # .. plot object count ####
+  test.simul.objects.plot <- eventReactive(input$goButton, {   
+    req(hypotheses)
+    hypotheses.df <- hypotheses()
+    if(is.null(hypotheses.df)) return()
+    # if(length(unique(hypotheses.df$n.objects)) < 2) return()
+    obs.graph <- graph.selected()
+    
+    ggplot2::ggplot(hypotheses.df, ggplot2::aes(x= .data[["n.objects"]], fill = .data[["hypothesis"]])) +
+      ggplot2::theme_light(base_size = 12) +
+      ggplot2::geom_density(alpha=.5, linewidth=.3) +
+      ggplot2::scale_fill_grey(start = .4, end = .9) +
+      ggplot2::geom_vline(xintercept = igraph::components(obs.graph)$no)  + 
+      ggplot2::scale_x_continuous("Object count", breaks = function(x) unique(round(pretty(x), 0)) ) +
+      ggplot2::ggtitle("Object count")
+  })
+  
+  output$test.simul.objects.plot <- renderPlot({test.simul.objects.plot()})
+  
+  output$objects.plot.download <- downloadHandler(
+    filename = paste0("archeofrag-object-count-", input$spatial.variable, "-",
+                      gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
+    content = function(file) {
+      ggplot2::ggsave(file, plot = test.simul.objects.plot(), device = "svg", width=10, height=3, pointsize = 14)
+    }
+  )
+  
+  output$objects.plot.download.button <- renderUI({
+    if(is.null(test.simul.objects.plot())) return()
+    downloadButton("objects.plot.download", "as SVG") 
+  })
+  
   
   # .. plot weights ####
   test.simul.weights.plot <- eventReactive(input$goButton, { 
@@ -895,7 +930,6 @@ server <- function(input, output, session) {
              "                                     aggreg.factor = ", input$aggreg.factor, ",<br>",
              "                                     planar = ", input$planar, ",<br>",
              "                                     asymmetric.transport.from = ", asymmetric, ")<br>",
-             "              g <- frag.edges.weighting(g, 'layer')<br>", 
              "              g <- archeofrag::frag.observer.failure(g, likelihood = ", input$edge.loss, " / 100,<br>",
              "                                                     remove.vertices = TRUE)[[1]]<br>",
              "              n.frag.to.remove <- round((", input$vertice.loss, " / 100) * igraph::gorder(g), 0)<br>",
