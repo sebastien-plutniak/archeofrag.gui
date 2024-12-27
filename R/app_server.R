@@ -498,6 +498,7 @@ server <- function(input, output, session) {
       "cohes" = rbind(archeofrag::frag.layers.cohesion(g, "layer", verbose = FALSE)),
       "n.objects" = as.integer(igraph::components(g)$no),
       "e.obs" = igraph::gsize(g),
+      "v.obs" = igraph::gorder(g),
       "balance.obs" = table(igraph::V(g)$layer)[1] / igraph::gorder(g),
       "weights.sum" = sum(igraph::E(g)$weight),
       "weights.median" = stats::median(igraph::E(g)$weight),
@@ -618,7 +619,7 @@ server <- function(input, output, session) {
     if(is.null(hypotheses.df)) return()
     hypotheses.df <- hypotheses.df[complete.cases(hypotheses.df),]
     HTML("<b>", paste( round(nrow(hypotheses.df)/ 2, 0), "</b> graphs with valid cohesion values generated in <b>",
-                       comment(hypotheses.df), "</b>."))
+                       comment(hypotheses.df), "</b>"))
   })
   
   summary.tab <- eventReactive(input$goButton, {# summary table  ----
@@ -627,7 +628,7 @@ server <- function(input, output, session) {
     hypotheses.df <- hypotheses()
     if(is.null(hypotheses.df)) return()
     
-    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "edges", "n.objects", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
+    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "edges", "fragments", "n.objects", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
     hypotheses.df <- hypotheses.df[, c("admixture", "cohesion1", "cohesion2", "edges", "balance", "weightsum", "hypothesis")]
     
     summary.df <- archeofrag::frag.simul.summarise(graph.selected(), 
@@ -759,7 +760,7 @@ server <- function(input, output, session) {
     req(hypotheses)
     hypotheses.df <- hypotheses()
     if(is.null(hypotheses.df)) return()
-    # if(length(unique(hypotheses.df$n.objects)) < 2) return()
+    if(length(unique(hypotheses.df$n.objects)) < 2) return()
     obs.graph <- graph.selected()
     
     ggplot2::ggplot(hypotheses.df, ggplot2::aes(x= .data[["n.objects"]], fill = .data[["hypothesis"]])) +
@@ -781,11 +782,72 @@ server <- function(input, output, session) {
     }
   )
   
-  output$objects.plot.download.button <- renderUI({
+  
+  output$test.simul.objects.block <- renderUI({
     if(is.null(test.simul.objects.plot())) return()
-    downloadButton("objects.plot.download", "as SVG") 
+  
+    HTML(paste0(
+      h2("Object count"),
+      column(10, align="center",
+             HTML("<div style=width:40%;, align=left><p>
+                   The number of objects (i.e. sets of connected fragments). This value is equal to the 'initial objects number', unless one of the 'Information loss' parameters is not null.
+                  </p></div>")
+      ),
+    fluidRow(column(10,
+                    imageOutput("test.simul.objects.plot", height = "200px", width= "100%")),
+             column(1, 
+                    downloadButton("objects.plot.download", "as SVG"),
+                    style="padding-top:80px;"))
+    ))
   })
   
+  
+  
+  # .. plot fragments count ####
+  test.simul.frag.plot <- eventReactive(input$goButton, {   
+    req(hypotheses)
+    hypotheses.df <- hypotheses()
+    if(is.null(hypotheses.df)) return()
+    if(length(unique(hypotheses.df$v.obs)) < 2) return()
+    obs.graph <- graph.selected()
+    
+    ggplot2::ggplot(hypotheses.df, ggplot2::aes(x= .data[["v.obs"]], fill = .data[["hypothesis"]])) +
+      ggplot2::theme_light(base_size = 12) +
+      ggplot2::geom_density(alpha=.5, linewidth=.3) +
+      ggplot2::scale_fill_grey(start = .4, end = .9) +
+      ggplot2::geom_vline(xintercept = igraph::gorder(obs.graph))  + 
+      ggplot2::scale_x_continuous("Fragment count", breaks = function(x) unique(round(pretty(x), 0)) ) +
+      ggplot2::ggtitle("Fragment count")
+  })
+  
+  output$test.simul.frag.plot <- renderPlot({test.simul.frag.plot()})
+  
+  output$frag.plot.download <- downloadHandler(
+    filename = paste0("archeofrag-fragment-count-", input$spatial.variable, "-",
+                      gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
+    content = function(file) {
+      ggplot2::ggsave(file, plot = test.simul.frag.plot(), device = "svg", width=10, height=3, pointsize = 14)
+    }
+  )
+  
+  
+  output$test.simul.frag.block <- renderUI({
+    if(is.null(test.simul.frag.plot())) return()
+    
+    HTML(paste0(
+      h2("Fragment count"),
+      column(10, align="center",
+             HTML("<div style=width:40%;, align=left><p>
+                   The number of fragments. This value is equal to the 'Final fragments number', unless one of the 'Information loss' parameters is not null.
+                  </p></div>")
+      ),
+      fluidRow(column(10,
+                      imageOutput("test.simul.frag.plot", height = "200px", width= "100%")),
+               column(1, 
+                      downloadButton("frag.plot.download", "as SVG"),
+                      style="padding-top:80px;"))
+    ))
+  })
   
   # .. plot weights ####
   test.simul.weights.plot <- eventReactive(input$goButton, { 

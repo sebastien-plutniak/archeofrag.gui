@@ -340,7 +340,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                  style="padding-top:80px;")
                                                   ), #end fluidrow
                                                   fluidRow(
-                                                    h2("Edge count"),
+                                                    h2("Relation count"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
                                                                 The number of connection relationships (edges of the graph) is not constrained in this use of the simulator. Consequently, the edge count variability can be used to compare the empirical and simulated fragmentation graphs. Note that this variable is not essential in the TSAR method.
@@ -352,17 +352,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                   style="padding-top:80px;")
                                                   ), #end fluidrow
                                                   fluidRow(
-                                                    h2("Object count"),
-                                                    column(10, align="center",
-                                                           HTML("<div style=width:40%;, align=left><p>
-                                                                The number of objects (i.e. sets of connected fragments). This value is equal to the 'initial objects number', unless one of the 'Information loss' parameters is not null.
-                                                                </p></div>")
-                                                    )),
-                                                  fluidRow(column(10,
-                                                                  imageOutput("test.simul.objects.plot", height = "200px", width= "100%")),
-                                                           column(1, uiOutput("objects.plot.download.button"),
-                                                                  style="padding-top:80px;")
-                                                  ), #end fluidrow                                                  
+                                                    uiOutput("test.simul.frag.block")
+                                                  ), #end fluidrow
+                                                  fluidRow(
+                                                    uiOutput("test.simul.objects.block")
+                                                  ), #end fluidrow
                                                   fluidRow(
                                                     h2("Connection strength"),
                                                     column(10, align="center",
