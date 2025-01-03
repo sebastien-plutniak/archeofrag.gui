@@ -261,7 +261,12 @@ server <- function(input, output, session) {
     
     g.data <- graph.data2()
     
-    graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df)
+    try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = T)
+    if( ! exists("graph")){
+      showNotification(geterrmessage(), duration = 10, type = "error")
+      return()
+    }
+    
     graph <- archeofrag::make_cr_graph(graph)
     
     # check if the data is complete for weighting parameter
