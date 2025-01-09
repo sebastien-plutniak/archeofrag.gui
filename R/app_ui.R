@@ -169,11 +169,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      h1("Information"),
                                                    column(10, align="center",
                                                             HTML("<div style=width:40%;, align=left>
-                    <h2>Instruction</h2>
+                    <h2>Instructions</h2>
                     <p>
                       <ul>
                       <li>Select the pair of spatial units to compare in the sidebar menu.</li>
                       <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test alternative hypotheses. The final number of refitting relations is not constrained.</li>
+                      <li>Optionally, set an amount of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
                       <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button. Enabling parallelization uses half of the available cores to speed up the computation (however if it raises an error, untick the box, re-run, and be patient).</li>
                       </ul>
                       For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
@@ -417,11 +418,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Bout des Vergnes</b>:  Ihuel, E. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, N. Mercier., A. Michel, F. Sellami. 2020. <i>Le Bout des Vergnes, Bergerac (Dordogne, Nouvelle-Aquitaine), Contournement ouest de Bergerac, RD 709</i>, Excavation report, Perigueux. </li>
                   <li><b>Chauzeys</b>: Chadelle J.-P. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, F. Jude, S. Kreutzer, A. Michel,  N. Mercier, M. Rabanit, S. Save, F. Sellami, A. Vaughan-Williams. 2021. <i>Chauzeys, Saint-Medard-de-Mussidan (Dordogne, Nouvelle-Aquitaine)</i>, Excavation report, Perigueux. </li>
                   <li><b>Font-Juvenal</b>: Caro J. 2024. 'Font-Juvenal_Refiting', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.14515444 target=_blank>10.5281/zenodo.14515444</a>.</li>       
-                  <li><b>Grande Rivoire</b>: Angelin A., A. Bridault, J.-L. Brochier L. Chaix, L. Chesnaux, B. Marquebielle, L. Martin, P.-Y. Nicod, R. Picavet, D. Vannieuwenhuyse. 2016. 'The First Mesolithic in the French Alps: New data from La Grande Rivoire rockshelter (Vercors range, Isere, France)', <i>Quaternary International</i>, vol. 423, p. 193-212, doi: <a href=https://doi.org/10.1016/j.quaint.2015.06.027 target=_blank>10.1016/j.quaint.2015.06.027</a></li>
+                  <li><b>Grande Rivoire</b>: Angelin A. 2025. 'Refitting data from La Grande Rivoire prehistoric site', Zenodo, doi: <a href=https://doi.org/10.5281/zenodo.14609875 target=_blank>10.5281/zenodo.14609875<a></li>
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a> </li>
                   <li><b>Tai</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
                 </ul>
                 <br>
+                
                                                                  </div>"))
                                                    ) # end column
                                           ), #end tabPanel                                          
