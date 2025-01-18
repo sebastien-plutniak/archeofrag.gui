@@ -24,13 +24,19 @@ $(function () {
 })
 "
 
+paste.js <- "
+Shiny.addCustomMessageHandler('txt', function (txt) {
+    navigator.clipboard.writeText(txt);
+});
+"
 
 
 ui <- shinyUI(fluidPage(  # UI ----
                           theme = shinythemes::shinytheme("cosmo"),  # slate  flatly
                           tags$head(
                             tags$style(HTML(css)),
-                            tags$script(HTML(js))
+                            tags$script(HTML(js)),
+                            tags$script(HTML(paste.js))
                           ),
                           sidebarLayout(
                             sidebarPanel(
@@ -56,7 +62,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                             
                             mainPanel(
                               tabsetPanel(id="tabs", 
-                                          tabPanel("Introduction", # Introduction ----  
+                                          tabPanel("Introduction", # INTRODUCTION ----  
                                                    column(11, align="center",
                                                           tags$div(
                                                             HTML("<div style=width:40%;, align=left>
@@ -100,7 +106,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ) # end column
                                           ), #end tabPanel
                                           
-                                          tabPanel("Measurements", # Measurements ----
+                                          tabPanel("Measurements", # MEASUREMENTS ----
                                                    h1("Weighting options"), # .. weigthting options----
                                                    fluidRow(
                                                      column(2, uiOutput("morpho.selector")),
@@ -112,7 +118,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="center",
                                                    HTML(
                                                   "<div style=width:40%;, align=left>
-                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). Details about the method are given in Plutniak, Caro, Manen 2023.</p>
+                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). Details about the method are given in  <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>.</p>
                                                    <p>Note that these weighting options are not supported by the simulation function.</p>
                                                   </div>"
                                                    ), #end HTML
@@ -129,7 +135,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         <ul>
                                                           <li><b>Fragments balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of fragments in the spatial unit whose label comes first alphanumerically</li>                               
                                                           <li><b>Objects balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of objects (i.e. sets of refitted fragments) in the spatial unit whose label comes first alphanumerically</li>
-                                                          <li><b>Cohesion</b>: for a pair of spatial units, the measure of the consistency of each unit, how it is 'self-adherent' to itself (see Plutniak 2021)</li>
+                                                          <li><b>Cohesion</b>: for a pair of spatial units, the measure of the consistency of each unit, how it is 'self-adherent' to itself (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>)</li>
                                                           <li><b>Cohesion difference</b>: highest cohesion value - lowest cohesion value </li>
                                                         </ul>
                                                         "),
@@ -150,42 +156,86 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    br(), br()
                                                    ) # end column
                                           ), #end tabPanel
-                                          tabPanel("Visualisation", # Visualisation ----
+                                          tabPanel("Visualisation", # VISUALISATION ----
                                                    fluidRow(
                                                      h1("Fragmentation graph"),
                                                      column(10, align="center",
-                                                      br(),
-                                                       HTML("<div  style=width:40%;, align=left>"),
+                                                       br(),
+                                                       HTML("<div  style=width:50%;, align=left>"),
                                                        uiOutput("visualisation.title"),
                                                        HTML("</div>"),
                                                        br(),
-                                                  uiOutput("frag.graph.viz.download.button"),
-                                                  imageOutput("frag.graph.viz.plot", height = "800px", width= "100%"),
+                                                       uiOutput("frag.graph.viz.download.button"),
+                                                       imageOutput("frag.graph.viz.plot", height = "800px", width= "100%")
                                                      ) #end column
                                                    ) # end fluidrow
                                           ), #end tabPanel
-                                          tabPanel("Simulation", # Simulation ---- 
+                                          tabPanel("Simulations", # SIMULATIONS ---- 
+                                                   tabsetPanel(id="simul", 
+                                                   tabPanel("Introduction", # Introduction ----  
                                                    fluidRow(
-                                                     h1("Information"),
-                                                   column(10, align="center",
-                                                            HTML("<div style=width:40%;, align=left>
+                                                  h1("Introduction to the simulation of site and assemblage formation"),
+                                                   column(10,  align = "center",
+                                                            HTML("
+                                                            <div align=center>
+                                                            <img width='40%' src=www/timeline-simulation-v2.png><br>
+                                                            </div>
+                                                            <br>
+                                                            <div  style=width:40%;,  align=left>
+                                                            <p>
+                                                            <h2>Time aspects</h2>
+                                                            Any archaeological investigation regards three temporal components:
+                                                              <ul>
+                                                                <li><b>Deposition event</b>: the <i>point</i> in time when unaltered material objects were abandoned.</li>
+                                                                <li><b>Alteration phase</b>: the <i>period</i> of time during which those material objects were transformed and moved.</li>
+                                                                <li><b>Excavation event</b>: the <i>point</i> in time when those altered material objects are observed in space.</li>
+                                                              </ul>
+                                                              Note that components in this model are theoretical and an analytical simplification (e.g. defining  <i>deposition</i> as an event and not a phase). 
+                                                              </p>
+                                                              <h2>Material objects</h2>
+                                                              <p>
+                                                              In the archaeological study process, archaeologists aim to use excavation to reconstruct and learn about past state(s) corresponding to deposition event(s). In practice, they:
+                                                              <ol>
+                                                                <li>Observe a <b>set of fragmented objects</b> when excavating (at <sub>t0</sub>).</li>
+                                                                <li>Reconstruct a theoretical state included in the <b>alteration phase</b> (t<sub>-1</sub>), from determining  <b>refitting relationships</b> between fragments.</li>
+                                                                <li>Because fragments are often missing, they make <b>assumptions</b>  about the assemblage's possible completion state at the <b>deposition event</b> (t<sub>-2</sub>). </b></li>
+                                                              </ol>
+                                                            </p>
+                                                            <h2>Simulations</h2>
+                                                            <p>
+                                                              Simulation can be used to study the formation process between two points in time:
+                                                              <ul>
+                                                                <li><b>From the reconstructed point in the alteration process to the excavation event (t<sub>-1</sub> to t<sub>0</sub>)</b>: this simulation covers only a part of the formation process but is only grounded  on archaeological observation and does not require any additional assumption.</li>
+                                                                <li><b>From the deposition event to the excavation event (t<sub>-2</sub> to t<sub>-1</sub>)</b>: this simulation covers the entire formation process but requires assumptions about the initial state of the assemblage at the deposition event.</li>
+                                                              </ul>
+                                                            </p><br><br>
+                                                            </div>")
+                                                            ) #end column
+                                                   ) #end fluirow
+                                                   ), # end tabpanel
+                                                   tabPanel("Alteration -> Excavation", # Alteration > Excavation----  
+                                                            fluidRow(
+                                                              h1("From (a point in) the Alteration phase to the Excavation event"),
+                                                              column(10,  align = "center",
+                                                                     HTML(
+                   "<div style=width:40%;, align=left>
                     <h2>Instructions</h2>
                     <p>
                       <ul>
                       <li>Select the pair of spatial units to compare in the sidebar menu.</li>
-                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test alternative hypotheses. The final number of refitting relations is not constrained.</li>
+                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test other hypotheses. The final number of refitting relations is not constrained.</li>
                       <li>Optionally, set an amount of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
                       <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button. Enabling parallelization uses half of the available cores to speed up the computation (however if it raises an error, untick the box, re-run, and be patient).</li>
                       </ul>
-                      For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
                     </p>
-                    <h2>Procedure</h2>
+                    <h2>How it works?</h2>
                     <p>
                     Parameters (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.) are extracted from the input graph for the selected pair of spatial units, and used to generate a series of artificial graphs. These graphs are generated for two deposition hypotheses:
                     <ol type='1'>
                      <li> The objects were buried in a <b>single spatial unit</b>, and subsequently moved, afrom what archaeologists distinguished between two spatial units;</li>
                      <li> The objects were buried in <b>two spatial units</b>, and subsequently moved, from what archaeologists distinguished between two spatial units.</li>
                     </ol>
+                      For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
                     </p>
                     <p>
                     <h2>Results</h2>
@@ -204,9 +254,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                  </div>") 
                                                    ) # end column
                                                    ), # end fluidrow
+                                                  fluidRow(column(5, 
+                                                                  h1("Model parameters set up"),
+                                                                  h2("Initial state"))
+                                                           ),
                                                   fluidRow( # .. parameters ----
-                                                     h1("Model parameters set up"),
-                                                     h2("Initial state"),
                                                      column(2, 
                                                         span(`data-toggle` = "tooltip", `data-placement` = "bottom",
                                                               title = "Initial number of objects to create.",
@@ -220,8 +272,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                          ) #end span
                                                      ) #end column
                                                   ), #end fluidrow
+                                                  fluidRow(column(5, h2("Formation process"))),
                                                   fluidRow(
-                                                    h2("Formation process"),
                                                     column(2, 
                                                       span(`data-toggle` = "tooltip", `data-placement` = "bottom",
                                                         title = "Whether generating or not only planar graphs. Activating this option makes the computation slower.",
@@ -370,29 +422,160 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           column(1,  br(), br(), br(),
                                                                  uiOutput("weights.plot.download.button"),
                                                                                 style="padding-top:230px;")
-                                                  ), #end fluidrow
-                                                   ), # end tabPanel
-                                          tabPanel("R code", # R code ----
-                                                   column(10, 
-                                                          br(),
-                                                          HTML("The following R code runs the simulation with the current settings and returns a series of values for each hypothesis:
+                                                   ), #end fluidrow
+                                                  ), # end 'execution' tabPanel
+                                                  tabPanel("R code", # R code ----
+                                                           fluidRow(
+                                                                  h1("R code for the Alteration -> Excavation simulation"),
+                                                           column(10, align="center",
+                                                                  HTML("
+                                                                  <div  style=width:40%;,  align=left>
+                                                                  The following R code runs the 'Alteration to Excavation' simulation with the current settings and returns a series of values for the two hypotheses about the initial number of spatial units:
                                                           <ul>
                                                             <li>admixture</li>
                                                             <li>cohesion value for the spatial units 1 and 2</li> 
                                                             <li>number of refitting relations</li>
                                                             <li>fragments balance</li>
-                                                            <li>sum, median, and standard deviation for relation weights</li>"),
-                                                          br(),
-                                                          HTML(paste("<div style=width:80%;, align=left>",
-                                                                     "<br><div style=\"font-family:Courier; font-size: small; width:100%;\", align=left>",
-                                                                     htmlOutput("reproducibility"),
-                                                                     "</div>",
-                                                                     "</div>"
-                                                          ) # end paste
-                                                          )  # end HTML
-                                                   ) # end column
-                                          ), #end tabPanel
-                                          tabPanel("References", # References ----  
+                                                            <li>summary statstics for the relationship weights (sum, median, and standard deviation)</li>
+                                                                       </div>"),
+                                                                  br(),
+                                                                  HTML(paste("<div style=width:80%;, align=left>",
+                                                                             "<br><div style=\"font-family:Courier; font-size: small; width:100%;\", align=left>",
+                                                                             actionButton("r.code.copy.button", "Copy code to clipboard"),
+                                                                             br(),
+                                                                             br(),
+                                                                             htmlOutput("r.code"),
+                                                                             "</div>",
+                                                                             "</div>"
+                                                                  ) # end paste
+                                                                  )  # end HTML
+                                                           ) # end column
+                                                           ) #end fluidrow
+                                                  ), #end 'R code' tabPanel
+                                                  tabPanel("Deposition -> Excavation", # Deposition > Excavation----
+                                                           fluidRow( 
+                                                                     h1("From the Deposition event to the Excavation event"),
+                                                                     column(10, 
+                                                                            HTML("<h2>Introduction to <i>openMOLE</i>'s Origin Search Exploration method</h2>")),
+                                                                     column(10, align="center",
+                                                                     HTML("
+                                                                          <div  style=width:40%;, align=left>
+                                                                          <h3>The problem</h3>
+                                                                          <p>
+                                                                            Simulating a formation process in time between the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to e.g. partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to combinatorial explosions (In how many objects were originally included in this site? How many fragments of this vessel are missing?). </p>
+                                                                            <h3>Origin Search Exploration</h3>
+                                                                            <p>
+                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/OSE.html target=_blank>Origin Search Exploration</a> method (OSE) enables determining possible combinations of the initial parameters of a model, overcoming  combinatorial explosions.  Conducting an OSE analysis requires defining:
+                                                                            <ol>
+                                                                            <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
+                                                                            <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state at t<sub>0</sub>)</li>
+                                                                            </ol>
+                                                                            The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>−2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
+                                                                            </p>
+                                                                            <p>
+                                                                            The OSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i software>. 
+                                                                            </p>
+                                                                            <h3>Instructions</h3>
+                                                                            <p>
+                                                                            <i>archeofrag.gui</i> does not include it but allows to set-up and generate the (Scala and R) code to plug the <i>archeofrag</i> formation model into the <i>openMOLE</i> framework and run it, making this workflow easier and faster to use.
+                                                                            </p>
+                                                                            <ol>
+                                                                              <li> Define the range of origin values to explore for each variable. Note that some values are automatically filed using the parameters of the selected pair of spatial units.</li>
+                                                                              <li> Select the objective variables: the OSE procedure will return the combinations of variables that generate the values of those variables. Optionally, a tolerance percentage can be set for each value to allow approximation.</li>
+                                                                              <li>Execute the generated code in <i>openMOLE</i>.</li>
+                                                                            </ol>
+                                                                            Note the values of several <i>archeofrag</i> parameters are converted as integers because <i>openMOLE</i> requires it (e.g. cohesion, admixture, balance, etc.).  
+                                                                          </div>
+                                                                          "),
+                                                                     ), #end column
+                                                           ), #end fluid row
+                                                           fluidRow(
+                                                                     column(10, # .. exploration var. ----
+                                                                     h2("Origins: variable and range of values to explore"), 
+                                                                     h3("Initial state"),
+                                                           ), #end  column
+                                                  ), #end fluid row
+                                                                     fluidRow(
+                                                                       column(2, selectInput("OM.layerNumber.val", "Initial number of spatial units", choices = c("1, 2", "1", "2"))),
+                                                                     ),
+                                                                     fluidRow(
+                                                                       column(2, uiOutput("OM.objectsNumber.min.ui")),
+                                                                       column(1, uiOutput("OM.objectsNumber.max.ui")),
+                                                                       column(3, uiOutput("OM.componentsBalance.val.ui")),
+                                                                     ),
+                                                                     fluidRow(column(10, 
+                                                                      h3("Formation process")
+                                                                     )),
+                                                                     fluidRow(
+                                                                       column(2, uiOutput("OM.fragmentsNumber.min.ui")),
+                                                                       column(1, uiOutput("OM.fragmentsNumber.max.ui")),      
+                                                                       column(2, selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE"), selected = "TRUE", width = "100%")),
+                                                                    ),
+                                                                    fluidRow(
+                                                                       column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("TRUE", "FALSE", "TRUE, FALSE"), selected = "TRUE")),
+                                                                       column(1),
+                                                                       column(3, uiOutput("OM.aggregFactor.val.ui")),
+                                                                     ),
+                                                                    fluidRow(
+                                                                       column(2, selectInput("OM.asymmetric.val", "Unidirectional transport from unit", choices = c("none", "1", "2", "1, 2"), selected = NULL, width = "100%")),
+                                                                       column(1),
+                                                                       column(3, uiOutput("OM.fragmentsBalance.val.ui")),
+                                                                      column(3, uiOutput("OM.disturbance.val.ui")),
+                                                                     ),
+                                                  fluidRow(column(10, 
+                                                                     h2("Objective variables")), # .. target var. ----
+                                                                     column(10, align="center",
+                                                                     HTML("
+                                                                     <div  style=width:40%;, align=left>
+                                                                    To include a variable in the objective variables  tick its box. By default, the algorithm will look for the exact value. However, to also admit the surrounding  values, use the corresponding slider to set up a tolerance (in percentage).
+                                                                     </div>
+                                                                     <br><br>")
+                                                                     ), #end column
+                                                           ), #end fluidrow
+                                                                     fluidRow(
+                                                                       column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1")),
+                                                                       column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2")),
+                                                                       column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       column(1, checkboxInput("OM.admixtureOut", "Admixture")),
+                                                                       column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                                       ),
+                                                                     fluidRow(
+                                                                       column(2, checkboxInput("OM.nFragmentsOut", "Fragment number")),
+                                                                       column(2, sliderInput("OM.nFragmentsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       column(2, checkboxInput("OM.nRelationsOut", "Connection number")),
+                                                                       column(2, sliderInput("OM.nRelationsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       column(1, checkboxInput("OM.nObjectsOut", "Object number")),
+                                                                      column(2, sliderInput("OM.nObjectsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       ),
+                                                                     fluidRow(column(2, checkboxInput("OM.disturbanceOut", "Disturbance")),
+                                                                              column(2, sliderInput("OM.disturbanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
+                                                                     fluidRow(
+                                                                       column(2, checkboxInput("OM.compBalanceOut", "Object balance")),
+                                                                       column(2, sliderInput("OM.compBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                                       # ),
+                                                                     # fluidRow(
+                                                                       column(2, checkboxInput("OM.fragBalanceOut", "Fragment balance")),
+                                                                                     column(2, sliderInput("OM.fragBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                                       ),
+                                                                     fluidRow(column(2, checkboxInput("OM.aggregFactorOut", "Aggregation factor")),
+                                                                                     column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
+                                                                     # fluidRow(column(2, checkboxInput("OM.weightsumOut", "Relation weights sum")),
+                                                                     #                 column(3, sliderInput("OM.weightsumOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
+                                                  
+                                                           actionButton("OMcode.copy.button", "Copy code to clipboard"),
+                                                           HTML(paste("<div style=width:80%;, align=left>",
+                                                                      "<br><div style=\"font-family:Courier; font-size: small; width:100%;\", align=left>",
+                                                                      htmlOutput("openMOLE.code"),
+                                                                      "</div>",
+                                                                      "</div>"
+                                                           ) # end paste
+                                                           )  # end HTML
+                                                           
+                                                   ), #end 'OM code' tabPanel
+                                                   ), # end tabsetPanel
+                                          ), # end tabPanel
+                                          tabPanel("References", # REFERENCES ----  
                                                    column(10, align="center",
                                                           tags$div(
                                                             HTML("<div style=width:40%;, align=left>

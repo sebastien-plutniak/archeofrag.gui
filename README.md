@@ -7,13 +7,13 @@ An R 'Shiny' application to access the functionalities and datasets of the 'arch
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
-[![R build status](https://github.com/sebastien-plutniak/archeofrag.gui/workflows/R-CMD-check/badge.svg)](https://github.com/sebastien-plutniak/archeofrag.gui/actions)
+[![R build status](https://github.com/sebastien-plutniak/archeofrag.gui/workflows/R-CMD-check/badge.svg)](https://github.com/sebastien-plutniak/archeofrag.gui/actions/workflows/r.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14554894.svg)](https://doi.org/10.5281/zenodo.14554894)
+[![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/sebastien-plutniak/archeofrag.gui/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/sebastien-plutniak/archeofrag.gui)
+[![r-universe](https://sebastien-plutniak.r-universe.dev/badges/archeofrag.gui)](https://sebastien-plutniak.r-universe.dev/ui#package:archeofrag.gui)
 [![CRAN status](https://www.r-pkg.org/badges/version/archeofrag.gui)](https://CRAN.R-project.org/package=archeofrag.gui)
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/archeofrag.gui?color=brightgreen&.svg)](https://cran.r-project.org/package=archeofrag.gui)
-[![r-universe](https://sebastien-plutniak.r-universe.dev/badges/archeofrag.gui)](https://sebastien-plutniak.r-universe.dev/ui#package:archeofrag.gui)
-[![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/cran/archeofrag.gui/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/cran/archeofrag.gui)
 [![license](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.r-project.org/Licenses/GPL-3)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4271900.svg)](https://doi.org/TODO)
 
 
 # Summary 
@@ -63,7 +63,8 @@ install.packages("archeofrag.gui")
 The development version is available from *GitHub* and can be installed with:
 
 ```r
-# install.packages("remotes")
+if ( ! requireNamespace("remotes", quietly = TRUE))
+    install.packages("remotes")
 remotes::install_github("sebastien-plutniak/archeofrag.gui")
 ```
 
@@ -104,7 +105,7 @@ Please refer to the `archeofrag` package documentation on [CRAN](https://github.
 
 # Data input
 
-Either load the example data set (refitting data from the Liang Abu rock shelter, Borneo) or upload your data. Use the menu on the left to upload your edges and nodes data as CSV files.
+Either load one of the example data sets or upload your own data. Use the menu on the left to upload your 'relation' and 'fragments' data as CSV files.
 
 * The relation table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
 * The fragments table must have a row for each fragment, the first column contains the fragments identifiers and the second column contains their layer.
