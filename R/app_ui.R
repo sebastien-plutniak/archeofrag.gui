@@ -393,7 +393,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                  style="padding-top:80px;")
                                                   ), #end fluidrow
                                                   fluidRow(
-                                                    h2("Relation count"),
+                                                    h2("Relationships count"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
                                                                 The number of connection relationships (edges of the graph) is not constrained in this use of the simulator. Consequently, the edge count variability can be used to compare the empirical and simulated fragmentation graphs. Note that this variable is not essential in the TSAR method.
@@ -533,15 +533,15 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                      ), #end column
                                                            ), #end fluidrow
                                                                      fluidRow(
-                                                                       column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1")),
+                                                                       column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE)),
                                                                        column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2")),
+                                                                       column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = TRUE)),
                                                                        column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(1, checkboxInput("OM.admixtureOut", "Admixture")),
+                                                                       column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE)),
                                                                        column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
                                                                        ),
                                                                      fluidRow(
-                                                                       column(2, checkboxInput("OM.nFragmentsOut", "Fragment number")),
+                                                                       column(2, checkboxInput("OM.nFragmentsOut", "Fragment number", value = TRUE)),
                                                                        column(2, sliderInput("OM.nFragmentsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
                                                                        column(2, checkboxInput("OM.nRelationsOut", "Connection number")),
                                                                        column(2, sliderInput("OM.nRelationsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),

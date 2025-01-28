@@ -28,7 +28,6 @@ server <- function(input, output, session) {
     # merge
     g <- igraph::disjoint_union(l13, l24, l5, l6)
     igraph::graph_attr(g, "frag_type") <- "cr"
-    # archeofrag::frag.graph.plot(g, "layer")
     
     # add connection between 1 and 2
     g <- igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 1], 4, replace = F),
@@ -526,7 +525,7 @@ server <- function(input, output, session) {
     }
     
     asymmetric <- input$asymmetric
-    if(asymmetric == "none") asymmetric <- NULL
+    if(asymmetric == "none") asymmetric <- 0
     
     params <- list("n.components" = input$n.components,
                    "n.final.fragments" = input$n.final.fragments,  
@@ -633,7 +632,7 @@ server <- function(input, output, session) {
     hypotheses.df <- hypotheses()
     if(is.null(hypotheses.df)) return()
     
-    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "edges", "fragments", "n.objects", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
+    colnames(hypotheses.df) <- c("admixture", "cohesion1", "cohesion2", "n.objects", "edges", "fragments", "balance", "weightsum", "weights.median", "weights.sd", "hypothesis")
     hypotheses.df <- hypotheses.df[, c("admixture", "cohesion1", "cohesion2", "edges", "balance", "weightsum", "hypothesis")]
     
     summary.df <- archeofrag::frag.simul.summarise(graph.selected(), 
@@ -741,7 +740,7 @@ server <- function(input, output, session) {
       ggplot2::geom_density(alpha=.5, linewidth=.3) +
       ggplot2::scale_fill_grey(start = .4, end = .9) +
       ggplot2::geom_vline(xintercept = igraph::gsize(obs.graph))  + 
-      ggplot2::xlab("Relations count") + ggplot2::ggtitle("Relations count")
+      ggplot2::xlab("Relationships count") + ggplot2::ggtitle("Relationships count")
   })
   
   output$test.simul.edges.plot <- renderPlot({test.simul.edges.plot()})
@@ -980,7 +979,11 @@ server <- function(input, output, session) {
     req(input$n.components)
     
     asymmetric <- input$asymmetric
-    if(asymmetric == "none") asymmetric <- "NULL"
+    if(asymmetric == "none"){
+      asymmetric.str <- ""
+    } else{
+      asymmetric.str <- paste0("                                     asymmetric.transport.from = ", asymmetric, ",<br>")
+    }
     
     mode <- "%par%"
     if(input$parallelize) mode <- "%dopar%"
@@ -995,13 +998,13 @@ server <- function(input, output, session) {
              "                                     components.balance = ", input$components.balance, ",<br>",
              "                                     disturbance = ", input$disturbance, ",<br>",
              "                                     aggreg.factor = ", input$aggreg.factor, ",<br>",
-             "                                     planar = ", input$planar, ",<br>",
-             "                                     asymmetric.transport.from = ", asymmetric, ")<br>",
+                                                   asymmetric.str,
+             "                                     planar = ", input$planar, ")<br>",
              "              g <- archeofrag::frag.observer.failure(g, likelihood = ", input$edge.loss, " / 100,<br>",
              "                                                     remove.vertices = TRUE)[[1]]<br>",
              "              n.frag.to.remove <- round((", input$vertice.loss, " / 100) * igraph::gorder(g), 0)<br>",
              "              g <- archeofrag::frag.graph.reduce(g, n.frag.to.remove = n.frag.to.remove,<br>",
-             "                                                   conserve.objects.nr = FALSE)<br>",
+             "                                                    conserve.objects.nr = FALSE)<br>",
              "              data.frame(<br>",
              "                 'admixture'       = round(frag.layers.admixture(g, 'layer'), 3),<br>",
              "                 'cohesion'        = rbind(frag.layers.cohesion(g, 'layer')),<br>",
@@ -1009,7 +1012,7 @@ server <- function(input, output, session) {
              "                 'balance'         = table(igraph::V(g)$layer)[1] / igraph::gorder(g),<br>",
              "                 'weights.sum'     = sum(igraph::E(g)$weight),<br>",
              "                 'weights.median'  = stats::median(igraph::E(g)$weight),<br>",
-             "                 'weights.sd'      = stats::sd(igraph::E(g)$weight)<br>",
+             "                 'weights.mad'     = stats::mad(igraph::E(g)$weight)<br>",
              "              )<br>",
              "       }", 
              "</pre>")
@@ -1173,7 +1176,6 @@ server <- function(input, output, session) {
            'val objectsNumber = Val[Int]<br>',
            'val fragmentsNumber = Val[Int]<br>',
            'val targetedFragmentsNumber = Val[Int]<br>',
-           'val preserveObjectsNumber = Val[Int]<br>',
            'val balance = Val[Double]<br>',
            'val fragmentsBalance = Val[Double]<br>',
            'val componentsBalance = Val[Double]<br>',
@@ -1181,19 +1183,20 @@ server <- function(input, output, session) {
            'val aggregFactor = Val[Double]<br>',
            'val asymmetricTransport = Val[Int]<br>',
            'val planarGraphsOnly = Val[Int]<br>',
+           'val preserveObjectsNumber = Val[Int]<br>',
            'val mySeed = Val[Int]<br>',
            '<br>',
            '// Output values<br>',
            'val nRelationsOut = Val[Int]<br>',
            'val nObjectsOut = Val[Int]<br>',
            'val nFragmentsOut = Val[Int]<br>',
-           'val disturbanceOut = Val[Double]<br>',
-           'val compBalanceOut = Val[Double]<br>',
-           'val fragBalanceOut = Val[Double]<br>',
-           'val aggregFactorOut = Val[Double]<br>',
-           'val cohesion1Out = Val[Double]<br>',
-           'val cohesion2Out = Val[Double]<br>',
-           'val admixtureOut = Val[Double]<br>',
+           'val disturbanceOut = Val[Int]<br>',
+           'val compBalanceOut = Val[Int]<br>',
+           'val fragBalanceOut = Val[Int]<br>',
+           'val aggregFactorOut = Val[Int]<br>',
+           'val cohesion1Out = Val[Int]<br>',
+           'val cohesion2Out = Val[Int]<br>',
+           'val admixtureOut = Val[Int]<br>',
            '<br>',
            'val local = LocalEnvironment(10)  // Number of core to use. Adjust as needed<br>',
            '<br>',
@@ -1213,7 +1216,8 @@ server <- function(input, output, session) {
            '                                        disturbance = disturbance,<br>',
            '                                        aggreg.factor = aggregFactor,<br>',
            '                                        asymmetric.transport.from = asymmetricTransport,<br>',
-           '                                        planar = as.logical(planarGraphsOnly))<br>',
+           '                                        planar = as.logical(planarGraphsOnly)<br>',
+           '                                        )<br>',
            '                # Randomly delete fragments:<br>',
            '                g <- frag.graph.reduce(graph = g,<br>',
            '                                       n.frag.to.remove = igraph::gorder(g) - targetedFragmentsNumber,<br>',
@@ -1253,6 +1257,7 @@ server <- function(input, output, session) {
            '  inputs += disturbance.mapped,<br>',
            '  inputs += layerNumber.mapped,<br>',
            '  inputs += aggregFactor.mapped,<br>',
+           '  inputs += planarGraphsOnly.mapped,<br>',
            '  inputs += asymmetricTransport.mapped,<br>',
            '  outputs += nRelationsOut.mapped,<br>',
            '  outputs += nObjectsOut.mapped,<br>',
@@ -1300,16 +1305,17 @@ server <- function(input, output, session) {
            OM.planarGraphsOnly.str,
            '  ),<br>',
            '  objective = Seq(<br>', # .... objective ----
-           OM.nRelationsOut.str,
-           OM.nObjectsOut.str,
-           OM.nFragmentsOut.str,
-           OM.disturbanceOut.str,
-           OM.compBalanceOut.str,
-           OM.fragBalanceOut.str,
-           OM.aggregFactorOut.str,
-           OM.weightsumOut.str,
            OM.cohesion1Out.str,
            OM.cohesion2Out.str,
+           OM.admixtureOut.str,
+           OM.nFragmentsOut.str,
+           OM.nRelationsOut.str,
+           OM.nObjectsOut.str,
+           OM.compBalanceOut.str,
+           OM.disturbanceOut.str,
+           OM.fragBalanceOut.str,
+           OM.aggregFactorOut.str,
+           # OM.weightsumOut.str,
            '),<br>',
            'stochastic = Stochastic(seed = mySeed)<br>',
            ') hook (workDirectory / "ose-results", frequency = 100) on local',
