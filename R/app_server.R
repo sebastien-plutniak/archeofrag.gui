@@ -3,9 +3,12 @@ server <- function(input, output, session) {
   value <- NULL
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
-    checkboxInput("parallelize",
-                  paste0("Parallelize (n workers: ",
-                         foreach::getDoParWorkers(), ")"), value=T)
+    span(`data-toggle` = "tooltip", `data-placement` = "bottom",
+         title = "Enabling parallelization uses half of the available cores to speed up the computation..",
+          checkboxInput("parallelize",
+                        paste0("Parallelize (n workers: ",
+                               foreach::getDoParWorkers(), ")"), value = TRUE)
+    )
   })
   
   # rubish generator
@@ -523,7 +526,6 @@ server <- function(input, output, session) {
       showNotification("The number of replication must be in [30, 1000].", type="warning")
       return(NULL)
     }
-    
     asymmetric <- input$asymmetric
     if(asymmetric == "none") asymmetric <- 0
     
@@ -543,7 +545,8 @@ server <- function(input, output, session) {
     
     if(input$parallelize){
       hypothese1.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
-                                         .errorhandling = "remove") %dopar%{
+                                         .errorhandling = "remove"
+                                         ) %dopar%{
                                            exec.simulation(initial.layers = 1,
                                                            n.components = params$n.components,
                                                            vertices = params$n.final.fragments,  
@@ -603,6 +606,11 @@ server <- function(input, output, session) {
                                                            vertice.loss = params$vertice.loss)
                                          }
     } # end else
+    
+    if(is.null(hypothese1.res) | is.null(hypothese2.res)){
+      showNotification("No solution found for those parameters.", duration = 12)
+      return(NULL)
+    }
     
     if(nrow(hypothese1.res[complete.cases(hypothese1.res),]) < 31 | 
        nrow(hypothese2.res[complete.cases(hypothese2.res),]) < 31){
@@ -815,6 +823,7 @@ server <- function(input, output, session) {
     req(hypotheses)
     hypotheses.df <- hypotheses()
     if(is.null(hypotheses.df)) return()
+    
     if(length(unique(hypotheses.df$v.obs)) < 2) return()
     obs.graph <- graph.selected()
     
@@ -842,7 +851,7 @@ server <- function(input, output, session) {
     if(is.null(test.simul.frag.plot())) return()
     
     HTML(paste0(
-      h2("Fragment count"),
+      h2("Fragments count"),
       column(10, align="center",
              HTML("<div style=width:40%;, align=left><p>
                    The number of fragments. This value is equal to the 'Final fragments number', unless one of the 'Information loss' parameters is not null.
@@ -1306,8 +1315,8 @@ server <- function(input, output, session) {
     
     # .. settings ----
     OM.islands.str <- ""
-    if(input$OM.islands > 1){
-      OM.islands.str <- paste0(" by Island(", input$OM.islands, ") ")
+    if(input$OM.islands > 0){
+      OM.islands.str <- paste0(" by Island(", input$OM.islands, " minutes) ")
     }
     
     # .. model ----
@@ -1468,8 +1477,8 @@ server <- function(input, output, session) {
            # OM.weightsumOut.str,
            '  ),<br>',
            '  stochastic = Stochastic(seed = mySeed)<br>',
-           ')', OM.islands.str,
-           ' hook (workDirectory / "ose-results", frequency = 100) on local',
+           ') ', OM.islands.str,
+           'hook (workDirectory / "ose-results", frequency = 100) on local',
            "</pre>")
     
     gsub("\\(0 ", "\\(0.0 ", om.code)   # format 0 values as double for openMOLE

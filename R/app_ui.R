@@ -219,26 +219,56 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                               column(10,  align = "center",
                                                                      HTML(
                    "<div style=width:40%;, align=left>
+                    <h2>Testing formation scenarios</h2>
+                    <p>
+                    Parameters (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.) are extracted from the input graph for the selected pair of spatial units, and used to generate two series of artificial graphs, one by deposition hypotheses:
+                    <ol type='1'>
+                     <li> The objects were buried during  <b>one deposition event</b> forming a single spatial unit, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists;</li>
+                     <li> The objects were buried during <b>two deposition events</b> forming two spatial units, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists.</li>
+                    </ol>
+                    </p>
+                    <p>In addition, the 'Unidirectional transport from unit...' parameter makes it possible to determine the direction of fragments transport between two spatial units. Combining the number of deposition events and transport direction allows to explore and test 6 formation scenarios (A to F):
+                   <table><thead>
+                    <tr>
+                      <th>Deposition events &emsp;&emsp;</th>
+                      <th colspan=3> Transport direction</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr>
+                        <td></td>
+                        <td> 1 &#8660; 2</td>
+                        <td> 1 &#8658; 2</td>
+                        <td> 1 &#8656; 2</td>
+                      </tr>
+                      <tr>
+                        <td>One (H1)</td>
+                        <td>A</td>
+                        <td>C</td>
+                        <td>E</td>
+                      </tr>
+                      <tr>
+                        <td>Two (H2)</td>
+                        <td>B</td>
+                        <td>D</td>
+                        <td>F</td>
+                      </tr>
+                    </tbody>
+                    </table>
+                    </p>
+                    <p>
+                      For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
+                    </p>
                     <h2>Instructions</h2>
                     <p>
                       <ul>
                       <li>Select the pair of spatial units to compare in the sidebar menu.</li>
-                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test other hypotheses. The final number of refitting relations is not constrained.</li>
+                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test other hypotheses. The final number of refitting relationships is not constrained.</li>
                       <li>Optionally, set an amount of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
-                      <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button. Enabling parallelization uses half of the available cores to speed up the computation (however if it raises an error, untick the box, re-run, and be patient).</li>
+                      <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button.</li>
                       </ul>
                     </p>
-                    <h2>How it works?</h2>
-                    <p>
-                    Parameters (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.) are extracted from the input graph for the selected pair of spatial units, and used to generate a series of artificial graphs. These graphs are generated for two deposition hypotheses:
-                    <ol type='1'>
-                     <li> The objects were buried in a <b>single spatial unit</b>, and subsequently moved, afrom what archaeologists distinguished between two spatial units;</li>
-                     <li> The objects were buried in <b>two spatial units</b>, and subsequently moved, from what archaeologists distinguished between two spatial units.</li>
-                    </ol>
-                      For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
-                    </p>
-                    <p>
                     <h2>Results</h2>
+                    <p>
                     The table below summarises the results for some parameters, indicating:
                    <ul>
                      <li>whether the simulated values for H1 and H2 are significantly different (<a href=https://en.wikipedia.org/wiki/Wilcoxon_signed-rank_test target=_blank>Wilcoxon test</a>, 'H1 != H2?' and 'p.value' columns), and 
@@ -288,7 +318,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     ), #end column
                                                     column(3, 
                                                       span(`data-toggle` = "tooltip", `data-placement` = "bottom",
-                                                                title = "Higher values increase the likelihood that  largest components are selected when adding fragments or connections.",
+                                                                title = "Higher values increase the likelihood that  largest sets of fragments are selected when adding fragments or connections.",
                                                            uiOutput("aggreg.factor")
                                                       ) #end span
                                                     ), #end column
@@ -344,14 +374,14 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                           60, min=30, max=1000, width = "100%"),
                                                             ) #end span
                                                       ), #end column
-                                                      column(2,  uiOutput("parallelize.box"),
-                                                             style="padding:27px;"),
                                                       column(1,
                                                         span(`data-toggle` = "tooltip", `data-placement` = "bottom",
-                                                           title = "If non null, seed for pseudorandom number generation. Two executions with the same seed return exactly the same results.",
-                                                           numericInput("seed", "Set seed", value=NULL, min=1, max=50, width = "100%"),
-                                                      ) #end span
+                                                           title = "If non null, seed for pseudorandom number generation. Executions with the same seed return the same results.",
+                                                           numericInput("seed", "Seed", value=NULL, min=1, max=50, width = "100%"),
+                                                        ), #end span
                                                       ), #end column
+                                                      column(2,  uiOutput("parallelize.box"),
+                                                             style="padding:27px;"),
                                                       column(1, actionButton("goButton", "Run"), style="padding:27px;")
                                                   ), #end fluidrow
                                                   fluidRow( # .. plots----
@@ -468,13 +498,13 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                           <div  style=width:40%;, align=left>
                                                                           <h3>The problem</h3>
                                                                           <p>
-                                                                            Simulating a formation process in time between the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to e.g. partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to combinatorial explosions (In how many objects were originally included in this site? How many fragments of this vessel are missing?). </p>
+                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to, for example, partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to combinatorial explosions (How many objects were originally included in this site? How many fragments of this vessel are missing?). </p>
                                                                             <h3>Origin Space Exploration</h3>
                                                                             <p>
                                                                             Model exploration methods address those cases. In particular, the <a href=https://openmole.org/OSE.html target=_blank>Origin Space Exploration</a> method (OSE) enables determining possible combinations of the initial parameters of a model, overcoming  combinatorial explosions.  Conducting an OSE analysis requires defining:
                                                                             <ol>
                                                                             <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
-                                                                            <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state at t<sub>0</sub>).</li>
+                                                                            <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state of the model at t<sub>0</sub>).</li>
                                                                             </ol>
                                                                             The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>−2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
                                                                             </p>
@@ -483,11 +513,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                             </p>
                                                                             <h3>Instructions</h3>
                                                                             <p>
-                                                                            <i>archeofrag.gui</i> does not include it but allows to set-up and generate the (Scala and R) code to plug the <i>archeofrag</i> formation model into the <i>openMOLE</i> framework and run it, making this workflow easier and faster to use.
+                                                                            <i>archeofrag.gui</i> does not include the OSE method. However, it allows to set-up and generate the (Scala and R) code to plug the <i>archeofrag</i> formation model into the <i>openMOLE</i> framework and run it, making this workflow easier and faster to use.
                                                                             </p>
                                                                             <ol>
-                                                                              <li> Define the range of origin values to explore for each variable. Note that some values are automatically filed using the parameters of the selected pair of spatial units.</li>
-                                                                              <li> Select the objective variables: the OSE procedure will return the combinations of variables that generate the values of those variables. Optionally, a tolerance percentage can be set for each value to allow approximation.</li>
+                                                                              <li> Define the range of <b>origin values</b> to explore for each variable. Note that some values are automatically filed using the parameters of the selected pair of spatial units.</li>
+                                                                              <li> Select the <b>objective variables</b>: the OSE procedure will return the combinations of variables that generate the values of those variables. Optionally, a tolerance percentage can be set for each value to allow approximation.</li>
                                                                               <li>Execute the generated code in <i>openMOLE</i>.</li>
                                                                             </ol>
                                                                             Note the values of several <i>archeofrag</i> parameters are converted as integers because <i>openMOLE</i> requires it (e.g. cohesion, admixture, balance, etc.).  
@@ -587,7 +617,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                                value =  foreach::getDoParWorkers(),
                                                                                step = 1, width = "100%")
                                                                   ), #end column
-                                                           column(2, numericInput("OM.islands", "Group executions by", min = 1, value = 1, step = 1, width = "100%"))
+                                                           column(2, sliderInput("OM.islands", "Group executions by n minutes", min = 0, max=15, value = 0, step = 1, width = "100%"))
                                                   ), # end fluidrow 
                                                   br(), br(),
                                                 actionButton("OMcode.copy.button", "Copy code to clipboard"),
