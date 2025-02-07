@@ -537,6 +537,9 @@ server <- function(input, output, session) {
                    "edge.loss" = input$edge.loss,
                    "vertice.loss" = input$vertice.loss)
     
+    if( ! is.na(input$seed)){
+       doRNG::registerDoRNG(input$seed) # set seed if required
+    }
     
     if(input$parallelize){
       hypothese1.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",

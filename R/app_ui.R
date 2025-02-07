@@ -293,7 +293,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                       ) #end span
                                                     ), #end column
                                                     column(2, 
-                                                      span(`data-toggle` = "tooltip", `data-placement` = "bottom",
+                                                      span(`data-toggle` = "tooltip", `data-placement` = "top",
                                                             title = "Applying disturbance only to fragments from a specific spatial unit.",
                                                            uiOutput("asymmetric")
                                                       ) #end span
@@ -341,12 +341,18 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                              span(`data-toggle` = "tooltip", `data-placement` = "bottom",
                                                                   title = "[30;1000].",
                                                              numericInput("replications", "Replications",
-                                                                          60, min=30, max=1000, width = "100%")
-                                                       ) #end span
+                                                                          60, min=30, max=1000, width = "100%"),
+                                                            ) #end span
                                                       ), #end column
-                                                      column(1, actionButton("goButton", "Run"), style="padding:27px;"),
                                                       column(2,  uiOutput("parallelize.box"),
-                                                             style="padding:27px;")
+                                                             style="padding:27px;"),
+                                                      column(1,
+                                                        span(`data-toggle` = "tooltip", `data-placement` = "bottom",
+                                                           title = "If non null, seed for pseudorandom number generation. Two executions with the same seed return exactly the same results.",
+                                                           numericInput("seed", "Set seed", value=NULL, min=1, max=50, width = "100%"),
+                                                      ) #end span
+                                                      ), #end column
+                                                      column(1, actionButton("goButton", "Run"), style="padding:27px;")
                                                   ), #end fluidrow
                                                   fluidRow( # .. plots----
                                                       h1("Results"),
