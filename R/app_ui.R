@@ -119,7 +119,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    HTML(
                                                   "<div style=width:40%;, align=left>
                                                    <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). Details about the method are given in  <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>.</p>
-                                                   <p>Note that these weighting options are not supported by the simulation function.</p>
+                                                   <p>Note that those weighting options are <b>not</b> supported by the simulation function.</p>
                                                   </div>"
                                                    ), #end HTML
                                                    uiOutput("rubish.text")
@@ -178,7 +178,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10,  align = "center",
                                                             HTML("
                                                             <div align=center>
-                                                            <img width='40%' src=www/timeline-simulation-v2.png><br>
+                                                            <img width='40%' src=www/timeline-simulation.png><br>
                                                             </div>
                                                             <br>
                                                             <div  style=width:40%;,  align=left>
@@ -384,7 +384,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     h2("Fragments balance"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
-                                                                Fragment balance, here, is a descriptive statistic simply defined as the proportion of fragments included in the first spatial unit, whatever their initial spatial unit (see code in 'R code' tab). Note that this definition differs from that of 'estimated' fragment balance value presented in the 'Measurements' tab  and used to set up the simulation. The rationale behind this is to test whether the empirical balance can be obtained in simulated results from a guessed estimated initial balance.
+                                                                Fragments balance, here, is a descriptive statistic simply defined as the proportion of fragments included in the first spatial unit, whatever their initial spatial unit (see code in 'R code' tab). Note that this definition differs from that of 'estimated' fragments balance value presented in the 'Measurements' tab  and used to set up the simulation. The rationale behind this is to test whether the empirical balance can be obtained in simulated results from a guessed estimated initial balance.
                                                                 </p></div>")
                                                     )),
                                                   fluidRow(column(10,
@@ -456,19 +456,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            fluidRow( 
                                                                      h1("From the Deposition event to the Excavation event"),
                                                                      column(10, 
-                                                                            HTML("<h2>Introduction to <i>openMOLE</i>'s Origin Search Exploration method</h2>")),
+                                                                            HTML("<h2>Introduction to <i>openMOLE</i>'s Origin Space Exploration method</h2>")),
                                                                      column(10, align="center",
                                                                      HTML("
                                                                           <div  style=width:40%;, align=left>
                                                                           <h3>The problem</h3>
                                                                           <p>
                                                                             Simulating a formation process in time between the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to e.g. partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to combinatorial explosions (In how many objects were originally included in this site? How many fragments of this vessel are missing?). </p>
-                                                                            <h3>Origin Search Exploration</h3>
+                                                                            <h3>Origin Space Exploration</h3>
                                                                             <p>
-                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/OSE.html target=_blank>Origin Search Exploration</a> method (OSE) enables determining possible combinations of the initial parameters of a model, overcoming  combinatorial explosions.  Conducting an OSE analysis requires defining:
+                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/OSE.html target=_blank>Origin Space Exploration</a> method (OSE) enables determining possible combinations of the initial parameters of a model, overcoming  combinatorial explosions.  Conducting an OSE analysis requires defining:
                                                                             <ol>
                                                                             <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
-                                                                            <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state at t<sub>0</sub>)</li>
+                                                                            <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state at t<sub>0</sub>).</li>
                                                                             </ol>
                                                                             The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>−2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
                                                                             </p>
@@ -491,7 +491,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            ), #end fluid row
                                                            fluidRow(
                                                                      column(10, # .. exploration var. ----
-                                                                     h2("Origins: variable and range of values to explore"), 
+                                                                     h2("Origin variables: ranges of values to explore"), 
                                                                      h3("Initial state"),
                                                            ), #end  column
                                                   ), #end fluid row
@@ -517,54 +517,75 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(3, uiOutput("OM.aggregFactor.val.ui")),
                                                                      ),
                                                                     fluidRow(
-                                                                       column(2, selectInput("OM.asymmetric.val", "Unidirectional transport from unit", choices = c("none", "1", "2", "1, 2"), selected = NULL, width = "100%")),
+                                                                       column(2, selectInput("OM.asymmetric.val", "Unidirectional transport from unit", choices = c("none", "1", "2", "1, 2", "none, 1, 2"), selected = NULL, width = "100%")),
                                                                        column(1),
                                                                        column(3, uiOutput("OM.fragmentsBalance.val.ui")),
                                                                       column(3, uiOutput("OM.disturbance.val.ui")),
                                                                      ),
                                                   fluidRow(column(10, 
-                                                                     h2("Objective variables")), # .. target var. ----
-                                                                     column(10, align="center",
-                                                                     HTML("
+                                                                  h2("Objective variables")), # .. objective var. ----
+                                                           column(10, align="center",
+                                                                  HTML("
                                                                      <div  style=width:40%;, align=left>
                                                                     To include a variable in the objective variables  tick its box. By default, the algorithm will look for the exact value. However, to also admit the surrounding  values, use the corresponding slider to set up a tolerance (in percentage).
                                                                      </div>
                                                                      <br><br>")
-                                                                     ), #end column
-                                                           ), #end fluidrow
-                                                                     fluidRow(
-                                                                       column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE)),
-                                                                       column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = TRUE)),
-                                                                       column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE)),
-                                                                       column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
-                                                                       ),
-                                                                     fluidRow(
-                                                                       column(2, checkboxInput("OM.nFragmentsOut", "Fragment number", value = TRUE)),
-                                                                       column(2, sliderInput("OM.nFragmentsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(2, checkboxInput("OM.nRelationsOut", "Connection number")),
-                                                                       column(2, sliderInput("OM.nRelationsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       column(1, checkboxInput("OM.nObjectsOut", "Object number")),
-                                                                      column(2, sliderInput("OM.nObjectsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       ),
-                                                                     fluidRow(column(2, checkboxInput("OM.disturbanceOut", "Disturbance")),
-                                                                              column(2, sliderInput("OM.disturbanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
-                                                                     fluidRow(
-                                                                       column(2, checkboxInput("OM.compBalanceOut", "Object balance")),
-                                                                       column(2, sliderInput("OM.compBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                                       # ),
-                                                                     # fluidRow(
-                                                                       column(2, checkboxInput("OM.fragBalanceOut", "Fragment balance")),
-                                                                                     column(2, sliderInput("OM.fragBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
-                                                                       ),
-                                                                     fluidRow(column(2, checkboxInput("OM.aggregFactorOut", "Aggregation factor")),
-                                                                                     column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
-                                                                     # fluidRow(column(2, checkboxInput("OM.weightsumOut", "Relation weights sum")),
-                                                                     #                 column(3, sliderInput("OM.weightsumOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
-                                                  
-                                                           actionButton("OMcode.copy.button", "Copy code to clipboard"),
-                                                           HTML(paste("<div style=width:80%;, align=left>",
+                                                           ), #end column
+                                                  ), #end fluidrow
+                                                  fluidRow(
+                                                    column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE)),
+                                                    column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = TRUE)),
+                                                     column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE)),
+                                                     column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                     ),
+                                                   fluidRow(
+                                                     column(2, checkboxInput("OM.nFragmentsOut", "Fragment number", value = TRUE)),
+                                                     column(2, sliderInput("OM.nFragmentsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(2, checkboxInput("OM.nRelationsOut", "Connection number")),
+                                                     column(2, sliderInput("OM.nRelationsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(1, checkboxInput("OM.nObjectsOut", "Object number")),
+                                                    column(2, sliderInput("OM.nObjectsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     ),
+                                                   fluidRow(
+                                                    column(2, checkboxInput("OM.disturbanceOut", "Disturbance")),
+                                                    column(2, sliderInput("OM.disturbanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
+                                                   fluidRow(
+                                                     column(2, checkboxInput("OM.compBalanceOut", "Object balance")),
+                                                     column(2, sliderInput("OM.compBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     # ),
+                                                   # fluidRow(
+                                                     column(2, checkboxInput("OM.fragBalanceOut", "Fragment balance")),
+                                                     column(2, sliderInput("OM.fragBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                   ),
+                                                  fluidRow(column(2, checkboxInput("OM.aggregFactorOut", "Aggregation factor")),
+                                                           column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                           ), # end fluidrow
+                                                  # fluidRow(column(2, checkboxInput("OM.weightsumOut", "Relation weights sum")),
+                                                  #                 column(3, sliderInput("OM.weightsumOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),                                                  
+                                                  fluidRow(column(10, 
+                                                                  h2("Computation set up")), # .. settings ----
+                                                           # column(10, align="center",
+                                                                  # HTML("
+                                                                  #    <div  style=width:40%;, align=left>
+                                                                  #   To include a variable in the objective variables  tick its box. By default, the algorithm will look for the exact value. However, to also admit the surrounding  values, use the corresponding slider to set up a tolerance (in percentage).
+                                                                  #    </div>
+                                                                  #    <br><br>")
+                                                           # ), #end column
+                                                  ), #end fluidrow
+                                                  fluidRow(column(1, numericInput("OM.replications", "Replications", min = 30, value = 30, step = 1, width = "100%")),
+                                                           
+                                                           column(2, 
+                                                                  numericInput("OM.parallelize", "Parallelize on n cores", min = 1,
+                                                                               value =  foreach::getDoParWorkers(),
+                                                                               step = 1, width = "100%")
+                                                                  ), #end column
+                                                           column(2, numericInput("OM.islands", "Group executions by", min = 1, value = 1, step = 1, width = "100%"))
+                                                  ), # end fluidrow 
+                                                  br(), br(),
+                                                actionButton("OMcode.copy.button", "Copy code to clipboard"),
+                                                HTML(paste("<div style=width:80%;, align=left>",
                                                                       "<br><div style=\"font-family:Courier; font-size: small; width:100%;\", align=left>",
                                                                       htmlOutput("openMOLE.code"),
                                                                       "</div>",

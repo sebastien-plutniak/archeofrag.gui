@@ -355,7 +355,7 @@ server <- function(input, output, session) {
   
   output$asymmetric <- renderUI({
     req(input.graph.params())
-    selectInput("asymmetric", "Undirectional transport from unit", choices = c("none", "1", "2"), selected = "none", width = "100%")
+    selectInput("asymmetric", "Unidirectional transport from unit", choices = c("none", "1", "2"), selected = "none", width = "100%")
   })
   
   output$planar <- renderUI({
@@ -417,7 +417,7 @@ server <- function(input, output, session) {
     stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[,1])
     stats.table$unit2 <- gsub("^.* / (.*$)", "\\1", stats.table[,1])
     
-    pairs <- utils::combn(sort(unique(graph.data2()$objects.df$spatial.variable)), 2)
+    pairs <- utils::combn(sort(unique(c(stats.table$unit1, stats.table$unit2))), 2)
     pairs <- t(as.data.frame(pairs))
     pairs <- rbind(pairs, pairs[, 2:1])
     
@@ -938,10 +938,12 @@ server <- function(input, output, session) {
             <ul>
               <li>lines: connection relationships</li> 
               <li>nodes: fragments</li>
-              <li>color: spatial unit associated with the fragments (<font color=red>red</font> for <b>",  
+              <li>colors: spatial units associated with the fragments (<font color=red>red</font> for <b>",  
            gsub("^(.*)/.*", "\\1", units.pair), 
            "</b>, <font color=purple>purple</font> for <b>", gsub("^.*/(.*)", "\\1", units.pair), 
-           "</b>)</li></ul>")
+           "</b>)</li></ul>
+           Note that the position of the nodes is only determined by the graph drawing method and does not reflect their archaeological location.
+           ")
   })
   
   frag.graph.viz <- reactive({   
@@ -1083,6 +1085,7 @@ server <- function(input, output, session) {
                           agreg +  .05))
   })
   
+  
   # .. code ----
   openMOLE.code <- reactive({
     # req(stats.table())
@@ -1123,52 +1126,187 @@ server <- function(input, output, session) {
   OM.asymmetric.str <- paste0("    asymmetricTransport in Seq(", 
                                          paste(as.integer(unlist(strsplit(asymmetric.val, split = ", "))), collapse = ", "), "),<br>")
     
-    # .. objective variables ----
-    OM.nRelationsOut.str  <- ""
-    OM.nObjectsOut.str  <- ""
-    OM.nFragmentsOut.str  <- ""
-    OM.disturbanceOut.str  <- ""
-    OM.compBalanceOut.str  <- ""
-    OM.fragBalanceOut.str  <- ""
-    OM.asymmetricOut.str  <- ""
-    OM.aggregFactorOut.str  <- ""
-    OM.weightsumOut.str  <- ""
-    OM.cohesion1Out.str  <- ""
-    OM.cohesion2Out.str  <- ""
-    OM.admixtureOut.str  <- ""
+  
+    # For each variable, 4 strings are defined and used only if the variable is selected as an objective:
+    # .init.str: variable declaration
+    # .map.str: OM variable mapping
+    # .R.str: R code
+    # .obj.str: opoen mole code to declare the variable as an objective
+    OM.nRelationsOut.obj.str  <- ""
+    OM.nObjectsOut.obj.str  <- ""
+    OM.nFragmentsOut.obj.str  <- ""
+    OM.disturbanceOut.obj.str  <- ""
+    OM.compBalanceOut.obj.str  <- ""
+    OM.fragBalanceOut.obj.str  <- ""
+    OM.asymmetricOut.obj.str  <- ""
+    OM.aggregFactorOut.obj.str  <- ""
+    # OM.weightsumOut.obj.str  <- ""
+    OM.cohesion1Out.obj.str  <- ""
+    OM.cohesion2Out.obj.str  <- ""
+    OM.admixtureOut.obj.str  <- ""
+    
+    OM.nRelationsOut.map.str  <- ""
+    OM.nObjectsOut.map.str  <- ""
+    OM.nFragmentsOut.map.str  <- ""
+    OM.disturbanceOut.map.str  <- ""
+    OM.compBalanceOut.map.str  <- ""
+    OM.fragBalanceOut.map.str  <- ""
+    OM.aggregFactorOut.map.str  <- ""
+    # OM.weightsumOut.map.str  <- ""
+    OM.cohesion.map.str  <- ""
+    OM.cohesion1Out.map.str  <- ""
+    OM.cohesion2Out.map.str  <- ""
+    OM.admixtureOut.map.str  <- ""
+    
+    OM.nRelationsOut.R.init.str  <- ""
+    OM.nObjectsOut.R.init.str  <- ""
+    OM.nFragmentsOut.R.init.str  <- ""
+    OM.disturbanceOut.R.init.str  <- ""
+    OM.compBalanceOut.R.init.str  <- ""
+    OM.fragBalanceOut.R.init.str  <- ""
+    OM.aggregFactorOut.R.init.str  <- ""
+    # OM.weightsumOut.R.init.str  <- ""
+    OM.cohesion.R.init.str  <- ""
+    OM.cohesion1Out.R.init.str  <- ""
+    OM.cohesion2Out.R.init.str  <- ""
+    OM.admixtureOut.R.init.str  <- ""
+    
+    OM.nRelationsOut.R.str  <- ""
+    OM.nObjectsOut.R.str  <- ""
+    OM.nFragmentsOut.R.str  <- ""
+    OM.disturbanceOut.R.str  <- ""
+    OM.compBalanceOut.R.str  <- ""
+    OM.fragBalanceOut.R.str  <- ""
+    OM.aggregFactorOut.R.str  <- ""
+    # OM.weightsumOut.R.str  <- ""
+    OM.cohesion.R.str  <- ""
+    OM.cohesion1Out.R.str  <- ""
+    OM.cohesion2Out.R.str  <- ""
+    OM.admixtureOut.R.str  <- ""
+    
+    OM.nRelationsOut.init.str <- ""
+    OM.nObjectsOut.init.str <- ""
+    OM.nFragmentsOut.init.str <- ""
+    OM.disturbanceOut.init.str <- ""
+    OM.compBalanceOut.init.str <- ""
+    OM.fragBalanceOut.init.str <- ""
+    OM.aggregFactorOut.init.str <- ""
+    # OM.weightsumOut.init.str  <- ""
+    OM.cohesion1Out.init.str <- ""
+    OM.cohesion2Out.init.str <- ""
+    OM.admixtureOut.init.str <- ""
     
     obs.admix <-  round(archeofrag::frag.layers.admixture(graph.selected(), "spatial.variable", verbose = FALSE), 2)
     obs.cohesion <- round(archeofrag::frag.layers.cohesion(graph.selected(), "spatial.variable", verbose = FALSE), 2)
     
-    if(input$OM.nRelationsOut) OM.nRelationsOut.str <-  paste0("    nRelationsOut delta ", input.graph.params()$edges, " under ", 
+    if(input$OM.nRelationsOut){ 
+      OM.nRelationsOut.init.str <- 'val nRelationsOut = Val[Int]<br>' 
+      OM.nRelationsOut.map.str  <- '  outputs += nRelationsOut.mapped,<br>'
+      OM.nRelationsOut.R.init.str <- "            nRelationsOut    <- -1<br>"
+      OM.nRelationsOut.R.str <- "                nRelationsOut    <- frag.params$edges<br>"
+      OM.nRelationsOut.obj.str <-  paste0("    nRelationsOut delta ", input.graph.params()$edges, " under ", 
                                                               round(input.graph.params()$edges * input$OM.nRelationsOut.sens / 100, 0), ",<br>")
-    if(input$OM.nObjectsOut) OM.nObjectsOut.str <- paste0("    nObjectsOut delta ", input.graph.params()$n.components, " under ", 
+    }
+    
+    if(input$OM.nObjectsOut){
+      OM.nObjectsOut.init.str <- 'val nObjectsOut = Val[Int]<br>' 
+      OM.nObjectsOut.map.str  <- '  outputs += nObjectsOut.mapped,<br>'
+      OM.nObjectsOut.R.init.str <- '            nObjectsOut      <- -1<br>'
+      OM.nObjectsOut.R.str <- '                nObjectsOut      <- frag.params$n.components<br>'
+      OM.nObjectsOut.obj.str <- paste0("    nObjectsOut delta ", input.graph.params()$n.components, " under ", 
                                                           round(input.graph.params()$n.components * input$OM.nObjectsOut.sens / 100, 0), ",<br>")
-    if(input$OM.nFragmentsOut) OM.nFragmentsOut.str <-  paste0("    nFragmentsOut delta ", input.graph.params()$vertices, " under ",
+    }
+    
+    if(input$OM.nFragmentsOut){
+      OM.nFragmentsOut.init.str <- 'val nFragmentsOut = Val[Int]<br>' 
+      OM.nFragmentsOut.map.str  <- '  outputs += nFragmentsOut.mapped,<br>'
+      OM.nFragmentsOut.R.init.str <- '            nFragmentsOut    <- -1<br>'
+      OM.nFragmentsOut.R.str <- '                nFragmentsOut    <- frag.params$vertices<br>'
+      OM.nFragmentsOut.obj.str <-  paste0("    nFragmentsOut delta ", input.graph.params()$vertices, " under ",
                                                                round(input.graph.params()$vertices * input$OM.nFragmentsOut.sens / 100, 0), ",<br>")
-    if(input$OM.disturbanceOut) OM.disturbanceOut.str <- paste0("    disturbanceOut delta ", 
+    }
+    
+    if(input$OM.disturbanceOut){
+      OM.disturbanceOut.init.str <- 'val disturbanceOut = Val[Int]<br>' 
+      OM.disturbanceOut.map.str  <- '  outputs += disturbanceOut.mapped,<br>'
+      OM.disturbanceOut.R.init.str <- '            disturbanceOut   <- -1<br>'
+      OM.disturbanceOut.R.str <- '                disturbanceOut   <- as.integer(frag.params$disturbance * 100)<br>'
+      OM.disturbanceOut.obj.str <- paste0("    disturbanceOut delta ", 
                                                                as.integer(input.graph.params()$disturbance * 100), " under ", 
-                                                               round(as.integer(input.graph.params()$disturbance * 100) * input$OM.disturbanceOut.sens / 100, 0), ",<br>")  
-    if(input$OM.compBalanceOut) OM.compBalanceOut.str <- paste0("    compBalanceOut delta ",
+                                                               round(as.integer(input.graph.params()$disturbance * 100) * input$OM.disturbanceOut.sens / 100, 0), ",<br>")
+    }
+    
+    if(input$OM.compBalanceOut){
+      OM.compBalanceOut.init.str <- 'val compBalanceOut = Val[Int]<br>' 
+      OM.compBalanceOut.map.str  <- '  outputs += compBalanceOut.mapped,<br>'
+      OM.compBalanceOut.R.init.str <- '            compBalanceOut   <- -1<br>'
+      OM.compBalanceOut.R.str <- '                compBalanceOut   <- as.integer(frag.params$components.balance * 100)<br>'
+      OM.compBalanceOut.obj.str <- paste0("    compBalanceOut delta ",
                                                                as.integer(input.graph.params()$components.balance * 100), " under ", 
-                                                               round(as.integer(input.graph.params()$components.balance * 100) * input$OM.compBalanceOut.sens / 100, 0), ",<br>")  
-    if(input$OM.fragBalanceOut) OM.fragBalanceOut.str <- paste0("    fragBalanceOut delta ",
+                                                               round(as.integer(input.graph.params()$components.balance * 100) * input$OM.compBalanceOut.sens / 100, 0), ",<br>") 
+    }
+    
+    if(input$OM.fragBalanceOut){
+      OM.fragBalanceOut.init.str <- 'val fragBalanceOut = Val[Int]<br>' 
+      OM.fragBalanceOut.map.str  <- '  outputs += fragBalanceOut.mapped,<br>'
+      OM.fragBalanceOut.R.init.str <- '            fragBalanceOut   <- -1<br>'
+      OM.fragBalanceOut.R.str <- '                fragBalanceOut   <- as.integer(frag.params$balance * 100)<br>'
+      OM.fragBalanceOut.obj.str <- paste0("    fragBalanceOut delta ",
                                                                as.integer(input.graph.params()$balance * 100), " under ", 
-                                                               round(as.integer(input.graph.params()$balance * 100) * input$OM.fragBalanceOut.sens / 100, 0), ",<br>")  
-    if(input$OM.aggregFactorOut) OM.aggregFactorOut.str <- paste0("    aggregFactorOut delta ",
+                                                               round(as.integer(input.graph.params()$balance * 100) * input$OM.fragBalanceOut.sens / 100, 0), ",<br>")
+    }
+    
+    if(input$OM.aggregFactorOut){
+      OM.aggregFactorOut.init.str <- 'val aggregFactorOut = Val[Int]<br>' 
+      OM.aggregFactorOut.map.str  <- '  outputs += aggregFactorOut.mapped,<br>'
+      OM.aggregFactorOut.R.init.str <- '            aggregFactorOut  <- -1<br>'
+      OM.aggregFactorOut.R.str <- '                aggregFactorOut  <- as.integer(frag.params$aggreg.factor * 100)<br>'
+      OM.aggregFactorOut.obj.str <- paste0("    aggregFactorOut delta ",
                                                                   as.integer(input.graph.params()$aggreg.factor * 100), " under ", 
                                                                  round(input.graph.params()$aggreg.factor * input$OM.aggregFactorOut.sens / 100, 0), ",<br>")
+    }
     # if(input$OM.weightsumOut) OM.weightsumOut.str <- paste0("weightsumOut delta", input$TODO, "under", OM.weightsumOut.sens, ",<br>")
-    if(input$OM.cohesion1Out) OM.cohesion1Out.str <- paste0("    cohesion1Out delta ",
+    
+    if(input$OM.cohesion1Out | input$OM.cohesion2Out) {
+      OM.cohesion.R.str <- '                cohesion.results <- frag.layers.cohesion(g, \'layer\')<br><br>'
+    }
+    
+    if(input$OM.cohesion1Out) {
+      OM.cohesion1Out.init.str <- 'val cohesion1Out = Val[Int]<br>' 
+      OM.cohesion1Out.map.str  <- '  outputs += cohesion1Out.mapped,<br>'
+      OM.cohesion1Out.R.init.str <- '            cohesion1Out     <- -1<br>'
+      OM.cohesion1Out.R.str <- '                cohesion1Out     <- as.integer(cohesion.results[1] * 100)<br>'
+      OM.cohesion1Out.obj.str <- paste0("    cohesion1Out delta ",
                                                            as.integer(obs.cohesion[1] * 100), " under ", 
-                                                           round(as.integer(obs.cohesion[1] * 100) * input$OM.cohesion1Out.sens / 100, 0), ",<br>")  
-    if(input$OM.cohesion2Out) OM.cohesion2Out.str <- paste0("    cohesion2Out delta ",
+                                                           round(as.integer(obs.cohesion[1] * 100) * input$OM.cohesion1Out.sens / 100, 0), ",<br>") 
+    }
+    
+    if(input$OM.cohesion2Out){
+      OM.cohesion2Out.init.str <- 'val cohesion2Out = Val[Int]<br>' 
+      OM.cohesion2Out.map.str  <- '  outputs += cohesion2Out.mapped,<br>'
+      OM.cohesion2Out.R.init.str <- '            cohesion2Out     <- -1<br>'
+      OM.cohesion2Out.R.str <- '                cohesion2Out     <- as.integer(cohesion.results[2] * 100)<br>'
+      OM.cohesion2Out.obj.str <- paste0("    cohesion2Out delta ",
                                                            as.integer(obs.cohesion[2] * 100), " under ", 
-                                                           round(as.integer(obs.cohesion[2] * 100) * input$OM.cohesion2Out.sens / 100, 0), ",<br>")  
-    if(input$OM.admixtureOut) OM.admixtureOut.str <-  paste0("    admixtureOut delta ",
+                                                           round(as.integer(obs.cohesion[2] * 100) * input$OM.cohesion2Out.sens / 100, 0), ",<br>")
+    }
+    
+    if(input$OM.admixtureOut){
+      OM.admixtureOut.init.str <- 'val admixtureOut = Val[Int]<br>'
+      OM.admixtureOut.map.str  <- '  outputs += admixtureOut.mapped,<br>'
+      OM.admixtureOut.R.init.str <- '            admixtureOut     <- -1<br>'
+      OM.admixtureOut.R.str <- '                admixtureOut     <- as.integer(frag.layers.admixture(g, \'layer\') * 100)<br>'
+      OM.admixtureOut.obj.str <-  paste0("    admixtureOut delta ",
                                                             as.integer(obs.admix * 100), " under ", 
                                                             round(as.integer(obs.admix * 100) * input$OM.admixtureOut.sens / 100, 0), ",<br>")
-
+    }
+    
+    # .. settings ----
+    OM.islands.str <- ""
+    if(input$OM.islands > 1){
+      OM.islands.str <- paste0(" by Island(", input$OM.islands, ") ")
+    }
+    
     # .. model ----
     om.code <- paste0('<pre>',
            '// Input values<br>',
@@ -1187,26 +1325,36 @@ server <- function(input, output, session) {
            'val mySeed = Val[Int]<br>',
            '<br>',
            '// Output values<br>',
-           'val nRelationsOut = Val[Int]<br>',
-           'val nObjectsOut = Val[Int]<br>',
-           'val nFragmentsOut = Val[Int]<br>',
-           'val disturbanceOut = Val[Int]<br>',
-           'val compBalanceOut = Val[Int]<br>',
-           'val fragBalanceOut = Val[Int]<br>',
-           'val aggregFactorOut = Val[Int]<br>',
-           'val cohesion1Out = Val[Int]<br>',
-           'val cohesion2Out = Val[Int]<br>',
-           'val admixtureOut = Val[Int]<br>',
+           OM.cohesion1Out.init.str,
+           OM.cohesion2Out.init.str,
+           OM.admixtureOut.init.str,
+           OM.nFragmentsOut.init.str,
+           OM.nRelationsOut.init.str,
+           OM.nObjectsOut.init.str,
+           OM.compBalanceOut.init.str,
+           OM.disturbanceOut.init.str,
+           OM.fragBalanceOut.init.str,
+           OM.aggregFactorOut.init.str,
            '<br>',
-           'val local = LocalEnvironment(10)  // Number of core to use. Adjust as needed<br>',
+           'val local = LocalEnvironment(', input$OM.parallelize, ')  // Number of cores to use. Adjust as needed<br>',
            '<br>',
            'val archeofrag =  RTask(<br>',
+           '  containerSystem = SingularityFlatImage(), // optionnal <br>',
            '  script = """<br>',
            '            library(archeofrag)<br>',
-           '            # small default graph to avoid errors:<br>',
-           '            g <- frag.simul.process(initial.layers = 1, n.components = 4, vertices = 8)<br>',
-           '            # Generate fragmentation graph:<br>',
+           '            # Declare default values:<br>',
+           OM.cohesion1Out.R.init.str,
+           OM.cohesion2Out.R.init.str,
+           OM.admixtureOut.R.init.str,
+           OM.nFragmentsOut.R.init.str,
+           OM.nRelationsOut.R.init.str,
+           OM.nObjectsOut.R.init.str,
+           OM.compBalanceOut.R.init.str,
+           OM.disturbanceOut.R.init.str,
+           OM.fragBalanceOut.R.init.str,
+           OM.aggregFactorOut.R.init.str,
            '            try({<br>',
+           '                # Generate fragmentation graph:<br>',
            '                g <- frag.simul.process(initial.layers = layerNumber,<br>',
            '                                        n.components = objectsNumber,<br>',
            '                                        vertices = fragmentsNumber,<br>',
@@ -1222,23 +1370,21 @@ server <- function(input, output, session) {
            '                g <- frag.graph.reduce(graph = g,<br>',
            '                                       n.frag.to.remove = igraph::gorder(g) - targetedFragmentsNumber,<br>',
            '                                       conserve.objects.nr = as.logical(preserveObjectsNumber) )<br>',
+           '                # Measurements:<br>',
+           '                frag.params <- frag.get.parameters(g, \'layer\')<br>',
+           '<br>',
+           OM.cohesion.R.str,
+           OM.cohesion1Out.R.str,
+           OM.cohesion2Out.R.str,
+           OM.admixtureOut.R.str,
+           OM.nFragmentsOut.R.str,
+           OM.nRelationsOut.R.str,
+           OM.nObjectsOut.R.str,
+           OM.compBalanceOut.R.str,
+           OM.disturbanceOut.R.str,
+           OM.fragBalanceOut.R.str,
+           OM.aggregFactorOut.R.str,
            '            }, silent = FALSE)<br>',
-           '<br>',
-           '            #  Measurements:<br>',
-           '            frag.params <- frag.get.parameters(g, \'layer\')<br>',
-           '<br>',
-           '            nRelationsOut    <- frag.params$edges<br>',
-           '            nObjectsOut      <- frag.params$n.components<br>',
-           '            nFragmentsOut    <- frag.params$vertices<br>',
-           '            disturbanceOut   <- as.integer(frag.params$disturbance * 100)<br>',
-           '            compBalanceOut   <- as.integer(frag.params$components.balance * 100)<br>',
-           '            fragBalanceOut   <- as.integer(frag.params$balance * 100)<br>',
-           '            aggregFactorOut  <- as.integer(frag.params$aggreg.factor * 100)<br>',
-           '<br>',
-           '            cohesion.results <- frag.layers.cohesion(g, \'layer\')<br>',
-           '            cohesion1Out     <- as.integer(cohesion.results[1] * 100)<br>',
-           '            cohesion2Out     <- as.integer(cohesion.results[2] * 100)<br>',
-           '            admixtureOut     <- as.integer(frag.layers.admixture(g, \'layer\') * 100)<br>',
            '            """,<br>',
            '  install = Seq(<br>',
            '    """R --slave -e \'install.packages("BiocManager") ; library("BiocManager") ; BiocManager::install("RBGL")\' """,<br>',
@@ -1259,16 +1405,17 @@ server <- function(input, output, session) {
            '  inputs += aggregFactor.mapped,<br>',
            '  inputs += planarGraphsOnly.mapped,<br>',
            '  inputs += asymmetricTransport.mapped,<br>',
-           '  outputs += nRelationsOut.mapped,<br>',
-           '  outputs += nObjectsOut.mapped,<br>',
-           '  outputs += nFragmentsOut.mapped,<br>',
-           '  outputs += disturbanceOut.mapped,<br>',
-           '  outputs += compBalanceOut.mapped,<br>',
-           '  outputs += fragBalanceOut.mapped,<br>',
-           '  outputs += aggregFactorOut.mapped,<br>',
-           '  outputs += cohesion1Out.mapped,<br>',
-           '  outputs += cohesion2Out.mapped,<br>',
-           '  outputs += admixtureOut.mapped,<br>',
+           OM.cohesion1Out.map.str,
+           OM.cohesion2Out.map.str,
+           OM.admixtureOut.map.str,
+           OM.nRelationsOut.map.str,
+           OM.nFragmentsOut.map.str,
+           OM.nObjectsOut.map.str,
+           OM.compBalanceOut.map.str,
+           OM.disturbanceOut.map.str,
+           OM.fragBalanceOut.map.str,
+           OM.aggregFactorOut.map.str,
+           # OM.weightsumOut.map.str,
            '  // Default values, automatically replaced:<br>',
            '  mySeed := 1,<br>',
            '  layerNumber := 1,<br>',
@@ -1289,10 +1436,10 @@ server <- function(input, output, session) {
            '// model settings<br>',
            'OSEEvolution(<br>',
            '  evaluation = archeofrag,<br>',
-           '  parallelism = ', foreach::getDoParWorkers(), ',                  //  nr of workers for parallelization. Adjust as needed<br>',
-           '  termination = ', input$replications, ',                  //  nr of execution. Adjust as needed<br>',
+           '  parallelism = ', input$OM.parallelize, ',                  //  nr of workers for parallelization. Adjust as needed<br>',
+           '  termination = ', input$OM.replications, ',                  //  nr of executions. Adjust as needed<br>',
            '  origin = Seq(<br>',
-           '    targetedFragmentsNumber in Seq(', input.graph.params()$vertices, ", ",  input.graph.params()$vertices, '),<br>',  # .... target ----
+           '    targetedFragmentsNumber in Seq(', input.graph.params()$vertices, ", ",  input.graph.params()$vertices, '),<br>',  # .... origin ----
            OM.layerNumber.str,
            OM.objectsNumber.str,
            OM.fragmentsNumber.str,
@@ -1305,20 +1452,21 @@ server <- function(input, output, session) {
            OM.planarGraphsOnly.str,
            '  ),<br>',
            '  objective = Seq(<br>', # .... objective ----
-           OM.cohesion1Out.str,
-           OM.cohesion2Out.str,
-           OM.admixtureOut.str,
-           OM.nFragmentsOut.str,
-           OM.nRelationsOut.str,
-           OM.nObjectsOut.str,
-           OM.compBalanceOut.str,
-           OM.disturbanceOut.str,
-           OM.fragBalanceOut.str,
-           OM.aggregFactorOut.str,
+           OM.cohesion1Out.obj.str,
+           OM.cohesion2Out.obj.str,
+           OM.admixtureOut.obj.str,
+           OM.nFragmentsOut.obj.str,
+           OM.nRelationsOut.obj.str,
+           OM.nObjectsOut.obj.str,
+           OM.compBalanceOut.obj.str,
+           OM.disturbanceOut.obj.str,
+           OM.fragBalanceOut.obj.str,
+           OM.aggregFactorOut.obj.str,
            # OM.weightsumOut.str,
-           '),<br>',
-           'stochastic = Stochastic(seed = mySeed)<br>',
-           ') hook (workDirectory / "ose-results", frequency = 100) on local',
+           '  ),<br>',
+           '  stochastic = Stochastic(seed = mySeed)<br>',
+           ')', OM.islands.str,
+           ' hook (workDirectory / "ose-results", frequency = 100) on local',
            "</pre>")
     
     gsub("\\(0 ", "\\(0.0 ", om.code)   # format 0 values as double for openMOLE
