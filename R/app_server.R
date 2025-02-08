@@ -684,10 +684,10 @@ server <- function(input, output, session) {
       ggplot2::theme_light(base_size = 12) +
       ggplot2::geom_density(alpha=.5, linewidth=.3) +
       ggplot2::geom_boxplot(outlier.shape = 21) +
-      ggplot2::geom_vline(xintercept = cohes.values[1],  color = "#440154FF") +
-      ggplot2::geom_vline(xintercept = cohes.values[2], color = "#BBDF27FF") +
+      ggplot2::geom_vline(xintercept = cohes.values[1],  color = "#BBDF27FF") +
+      ggplot2::geom_vline(xintercept = cohes.values[2], color = "#440154FF") +
       ggplot2::facet_wrap(~hypothesis, ncol=1) +
-      ggplot2::scale_fill_manual("spatial unit", values = c("#440154FF", "#BBDF27FF")) +
+      ggplot2::scale_fill_manual("spatial unit", values = c("#BBDF27FF", "#440154FF")) +
       ggplot2::scale_x_continuous("Cohesion", limits=c(0,1)) + ggplot2::ggtitle("Cohesion by spatial unit") +
       ggplot2::theme(strip.text = ggplot2::element_text(size = 13))
   })

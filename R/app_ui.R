@@ -212,7 +212,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             </div>")
                                                             ) #end column
                                                    ) #end fluirow
-                                                   ), # end tabpanel
+                                                   ), # end tabpanel
                                                    tabPanel("Alteration -> Excavation", # Alteration > Excavation----  
                                                             fluidRow(
                                                               h1("From (a point in) the Alteration phase to the Excavation event"),
@@ -506,7 +506,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                             <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
                                                                             <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state of the model at t<sub>0</sub>).</li>
                                                                             </ol>
-                                                                            The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>−2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
+                                                                            The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>-2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
                                                                             </p>
                                                                             <p>
                                                                             The OSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i software>. 
