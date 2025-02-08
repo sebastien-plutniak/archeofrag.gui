@@ -7,7 +7,7 @@ An R 'Shiny' application to access the functionalities and datasets of the 'arch
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
-[![R build status](https://github.com/sebastien-plutniak/archeofrag.gui/workflows/R-CMD-check/badge.svg)](https://github.com/sebastien-plutniak/archeofrag.gui/actions/workflows/r.yml)
+[![R-CMD-check](https://github.com/sebastien-plutniak/archeofrag.gui/actions/workflows/R-CMD-check.yml/badge.svg)](https://github.com/sebastien-plutniak/archeofrag.gui/actions/workflows/R-CMD-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14554894.svg)](https://doi.org/10.5281/zenodo.14554894)
 [![SWH](https://archive.softwareheritage.org/badge/origin/https://github.com/sebastien-plutniak/archeofrag.gui/)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/sebastien-plutniak/archeofrag.gui)
 [![r-universe](https://sebastien-plutniak.r-universe.dev/badges/archeofrag.gui)](https://sebastien-plutniak.r-universe.dev/ui#package:archeofrag.gui)
