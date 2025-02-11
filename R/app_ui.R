@@ -119,7 +119,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    HTML(
                                                   "<div style=width:40%;, align=left>
                                                    <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). Details about the method are given in  <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>.</p>
-                                                   <p>Note that those weighting options are <b>not</b> supported by the simulation function.</p>
+                                                   <p>Note that these weighting options are <b>not</b> supported by the simulation function, which computes cohesion values from the topology of the connection relationships only.</p>
                                                   </div>"
                                                    ), #end HTML
                                                    uiOutput("rubish.text")
@@ -151,6 +151,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   </div> "),
                                                    checkboxInput("normalise.diss", "Normalise", value = F),
                                                    tableOutput("admixTab"),
+                                                   selectInput("clustmethod", "Clustering method", 
+                                                               choices = c(UPGMA = "average", WPGMA = "mcquitty","Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")),
                                                    imageOutput("admix.plot",  width= "70%"),
                                                    uiOutput("admix.download.button"),
                                                    br(), br()
@@ -509,7 +511,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                             The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>-2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
                                                                             </p>
                                                                             <p>
-                                                                            The OSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i software>. 
+                                                                            The OSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i> software. 
                                                                             </p>
                                                                             <h3>Instructions</h3>
                                                                             <p>
@@ -545,7 +547,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                      fluidRow(
                                                                        column(2, uiOutput("OM.fragmentsNumber.min.ui")),
                                                                        column(1, uiOutput("OM.fragmentsNumber.max.ui")),      
-                                                                       column(2, selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE"), selected = "TRUE", width = "100%")),
+                                                                       column(2, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "bottom",
+                                                                                   title = "Whether to try to preserve the number of objects (i.e. sets of connected fragments) when removing fragments to reach the targeted final fragment number.",
+                                                                                   selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE"), selected = "TRUE", width = "100%")
+                                                                              ) # end span
+                                                                                   ),
                                                                     ),
                                                                     fluidRow(
                                                                        column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("TRUE", "FALSE", "TRUE, FALSE"), selected = "TRUE")),
@@ -559,11 +566,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                       column(3, uiOutput("OM.disturbance.val.ui")),
                                                                      ),
                                                   fluidRow(column(10, 
-                                                                  h2("Objective variables")), # .. objective var. ----
+                                                                  h2("Objective variables: values archaeologically observed")), # .. objective var. ----
                                                            column(10, align="center",
                                                                   HTML("
                                                                      <div  style=width:40%;, align=left>
-                                                                    To include a variable in the objective variables  tick its box. By default, the algorithm will look for the exact value. However, to also admit the surrounding  values, use the corresponding slider to set up a tolerance (in percentage).
+                                                                    To include a variable in the objective variables  tick its box. By default, the algorithm will look for search solutions corresponding to exact values. However, to  admit surrounding values, use the corresponding slider to set up a tolerance (in percentage).
                                                                      </div>
                                                                      <br><br>")
                                                            ), #end column
@@ -610,7 +617,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                   #    <br><br>")
                                                            # ), #end column
                                                   ), #end fluidrow
-                                                  fluidRow(column(1, numericInput("OM.replications", "Replications", min = 30, value = 30, step = 1, width = "100%")),
+                                                  fluidRow(column(2, numericInput("OM.replications", "Replications", min = 30, value = 30, step = 1, width = "100%")),
                                                            
                                                            column(2, 
                                                                   numericInput("OM.parallelize", "Parallelize on n cores", min = 1,
@@ -641,7 +648,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                 To cite <i>archeofrag</i> or <i>archeofrag.gui</i>, please use <b>Plutniak 2022a</b>. 
                 <ul>
                   <li><b>Plutniak, S. 2022a</b>. 'Archeofrag: an R package for Refitting and Spatial Analysis in Archaeology', <i>Journal of Open Source Software</i>, 7 (75), p. 4335. doi: <a href=https://doi.org/10.21105/joss.04335 target=_blank>10.21105/joss.04335</a>.</li>
-                  <li><b>Plutniak, S. 2022b</b>. '<a href=https://rzine.fr/ressources/20220811_archeofrag_joss/ target=_blank>Archeofrag: un package R pour les remontages et l'analyse spatiale en archeologie</a>', <i>Rzine</i>.</li>
+                  <li><b>Plutniak, S. 2022b</b>. '<a href=https://rzine.gitpages.huma-num.fr/site/ressources/20220811_archeofrag_joss/ target=_blank>Archeofrag: un package R pour les remontages et l'analyse spatiale en archeologie</a>', <i>Rzine</i>.</li>
                 </ul>
                 The open source programming code of this software is available on the <a target=_blank, href=https://cran.r-project.org/package=archeofrag>CRAN</a> and on <a target=_blank, href=https://github.com/sebastien-plutniak/archeofrag/>github</a>.
                 </p>
@@ -658,7 +665,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Bout des Vergnes</b>:  Ihuel, E. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, N. Mercier., A. Michel, F. Sellami. 2020. <i>Le Bout des Vergnes, Bergerac (Dordogne, Nouvelle-Aquitaine), Contournement ouest de Bergerac, RD 709</i>, Excavation report, Perigueux. </li>
                   <li><b>Chauzeys</b>: Chadelle J.-P. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, F. Jude, S. Kreutzer, A. Michel,  N. Mercier, M. Rabanit, S. Save, F. Sellami, A. Vaughan-Williams. 2021. <i>Chauzeys, Saint-Medard-de-Mussidan (Dordogne, Nouvelle-Aquitaine)</i>, Excavation report, Perigueux. </li>
                   <li><b>Font-Juvenal</b>: Caro J. 2024. 'Font-Juvenal_Refiting', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.14515444 target=_blank>10.5281/zenodo.14515444</a>.</li>       
-                  <li><b>Grande Rivoire</b>: Angelin A. 2025. 'Refitting data from La Grande Rivoire prehistoric site', Zenodo, doi: <a href=https://doi.org/10.5281/zenodo.14609875 target=_blank>10.5281/zenodo.14609875<a></li>
+                  <li><b>Grande Rivoire</b>: Angelin A. 2025. 'Refitting data from La Grande Rivoire prehistoric site', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.14609875 target=_blank>10.5281/zenodo.14609875</a>.</li>
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a> </li>
                   <li><b>Tai</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
                 </ul>

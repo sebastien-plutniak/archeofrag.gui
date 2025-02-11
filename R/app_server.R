@@ -455,15 +455,21 @@ server <- function(input, output, session) {
     
     admixTab <- stats::as.dist(admixTab)
     
-    dend.plot <- stats::as.dendrogram(stats::hclust(admixTab, method = "complete"))
+    eval(parse(text = paste0(
+    "dend.plot <- stats::as.dendrogram(stats::hclust(admixTab, method = \"", input$clustmethod, "\"))"
+    )))
     sort(dend.plot, decreasing = T)
   })
   
   output$admix.plot <- renderPlot({  
     req(admix.dendr)
     
+    method.name <- c(UPGMA = "average", WPGMA = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
+    method.name <- names(method.name)[method.name == input$clustmethod]
+    
     plot(admix.dendr(), horiz = T, main = input$spatial.variable,
-         xlab ="Dissimilarity: 1 - admixture. An alphanumerical ordering constraint is applied to the branches of the dendrogram") 
+         xlab = paste0("Dissimilarity: 1 - admixture. Clustering method: ", method.name,
+                      "\nAn alphanumerical ordering constraint is applied to the branches of the dendrogram")) 
   })
   
   
@@ -950,11 +956,11 @@ server <- function(input, output, session) {
             <ul>
               <li>lines: connection relationships</li> 
               <li>nodes: fragments</li>
-              <li>colors: spatial units associated with the fragments (<font color=red>red</font> for <b>",  
+              <li>colors: spatial units associated with the fragments (<font color=YellowGreen>green</font> for <b>",  
            gsub("^(.*)/.*", "\\1", units.pair), 
            "</b>, <font color=purple>purple</font> for <b>", gsub("^.*/(.*)", "\\1", units.pair), 
            "</b>)</li></ul>
-           Note that the position of the nodes is only determined by the graph drawing method and does not reflect their archaeological location.
+           Note that nodes positions are only determined by the graph drawing method and do not reflect the archaeological location of the fragments in the site.
            ")
   })
   
@@ -1074,13 +1080,13 @@ server <- function(input, output, session) {
   })
   output$OM.fragmentsBalance.val.ui <- renderUI({
     bal <- input.graph.params()$balance
-    sliderInput("OM.fragmentsBalance.val", "Fragment balance", min = 0, max=1, step = 0.01, 
+    sliderInput("OM.fragmentsBalance.val", "Fragment balance", min = 0.01, max=0.99, step = 0.01, 
                 value = c(bal - .05,
                           bal + .05))
   })
   output$OM.componentsBalance.val.ui <- renderUI({
     comp.bal <- input.graph.params()$components.balance
-    sliderInput("OM.componentsBalance.val", "Initial objects balance", min = 0, max=1, step = 0.01, 
+    sliderInput("OM.componentsBalance.val", "Initial objects balance", min = 0.01, max=0.99, step = 0.01, 
                 value = c(comp.bal - .05,
                           comp.bal + .05))
   })
@@ -1092,7 +1098,7 @@ server <- function(input, output, session) {
   })
   output$OM.aggregFactor.val.ui <- renderUI({
     agreg <- input.graph.params()$aggreg.factor
-    sliderInput("OM.aggregFactor.val", "Aggregation factor", min = 0, max=1, step = 0.01, 
+    sliderInput("OM.aggregFactor.val", "Aggregation factor", min = 0, max=0.99, step = 0.01, 
                 value = c(agreg -  .05,
                           agreg +  .05))
   })
@@ -1450,8 +1456,8 @@ server <- function(input, output, session) {
            '  evaluation = archeofrag,<br>',
            '  parallelism = ', input$OM.parallelize, ',                  //  nr of workers for parallelization. Adjust as needed<br>',
            '  termination = ', input$OM.replications, ',                  //  nr of executions. Adjust as needed<br>',
-           '  origin = Seq(<br>',
-           '    targetedFragmentsNumber in Seq(', input.graph.params()$vertices, ", ",  input.graph.params()$vertices, '),<br>',  # .... origin ----
+           '  origin = Seq(<br>',   # .... origin ----
+           '    targetedFragmentsNumber in Seq(', input.graph.params()$vertices, '),<br>', 
            OM.layerNumber.str,
            OM.objectsNumber.str,
            OM.fragmentsNumber.str,
