@@ -548,9 +548,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(2, uiOutput("OM.fragmentsNumber.min.ui")),
                                                                        column(1, uiOutput("OM.fragmentsNumber.max.ui")),      
                                                                        column(2, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "bottom",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top",
                                                                                    title = "Whether to try to preserve the number of objects (i.e. sets of connected fragments) when removing fragments to reach the targeted final fragment number.",
-                                                                                   selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE"), selected = "TRUE", width = "100%")
+                                                                                   selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE", "TRUE, FALSE"), selected = "TRUE", width = "100%")
                                                                               ) # end span
                                                                                    ),
                                                                     ),
