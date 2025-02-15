@@ -560,7 +560,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(3, uiOutput("OM.aggregFactor.val.ui")),
                                                                      ),
                                                                     fluidRow(
-                                                                       column(2, selectInput("OM.asymmetric.val", "Unidirectional transport from unit", choices = c("none", "1", "2", "1, 2", "none, 1, 2"), selected = NULL, width = "100%")),
+                                                                       column(2, 
+                                                                              uiOutput("OM.asymmetric.selection")
+                                                                       ),
                                                                        column(1),
                                                                        column(3, uiOutput("OM.fragmentsBalance.val.ui")),
                                                                       column(3, uiOutput("OM.disturbance.val.ui")),

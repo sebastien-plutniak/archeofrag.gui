@@ -360,10 +360,6 @@ server <- function(input, output, session) {
     req(input.graph.params())
     units.pair <- names(graph.list())[as.numeric(input$units.pair)]
     
-    selectInput("asymmetric", "Unidirectional transport from unit",
-                choices = c("none", "1 -> 2" = "1", "2 -> 1" = "2"),
-                selected = "none", width = "100%")
-    
     eval(parse(text = paste0(
       "selectInput('asymmetric', 'Unidirectional transport from unit', ",
                   "choices = c('none' = 'none', '",
@@ -1126,6 +1122,25 @@ server <- function(input, output, session) {
     sliderInput("OM.aggregFactor.val", "Aggregation factor", min = 0, max=0.99, step = 0.01, 
                 value = c(agreg -  .05,
                           agreg +  .05))
+  })
+  
+  output$OM.asymmetric.selection <- renderUI({
+    req(input.graph.params())
+    units.pair <- names(graph.list())[as.numeric(input$units.pair)]
+    
+    from1to2  <- gsub("/", "->", units.pair)       
+    from2to1 <- gsub("^(.*) / (.*)$", "\\2 -> \\1", units.pair)
+                
+    eval(parse(text = paste0(
+      "selectInput('OM.asymmetric.val', 'Unidirectional transport from unit', ",
+      "choices = c('none' = 'none',",
+      "'", from1to2, "' = '1',", 
+      "'", from2to1, "' = '2',",
+      "'", from2to1, ", ", from2to1, "' = '1, 2',",
+      "'", "none, ", from2to1, ", ", from2to1, "' = 'none, 1, 2'",
+      "),",
+      "selected = 'none', width = '100%')"
+    )))
   })
   
   
