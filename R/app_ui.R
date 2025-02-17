@@ -189,7 +189,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             Any archaeological investigation regards three temporal components:
                                                               <ul>
                                                                 <li><b>Deposition event</b>: the <i>point</i> in time when unaltered material objects were abandoned.</li>
-                                                                <li><b>Alteration phase</b>: the <i>period</i> of time during which those material objects were transformed and moved.</li>
+                                                                <li><b>Alteration phase</b>: the <i>period</i> of time during which those material objects were fragmented and moved.</li>
                                                                 <li><b>Excavation event</b>: the <i>point</i> in time when those altered material objects are observed in space.</li>
                                                               </ul>
                                                               Note that components in this model are theoretical and an analytical simplification (e.g. defining  <i>deposition</i> as an event and not a phase). 
@@ -207,29 +207,15 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             <p>
                                                               Simulation can be used to study the formation process between two points in time:
                                                               <ul>
-                                                                <li><b>From the reconstructed point in the alteration process to the excavation event (t<sub>-1</sub> to t<sub>0</sub>)</b>: this simulation covers only a part of the formation process but is only grounded  on archaeological observation and does not require any additional assumption.</li>
-                                                                <li><b>From the deposition event to the excavation event (t<sub>-2</sub> to t<sub>-1</sub>)</b>: this simulation covers the entire formation process but requires assumptions about the initial state of the assemblage at the deposition event.</li>
+                                                                <li>From the <b>reconstructed point in the alteration process</b> to the <b>excavation event (t<sub>-1</sub> to t<sub>0</sub>)</b>: this simulation covers only a part of the formation process but is only grounded  on archaeological observation and does not require any additional assumption.</li>
+                                                                <li>From the <b>deposition event</b> to the <b>excavation event (t<sub>-2</sub> to t<sub>-1</sub>)</b>: this simulation covers the entire formation process but requires assumptions about the initial state of the assemblage at the deposition event.</li>
                                                               </ul>
-                                                            </p><br><br>
-                                                            </div>")
-                                                            ) #end column
-                                                   ) #end fluirow
-                                                   ), # end tabpanel
-                                                   tabPanel("Alteration -> Excavation", # Alteration > Excavation----  
-                                                            fluidRow(
-                                                              h1("From (a point in) the Alteration phase to the Excavation event"),
-                                                              column(10,  align = "center",
-                                                                     HTML(
-                   "<div style=width:40%;, align=left>
-                    <h2>Testing formation scenarios</h2>
+                                                            </p>
+                                                            <h2>Testing formation scenarios</h2>
                     <p>
-                    Parameters (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.) are extracted from the input graph for the selected pair of spatial units, and used to generate two series of artificial graphs, one by deposition hypotheses:
-                    <ol type='1'>
-                     <li> The objects were buried during  <b>one deposition event</b> forming a single spatial unit, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists;</li>
-                     <li> The objects were buried during <b>two deposition events</b> forming two spatial units, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists.</li>
-                    </ol>
-                    </p>
-                    <p>In addition, the 'Unidirectional transport from unit...' parameter makes it possible to determine the direction of fragments transport between two spatial units. Combining the number of deposition events and transport direction allows to explore and test 6 formation scenarios (A to F):
+                    Hypotheses about two aspects of formation processes are of particular interest and can be studied by generating series of fragmentation graphs to compare: the <b>number of deposition events</b> and the <b>direction of fragments transport</b> between the first and second spatial unit considered. 
+                    <p>
+                    Combining these parameters allows to explore and test 6 formation scenarios (A to F):
                    <table><thead>
                     <tr>
                       <th>Deposition events &emsp;&emsp;</th>
@@ -257,14 +243,39 @@ ui <- shinyUI(fluidPage(  # UI ----
                     </tbody>
                     </table>
                     </p>
-                    <p>
-                      For details about the site formation model implemented in this simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
                     </p>
+                    <h3>1. Number of deposition events</h3>
+                    <p>
+                    Fragmentation graphs can be generated for two hypotheses regarding the number of deposition events involved in the formation of the considered pair of spatial units:
+                    <ol type='1'>
+                     <li> The objects were buried during  <b>one deposition event</b> forming a single spatial unit, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists;</li>
+                     <li> The objects were buried during <b>two deposition events</b> forming two spatial units, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists.</li>
+                    </ol>
+                    </p>
+                    <h3>2. Direction of fragments transport</h3>
+                    <p> The <i>Unidirectional transport from unit...</i> parameter makes it possible to constrain, or let free, the direction of fragments transport between the two spatial units under study. 
+                    </p>
+                    <hr>
+                    <p>
+                      For more details about the formation model implemented in the <i>archeofrag</i> simulator see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>, Fig. 7 in particular.
+                    </p>
+                    
+                                                            <br><br>
+                                                            </div>")
+                                                            ) #end column
+                                                   ) #end fluirow
+                                                   ), # end tabpanel
+                                                   tabPanel("Alteration -> Excavation", # Alteration > Excavation----  
+                                                            fluidRow(
+                                                              h1("From (a point in) the Alteration phase to the Excavation event"),
+                                                              column(10,  align = "center",
+                                                                     HTML(
+                   "<div style=width:40%;, align=left>
                     <h2>Instructions</h2>
                     <p>
                       <ul>
                       <li>Select the pair of spatial units to compare in the sidebar menu.</li>
-                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen. However, those parameters can be edited to test other hypotheses. The final number of refitting relationships is not constrained.</li>
+                      <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.). However, those parameters can be edited to test other hypotheses. The final number of refitting relationships is not constrained.</li>
                       <li>Optionally, set an amount of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
                       <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button.</li>
                       </ul>
@@ -320,7 +331,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     ), #end column
                                                     column(3, 
                                                       span(`data-toggle` = "tooltip", `data-placement` = "bottom",
-                                                                title = "Higher values increase the likelihood that  largest sets of fragments are selected when adding fragments or connections.",
+                                                                title = "Determine the probability of selecting largest sets of fragments (i.e. objects) when simulating the fragmentation process. Higher the value, more unequal the distribution of fragments between the objects.",
                                                            uiOutput("aggreg.factor")
                                                       ) #end span
                                                     ), #end column
@@ -494,35 +505,34 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            fluidRow( 
                                                                      h1("From the Deposition event to the Excavation event"),
                                                                      column(10, 
-                                                                            HTML("<h2>Introduction to <i>openMOLE</i>'s Origin Space Exploration method</h2>")),
+                                                                            HTML("<h2>Introduction to <i>openMOLE</i>'s HD Origin Space Exploration method</h2>")),
                                                                      column(10, align="center",
                                                                      HTML("
                                                                           <div  style=width:40%;, align=left>
                                                                           <h3>The problem</h3>
                                                                           <p>
-                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to, for example, partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to combinatorial explosions (How many objects were originally included in this site? How many fragments of this vessel are missing?). </p>
+                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to, for example, partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to <a href=https://en.wikipedia.org/wiki/Combinatorial_explosion target=_blank>combinatorial explosions</a>. How many objects did this site originally included? How many fragments of this vessel are missing and not observed? </p>
                                                                             <h3>Origin Space Exploration</h3>
                                                                             <p>
-                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/OSE.html target=_blank>Origin Space Exploration</a> method (OSE) enables determining possible combinations of the initial parameters of a model, overcoming  combinatorial explosions.  Conducting an OSE analysis requires defining:
+                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/HDOSE.html target=_blank>High Dimension Origin Space Exploration</a> method (HDOSE) enables determining the possible combinations of a model's initial parameters, overcoming combinatorial explosions.  Conducting an HDOSE analysis requires defining:
                                                                             <ol>
                                                                             <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
                                                                             <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state of the model at t<sub>0</sub>).</li>
                                                                             </ol>
-                                                                            The OSE procedure returns the combinations of objective values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>-2</sub>. Note that this approach requires to define the total number of fragments and include their loss in the simulation.
+                                                                            The HDOSE procedure returns the combinations of origin values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>-2</sub>. Note that this approach requires to define the virtual total number of fragments and simulate the loss of part of it.
                                                                             </p>
                                                                             <p>
-                                                                            The OSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i> software. 
+                                                                            The HDOSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i> software. 
                                                                             </p>
                                                                             <h3>Instructions</h3>
                                                                             <p>
-                                                                            <i>archeofrag.gui</i> does not include the OSE method. However, it allows to set-up and generate the (Scala and R) code to plug the <i>archeofrag</i> formation model into the <i>openMOLE</i> framework and run it, making this workflow easier and faster to use.
+                                                                            <i>archeofrag.gui</i> does not include the HDOSE method. However, it allows to set-up and generate the (Scala and R) code embedding the <i>archeofrag</i> formation model into the <i>openMOLE</i> framework, making this workflow smoother to use.
                                                                             </p>
                                                                             <ol>
                                                                               <li> Define the range of <b>origin values</b> to explore for each variable. Note that some values are automatically filed using the parameters of the selected pair of spatial units.</li>
-                                                                              <li> Select the <b>objective variables</b>: the OSE procedure will return the combinations of variables that generate the values of those variables. Optionally, a tolerance percentage can be set for each value to allow approximation.</li>
+                                                                              <li> Select the <b>objective variables</b>: the HDOSE procedure will return the combinations of variables that generate the values of those variables. Optionally, a tolerance percentage can be set for each value to allow approximation.</li>
                                                                               <li>Execute the generated code in <i>openMOLE</i>.</li>
                                                                             </ol>
-                                                                            Note the values of several <i>archeofrag</i> parameters are converted as integers because <i>openMOLE</i> requires it (e.g. cohesion, admixture, balance, etc.).  
                                                                           </div>
                                                                           "),
                                                                      ), #end column
@@ -539,7 +549,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                      fluidRow(
                                                                        column(2, uiOutput("OM.objectsNumber.min.ui")),
                                                                        column(1, uiOutput("OM.objectsNumber.max.ui")),
-                                                                       column(3, uiOutput("OM.componentsBalance.val.ui")),
+                                                                       column(3,
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of objects in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 20%.",
+                                                                                   uiOutput("OM.objectBalance.val.ui")
+                                                                              ) #end span
+                                                                                   ),
                                                                      ),
                                                                      fluidRow(column(10, 
                                                                       h3("Formation process")
@@ -550,63 +564,78 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(2, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top",
                                                                                    title = "Whether to try to preserve the number of objects (i.e. sets of connected fragments) when removing fragments to reach the targeted final fragment number.",
-                                                                                   selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("TRUE", "FALSE", "TRUE, FALSE"), selected = "TRUE", width = "100%")
+                                                                                   selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("true", "false", "true, false"), selected = "false", width = "100%")
                                                                               ) # end span
                                                                                    ),
-                                                                    ),
+                                                                    ), #end fluidrow
                                                                     fluidRow(
-                                                                       column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("TRUE", "FALSE", "TRUE, FALSE"), selected = "TRUE")),
+                                                                       column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("true", "false", "true, false"), selected = "true, false"), style="padding-top:35px;"),
                                                                        column(1),
-                                                                       column(3, uiOutput("OM.aggregFactor.val.ui")),
-                                                                     ),
+                                                                       column(3, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding fragment aggregation. Higher the value, more unequal the distribution of fragments between the objects (i.e. sets of fragments). By default: observed value +/- 20%.",
+                                                                              uiOutput("OM.aggregFactor.val.ui")
+                                                                              ) #end span
+                                                                              ), # end column
+                                                                     ), #end fluidrow
                                                                     fluidRow(
                                                                        column(2, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of parameters to explore regarding the direction of transport between spatial units.",
                                                                               uiOutput("OM.asymmetric.selection")
-                                                                       ),
+                                                                              ) #end span
+                                                                       ), # end column
                                                                        column(1),
-                                                                       column(3, uiOutput("OM.fragmentsBalance.val.ui")),
-                                                                      column(3, uiOutput("OM.disturbance.val.ui")),
+                                                                       column(3, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of fragments in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 20%.",
+                                                                              uiOutput("OM.fragmentsBalance.val.ui")
+                                                                              ) #end span
+                                                                              ),
+                                                                      column(3,  
+                                                                             span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the disturbance, i.e. the final proportion of fragments moved from a spatial unit to the other. By default: observed value +/- 20%.",
+                                                                             uiOutput("OM.disturbance.val.ui")
+                                                                      ) #end span
+                                                                                      ),
                                                                      ),
                                                   fluidRow(column(10, 
                                                                   h2("Objective variables: values archaeologically observed")), # .. objective var. ----
                                                            column(10, align="center",
                                                                   HTML("
                                                                      <div  style=width:40%;, align=left>
-                                                                    To include a variable in the objective variables  tick its box. By default, the algorithm will look for search solutions corresponding to exact values. However, to  admit surrounding values, use the corresponding slider to set up a tolerance (in percentage).
-                                                                     </div>
-                                                                     <br><br>")
+                                                                    To define a variable as an objective tick its box. By default, the algorithm will search solutions that fit to the exact values. However, to accept surrounding values, use the corresponding slider to define a tolerance percentage.
+                                                                     </div>")
                                                            ), #end column
                                                   ), #end fluidrow
+                                                  fluidRow(column(10, h3("Relevance of spatial units"))),
                                                   fluidRow(
-                                                    column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE)),
+                                                    column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE), style="padding-top:35px;"),
                                                     column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                     column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = TRUE)),
+                                                     column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = TRUE), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                     column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE)),
+                                                     column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
                                                      ),
+                                                   fluidRow(column(10, h3("Entities count"))),
                                                    fluidRow(
-                                                     column(2, checkboxInput("OM.nFragmentsOut", "Fragment number", value = TRUE)),
-                                                     column(2, sliderInput("OM.nFragmentsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                     column(2, checkboxInput("OM.nRelationsOut", "Connection number")),
-                                                     column(2, sliderInput("OM.nRelationsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                     column(1, checkboxInput("OM.nObjectsOut", "Object number")),
-                                                    column(2, sliderInput("OM.nObjectsOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(2, checkboxInput("OM.fragmentCountOut", "Fragment count", value = TRUE), style="padding-top:35px;"),
+                                                     column(2, sliderInput("OM.fragmentCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(2, checkboxInput("OM.relationCountOut", "Connection count"), style="padding-top:35px;"),
+                                                     column(2, sliderInput("OM.relationCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(1, checkboxInput("OM.objectCountOut", "Object count", value = TRUE), style="padding-top:35px;"),
+                                                    column(2, sliderInput("OM.objectCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
                                                      ),
+                                                  fluidRow(column(10, h3("Alteration processes"))),
                                                    fluidRow(
-                                                    column(2, checkboxInput("OM.disturbanceOut", "Disturbance")),
-                                                    column(2, sliderInput("OM.disturbanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),
+                                                    column(2, checkboxInput("OM.disturbanceOut", "Disturbance"), style="padding-top:35px;"),
+                                                    column(2, sliderInput("OM.disturbanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                    column(2, checkboxInput("OM.aggregFactorOut", "Fragments aggregation"), style="padding-top:35px;"),
+                                                    column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
+                                                    ), #end fluidrow
+                                                  fluidRow(column(10, h3("Distribution of materials in the two spatial units"))),
                                                    fluidRow(
-                                                     column(2, checkboxInput("OM.compBalanceOut", "Object balance")),
-                                                     column(2, sliderInput("OM.compBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
-                                                     # ),
-                                                   # fluidRow(
-                                                     column(2, checkboxInput("OM.fragBalanceOut", "Fragment balance")),
+                                                     column(2, checkboxInput("OM.objectBalanceOut", "Objects balance"), style="padding-top:35px;"),
+                                                     column(2, sliderInput("OM.objectBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     column(2, checkboxInput("OM.fragBalanceOut", "Fragments balance"), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.fragBalanceOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
                                                    ),
-                                                  fluidRow(column(2, checkboxInput("OM.aggregFactorOut", "Aggregation factor")),
-                                                           column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))
-                                                           ), # end fluidrow
                                                   # fluidRow(column(2, checkboxInput("OM.weightsumOut", "Relation weights sum")),
                                                   #                 column(3, sliderInput("OM.weightsumOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1))),                                                  
                                                   fluidRow(column(10, 
