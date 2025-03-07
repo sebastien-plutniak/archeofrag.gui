@@ -1,5 +1,7 @@
-# archeofrag.gui 0.1.3
-Released: 2025-02-00
+
+
+# archeofrag.gui 1.0.0
+Released: 2025-03-07
 
 * Add code generation for the openMOLE platform.
 * Add support for reproducibility, using the doRNG package.

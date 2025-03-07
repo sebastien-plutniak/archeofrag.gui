@@ -958,13 +958,15 @@ server <- function(input, output, session) {
   # VISUALISATION ####
   output$visualisation.title <- renderText({
     units.pair <- names(graph.list())[as.numeric(input$units.pair)]
+    req(graph.selected())
+    g <- graph.selected()
     
     paste0("Fragmentation graph for spatial units <b>", units.pair, 
            "</b> from the <b>",  input$spatial.variable, 
            "</b> variable. 
             <ul>
-              <li>lines: connection relationships</li> 
-              <li>nodes: fragments</li>
+              <li>lines: connection relationships (n=", igraph::gsize(g), ")</li> 
+              <li>nodes: fragments (n=", igraph::gorder(g), ")</li> 
               <li>colors: spatial units associated with the fragments (<b><font color=YellowGreen>green</font></b> for <b>",  
            gsub("^(.*)/.*", "\\1", units.pair), 
            "</b>, <b><font color=purple>purple</font></b> for <b>", gsub("^.*/(.*)", "\\1", units.pair), 
@@ -1104,16 +1106,26 @@ server <- function(input, output, session) {
                  value =  input.graph.params()$vertices * 100)
   })
   
+  output$OM.FinalfragmentsCount.sens.ui <- renderUI({
+    sliderInput("OM.fragmentsCountOut.sens", 
+                paste0("Final fragments count (obs. value: ", input.graph.params()$vertices, ") +/- (%)"), 
+                value = 0, min = 0, max = 50, step = 1)
+  })
+  
   output$OM.fragmentsBalance.val.ui <- renderUI({
     bal <- input.graph.params()$balance
-    sliderInput("OM.fragmentsBalance.val", "Fragment balance", min = 0.01, max=0.99, step = 0.01, 
+    sliderInput("OM.fragmentsBalance.val", 
+                paste0("Fragments balance (obs. value: ", input.graph.params()$balance, ")"),
+                min = 0.01, max=0.99, step = 0.01, 
                 value = c(bal - bal * .2,
                           bal + bal * .2))
   })
   
   output$OM.objectBalance.val.ui <- renderUI({
     comp.bal <- input.graph.params()$components.balance
-    sliderInput("OM.objectBalance.val", "Initial objects balance", min = 0.01, max = 0.99, step = 0.01, 
+    sliderInput("OM.objectBalance.val", 
+                paste0("Initial objects balance (obs. value: ", input.graph.params()$components.balance, ")"),
+                min = 0.01, max = 0.99, step = 0.01, 
                 value = c(comp.bal - comp.bal * .2,
                           comp.bal + comp.bal * .2))
   })
@@ -1121,7 +1133,9 @@ server <- function(input, output, session) {
   output$OM.disturbance.val.ui <- renderUI({
     dist <- input.graph.params()$disturbance
     
-    sliderInput("OM.disturbance.val", "Disturbance", min = 0, max = 1, step = 0.01, 
+    sliderInput("OM.disturbance.val",
+                paste0("Disturbance (obs. value: ", input.graph.params()$disturbance, ")"), 
+                min = 0, max = 1, step = 0.01, 
                   value = c(dist - dist * .2,
                             dist + dist * .2))
   })
@@ -1129,7 +1143,9 @@ server <- function(input, output, session) {
   output$OM.aggregFactor.val.ui <- renderUI({
     agreg <- input.graph.params()$aggreg.factor
 
-    sliderInput("OM.aggregFactor.val", "Fragments aggregation", min = 0, max = 1, step = 0.01, 
+    sliderInput("OM.aggregFactor.val", 
+                paste0("Fragments aggregation (obs. value: ", input.graph.params()$aggreg.factor, ")"),
+                min = 0, max = 1, step = 0.01, 
             value = c(agreg - agreg * .2,
                       agreg + agreg * .2))
   })
@@ -1177,6 +1193,23 @@ server <- function(input, output, session) {
     OM.fragmentsNumber.str <- paste0("    fragmentsNumber in (", format(input$OM.fragmentsNumber.min, nsmall = 2), " to ",
                                      format(input$OM.fragmentsNumber.max, nsmall = 2), "),<br>")
     
+    # final fragment count (min / max)
+    final.frag.count.adjust <- round(input.graph.params()$vertices * input$OM.fragmentsCountOut.sens / 100, 0)
+    finalFragCountMin <- input.graph.params()$vertices - final.frag.count.adjust
+    finalFragCountMax <- input.graph.params()$vertices + final.frag.count.adjust
+    
+    OM.finalFragmentsNumberMinOut.str <- paste0('  finalFragmentsNumberMin := ', finalFragCountMin, ',<br>') 
+    
+    OM.finalFragmentsNumberMaxOut.str <- ""
+    OM.finalFragmentsNumberMax.map.str <- ""
+    OM.finalFragmentsNumberMax.init.str <- ""
+    
+    if(finalFragCountMin != finalFragCountMax){
+      OM.finalFragmentsNumberMaxOut.str <- paste0('  finalFragmentsNumberMax := ', finalFragCountMax, ',<br>') 
+      OM.finalFragmentsNumberMax.map.str <- '  inputs += finalFragmentsNumberMax.mapped,<br>'
+      OM.finalFragmentsNumberMax.init.str <- 'val finalFragmentsNumberMax = Val[Int]<br>'
+    }
+    
     # preserve object number
     preserveObjectsNumber.str <- unlist(strsplit(input$OM.preserveObjectsNumber.val, split = ", "))
     
@@ -1206,7 +1239,6 @@ server <- function(input, output, session) {
     # .obj.str: opoen mole code to declare the variable as an objective
     OM.relationCountOut.obj.str  <- ""
     OM.objectCountOut.obj.str  <- ""
-    OM.fragmentCountOut.obj.str  <- ""
     OM.disturbanceOut.obj.str  <- ""
     OM.objectBalanceOut.obj.str  <- ""
     OM.fragBalanceOut.obj.str  <- ""
@@ -1219,7 +1251,6 @@ server <- function(input, output, session) {
     
     OM.relationCountOut.map.str  <- ""
     OM.objectCountOut.map.str  <- ""
-    OM.fragmentCountOut.map.str  <- ""
     OM.disturbanceOut.map.str  <- ""
     OM.objectBalanceOut.map.str  <- ""
     OM.fragBalanceOut.map.str  <- ""
@@ -1232,7 +1263,6 @@ server <- function(input, output, session) {
     
     OM.relationCountOut.R.init.str  <- ""
     OM.objectCountOut.R.init.str  <- ""
-    OM.fragmentCountOut.R.init.str  <- ""
     OM.disturbanceOut.R.init.str  <- ""
     OM.objectBalanceOut.R.init.str  <- ""
     OM.fragBalanceOut.R.init.str  <- ""
@@ -1245,7 +1275,6 @@ server <- function(input, output, session) {
     
     OM.relationCountOut.R.str  <- ""
     OM.objectCountOut.R.str  <- ""
-    OM.fragmentCountOut.R.str  <- ""
     OM.disturbanceOut.R.str  <- ""
     OM.objectBalanceOut.R.str  <- ""
     OM.fragBalanceOut.R.str  <- ""
@@ -1258,7 +1287,6 @@ server <- function(input, output, session) {
     
     OM.relationCountOut.init.str <- ""
     OM.objectCountOut.init.str <- ""
-    OM.fragmentCountOut.init.str <- ""
     OM.disturbanceOut.init.str <- ""
     OM.objectBalanceOut.init.str <- ""
     OM.fragBalanceOut.init.str <- ""
@@ -1270,14 +1298,15 @@ server <- function(input, output, session) {
     
     obs.admix <-  round(archeofrag::frag.layers.admixture(graph.selected(), "spatial.variable", verbose = FALSE), 2)
     obs.cohesion <- round(archeofrag::frag.layers.cohesion(graph.selected(), "spatial.variable", verbose = FALSE), 2)
-    # browser()
+    
     if(input$OM.relationCountOut){ 
       OM.relationCountOut.init.str <- 'val relationCountOut = Val[Int]<br>' 
       OM.relationCountOut.map.str  <- '  outputs += relationCountOut.mapped,<br>'
       OM.relationCountOut.R.init.str <- "            relationCountOut <- -1<br>"
       OM.relationCountOut.R.str <- "                relationCountOut <- frag.params$edges<br>"
-      OM.relationCountOut.obj.str <-  paste0("    relationCountOut delta ", input.graph.params()$edges, " under ", 
-                                                              round(input.graph.params()$edges * input$OM.relationCountOut.sens / 100, 0), ",<br>")
+      OM.relationCountOut.obj.str <- paste0("    relationCountOut evaluate \"relationCountOut.map(x => math.abs(x - ",
+                                          input.graph.params()$edges, " )).max\" under ",
+                                          round(input.graph.params()$edges * input$OM.relationCountOut.sens / 100, 0), ",<br>")
     }
     
     if(input$OM.objectCountOut){
@@ -1285,17 +1314,9 @@ server <- function(input, output, session) {
       OM.objectCountOut.map.str  <- '  outputs += objectCountOut.mapped,<br>'
       OM.objectCountOut.R.init.str <- '            objectCountOut   <- -1<br>'
       OM.objectCountOut.R.str <- '                objectCountOut   <- frag.params$n.components<br>'
-      OM.objectCountOut.obj.str <- paste0("    objectCountOut delta ", input.graph.params()$n.components, " under ", 
-                                                          round(input.graph.params()$n.components * input$OM.objectCountOut.sens / 100, 0), ",<br>")
-    }
-    
-    if(input$OM.fragmentCountOut){
-      OM.fragmentCountOut.init.str <- 'val fragmentCountOut = Val[Int]<br>' 
-      OM.fragmentCountOut.map.str  <- '  outputs += fragmentCountOut.mapped,<br>'
-      OM.fragmentCountOut.R.init.str <- '            fragmentCountOut <- -1<br>'
-      OM.fragmentCountOut.R.str <- '                fragmentCountOut <- frag.params$vertices<br>'
-      OM.fragmentCountOut.obj.str <-  paste0("    fragmentCountOut delta ", input.graph.params()$vertices, " under ",
-                                                               round(input.graph.params()$vertices * input$OM.fragmentCountOut.sens / 100, 0), ",<br>")
+      OM.objectCountOut.obj.str <- paste0("    objectCountOut evaluate \"objectCountOut.map(x => math.abs(x - ",
+                                          input.graph.params()$n.components, " )).max\" under ",
+                                          round(input.graph.params()$n.components * input$OM.objectCountOut.sens / 100, 0), ",<br>")
     }
     
     if(input$OM.disturbanceOut){
@@ -1303,9 +1324,9 @@ server <- function(input, output, session) {
       OM.disturbanceOut.map.str  <- '  outputs += disturbanceOut.mapped,<br>'
       OM.disturbanceOut.R.init.str <- '            disturbanceOut   <- -1.0<br>'
       OM.disturbanceOut.R.str <- '                disturbanceOut   <- frag.params$disturbance<br>'
-      OM.disturbanceOut.obj.str <- paste0("    disturbanceOut delta ", 
-                                                               input.graph.params()$disturbance, " under ", 
-                                                               format(round(input.graph.params()$disturbance * input$OM.disturbanceOut.sens / 100, 2), nsmall = 2), ",<br>")
+      OM.disturbanceOut.obj.str <- paste0("    disturbanceOut evaluate \"disturbanceOut.map(x => math.abs(x - ",
+                                            input.graph.params()$disturbance, " )).max\" under ",
+                                            format(round(input.graph.params()$disturbance * input$OM.disturbanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     if(input$OM.objectBalanceOut){
@@ -1313,9 +1334,9 @@ server <- function(input, output, session) {
       OM.objectBalanceOut.map.str  <- '  outputs += objectBalanceOut.mapped,<br>'
       OM.objectBalanceOut.R.init.str <- '            objectBalanceOut <- -1.0<br>'
       OM.objectBalanceOut.R.str <- '                objectBalanceOut <- frag.params$components.balance<br>'
-      OM.objectBalanceOut.obj.str <- paste0("    objectBalanceOut delta ",
-                                                               input.graph.params()$components.balance, " under ", 
-                                                               format(round(input.graph.params()$components.balance * input$OM.objectBalanceOut.sens / 100, 2), nsmall = 2), ",<br>") 
+      OM.objectBalanceOut.obj.str <- paste0("    objectBalanceOut evaluate \"objectBalanceOut.map(x => math.abs(x - ",
+                                          input.graph.params()$components.balance, " )).max\" under ",
+                                          format(round(input.graph.params()$components.balance * input$OM.objectBalanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     if(input$OM.fragBalanceOut){
@@ -1323,9 +1344,9 @@ server <- function(input, output, session) {
       OM.fragBalanceOut.map.str  <- '  outputs += fragBalanceOut.mapped,<br>'
       OM.fragBalanceOut.R.init.str <- '            fragBalanceOut   <- -1.0<br>'
       OM.fragBalanceOut.R.str <- '                fragBalanceOut   <- frag.params$balance<br>'
-      OM.fragBalanceOut.obj.str <- paste0("    fragBalanceOut delta ",
-                                                               input.graph.params()$balance, " under ", 
-                                                               format(round(input.graph.params()$balance * input$OM.fragBalanceOut.sens / 100, 2), nsmall = 2), ",<br>")
+      OM.fragBalanceOut.obj.str <- paste0("    fragBalanceOut evaluate \"fragBalanceOut.map(x => math.abs(x - ",
+                                          input.graph.params()$balance, " )).max\" under ",
+                                           format(round(input.graph.params()$balance * input$OM.fragBalanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     if(input$OM.aggregFactorOut){
@@ -1333,9 +1354,10 @@ server <- function(input, output, session) {
       OM.aggregFactorOut.map.str  <- '  outputs += aggregationOut.mapped,<br>'
       OM.aggregFactorOut.R.init.str <- '            aggregationOut   <- -1.0<br>'
       OM.aggregFactorOut.R.str <- '                aggregationOut   <- frag.params$aggreg.factor<br>'
-        OM.aggregFactorOut.obj.str <- paste0("    aggregationOut delta ",
-                                                                    input.graph.params()$aggreg.factor, " under ", 
-                                                                   format(round(input.graph.params()$aggreg.factor * input$OM.aggregFactorOut.sens / 100, 2), nsmall = 2), ",<br>")
+        
+      OM.aggregFactorOut.obj.str <- paste0("    aggregationOut evaluate \"aggregationOut.map(x => math.abs(x - ",
+                                      obs.admix, " )).max\" under ",
+                                      format(round(input.graph.params()$aggreg.factor * input$OM.aggregFactorOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     # if(input$OM.weightsumOut) OM.weightsumOut.str <- paste0("weightsumOut delta", input$TODO, "under", OM.weightsumOut.sens, ",<br>")
     
@@ -1348,9 +1370,9 @@ server <- function(input, output, session) {
       OM.cohesion1Out.map.str  <- '  outputs += cohesion1Out.mapped,<br>'
       OM.cohesion1Out.R.init.str <- '            cohesion1Out     <- -1.0<br>'
       OM.cohesion1Out.R.str <- '                cohesion1Out     <- cohesion.results[1]<br>'
-      OM.cohesion1Out.obj.str <- paste0("    cohesion1Out delta ",
-                                                           obs.cohesion[1], " under ", 
-                                                           format(round(obs.cohesion[1] * input$OM.cohesion1Out.sens / 100, 2), nsmall = 2), ",<br>") 
+      OM.cohesion1Out.obj.str <- paste0("    cohesion1Out evaluate \"cohesion1Out.map(x => math.abs(x - ",
+                                        obs.cohesion[1], " )).max\" under ", 
+                                        format(round(obs.cohesion[1] * input$OM.cohesion1Out.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     if(input$OM.cohesion2Out){
@@ -1358,9 +1380,9 @@ server <- function(input, output, session) {
       OM.cohesion2Out.map.str  <- '  outputs += cohesion2Out.mapped,<br>'
       OM.cohesion2Out.R.init.str <- '            cohesion2Out     <- -1.0<br>'
       OM.cohesion2Out.R.str <- '                cohesion2Out     <- cohesion.results[2]<br>'
-      OM.cohesion2Out.obj.str <- paste0("    cohesion2Out delta ",
-                                                           obs.cohesion[2], " under ", 
-                                                           format(round(obs.cohesion[2] * input$OM.cohesion2Out.sens / 100, 2), nsmall = 2), ",<br>")
+      OM.cohesion2Out.obj.str <- paste0("    cohesion2Out evaluate \"cohesion2Out.map(x => math.abs(x - ",
+                                        obs.cohesion[2], " )).max\" under ", 
+                                        format(round(obs.cohesion[2] * input$OM.cohesion2Out.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     if(input$OM.admixtureOut){
@@ -1368,9 +1390,12 @@ server <- function(input, output, session) {
       OM.admixtureOut.map.str  <- '  outputs += admixtureOut.mapped,<br>'
       OM.admixtureOut.R.init.str <- '            admixtureOut     <- -1.0<br>'
       OM.admixtureOut.R.str <- '                admixtureOut     <- frag.layers.admixture(g, \'layer\')<br>'
-      OM.admixtureOut.obj.str <-  paste0("    admixtureOut delta ",
-                                                            obs.admix, " under ", 
-                                                            format(round(obs.admix * input$OM.admixtureOut.sens / 100, 2), nsmall = 2), ",<br>")
+      # OM.admixtureOut.obj.str <-  paste0("    admixtureOut delta ",
+      #                                                       obs.admix, " under ", 
+      #                                                       format(round(obs.admix * input$OM.admixtureOut.sens / 100, 2), nsmall = 2), ",<br>")
+      OM.admixtureOut.obj.str <- paste0("    admixtureOut evaluate \"admixtureOut.map(x => math.abs(x - ",
+                                        obs.admix, " )).max\" under ", 
+                                        format(round(obs.admix * input$OM.admixtureOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
     # Default initialisation values for ranges: by default, the value read on the studied graph. However, if the values selected by the user are equal, replace the default value by this selected value
@@ -1416,6 +1441,19 @@ server <- function(input, output, session) {
                                     input$OM.aggregFactor.val[2], "),<br>")
     }
     
+    # nfrag string, determining the number of fragments to remove
+    frag.reduce.str <- paste0(
+    '                g <- frag.graph.reduce(graph = g,<br>',
+    '                                       n.frag.to.remove = igraph::gorder(g) - finalFragmentsNumberMin,<br>',
+    '                                       conserve.objects.nr = preserveObjectsNumber)<br>')
+                              
+    if(finalFragCountMin != finalFragCountMax){
+      frag.reduce.str <- paste0(
+        '                n.frag <- igraph::gorder(g) - sample(seq.int(finalFragmentsNumberMin, finalFragmentsNumberMax), 1)<br>',
+        '                g <- frag.graph.reduce(graph = g,<br>',
+        '                                       n.frag.to.remove = n.frag,<br>',
+        '                                       conserve.objects.nr = preserveObjectsNumber)<br>')
+    }
     
     # .. settings ----
     OM.islands.str <- ""
@@ -1429,7 +1467,8 @@ server <- function(input, output, session) {
            'val layerNumber = Val[Int]<br>',
            'val objectsNumber = Val[Int]<br>',
            'val fragmentsNumber = Val[Int]<br>',
-           'val finalFragmentCount = Val[Int]<br>',
+           'val finalFragmentsNumberMin = Val[Int]<br>',
+           OM.finalFragmentsNumberMax.init.str,
            'val objectBalance = Val[Double]<br>',
            'val fragmentsBalance = Val[Double]<br>',
            'val disturbance = Val[Double]<br>',
@@ -1443,7 +1482,6 @@ server <- function(input, output, session) {
            OM.cohesion1Out.init.str,
            OM.cohesion2Out.init.str,
            OM.admixtureOut.init.str,
-           OM.fragmentCountOut.init.str,
            OM.relationCountOut.init.str,
            OM.objectCountOut.init.str,
            OM.objectBalanceOut.init.str,
@@ -1461,7 +1499,6 @@ server <- function(input, output, session) {
            OM.cohesion1Out.R.init.str,
            OM.cohesion2Out.R.init.str,
            OM.admixtureOut.R.init.str,
-           OM.fragmentCountOut.R.init.str,
            OM.relationCountOut.R.init.str,
            OM.objectCountOut.R.init.str,
            OM.objectBalanceOut.R.init.str,
@@ -1479,12 +1516,10 @@ server <- function(input, output, session) {
            '                                        disturbance = disturbance,<br>',
            '                                        aggreg.factor = aggregation,<br>',
            '                                        asymmetric.transport.from = asymmetricTransport,<br>',
-           '                                        planar = as.logical(planarGraphsOnly)<br>',
+           '                                        planar = planarGraphsOnly <br>',
            '                                        )<br>',
            '                # Randomly delete fragments:<br>',
-           '                g <- frag.graph.reduce(graph = g,<br>',
-           '                                       n.frag.to.remove = igraph::gorder(g) - finalFragmentCount,<br>',
-           '                                       conserve.objects.nr = as.logical(preserveObjectsNumber) )<br>',
+           frag.reduce.str,
            '                # Measurements:<br>',
            '                frag.params <- frag.get.parameters(g, \'layer\')<br>',
            '<br>',
@@ -1492,7 +1527,6 @@ server <- function(input, output, session) {
            OM.cohesion1Out.R.str,
            OM.cohesion2Out.R.str,
            OM.admixtureOut.R.str,
-           OM.fragmentCountOut.R.str,
            OM.relationCountOut.R.str,
            OM.objectCountOut.R.str,
            OM.objectBalanceOut.R.str,
@@ -1510,7 +1544,8 @@ server <- function(input, output, session) {
            '  inputs += mySeed.mapped,<br>',
            '  inputs += objectsNumber.mapped,<br>',
            '  inputs += fragmentsNumber.mapped,<br>',
-           '  inputs += finalFragmentCount.mapped,<br>',
+           '  inputs += finalFragmentsNumberMin.mapped,<br>',
+           OM.finalFragmentsNumberMax.map.str,
            '  inputs += preserveObjectsNumber.mapped,<br>',
            '  inputs += fragmentsBalance.mapped,<br>',
            '  inputs += objectBalance.mapped,<br>',
@@ -1523,7 +1558,7 @@ server <- function(input, output, session) {
            OM.cohesion2Out.map.str,
            OM.admixtureOut.map.str,
            OM.relationCountOut.map.str,
-           OM.fragmentCountOut.map.str,
+           # OM.fragmentCountOut.map.str,
            OM.objectCountOut.map.str,
            OM.objectBalanceOut.map.str,
            OM.disturbanceOut.map.str,
@@ -1535,7 +1570,8 @@ server <- function(input, output, session) {
            '  layerNumber := 1,<br>',
            '  objectsNumber := ', input.graph.params()$n.components, ',<br>',
            '  fragmentsNumber := ', input.graph.params()$vertices, ',<br>', 
-           '  finalFragmentCount := ', input.graph.params()$vertices, ',<br>', 
+           OM.finalFragmentsNumberMinOut.str, 
+           OM.finalFragmentsNumberMaxOut.str, 
            '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
            '  aggregation := ', aggregFactor.default, ',<br>', 
            '  objectBalance := ', objectBalance.default, ',<br>', 
@@ -1567,7 +1603,6 @@ server <- function(input, output, session) {
            OM.cohesion1Out.obj.str,
            OM.cohesion2Out.obj.str,
            OM.admixtureOut.obj.str,
-           OM.fragmentCountOut.obj.str,
            OM.relationCountOut.obj.str,
            OM.objectCountOut.obj.str,
            OM.disturbanceOut.obj.str,
@@ -1578,7 +1613,7 @@ server <- function(input, output, session) {
            '  ),<br>',
            '  stochastic = Stochastic(seed = mySeed)<br>',
            ') ', OM.islands.str,
-           'hook (workDirectory / "ose-results", frequency = 100) on local // adjust execution machine',
+           'hook (workDirectory / "hdose-results", frequency = 100) on local // adjust execution machine',
            "</pre>")
     
     gsub("\\(0 ", "\\(0.0 ", om.code)   # format 0 values as double for openMOLE

@@ -46,7 +46,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                               div(HTML("using <a href=https://github.com/sebastien-plutniak/archeofrag title='Go to the archeofrag page' target=_blank>archeofrag</a> v",  as.character(utils::packageVersion("archeofrag")) )),
                               h3("Input data"),
                               uiOutput("dataset.selector"),
-                              fileInput('inputEdges', 'Relations (CSV file):',
+                              fileInput('inputEdges', 'Relationships (CSV file):',
                                         width="70%",
                                         accept=c('text/csv', 'text/comma-separated-values,text/plain')),
                               fileInput('inputNodes', 'Fragments (CSV file):',
@@ -70,14 +70,14 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <br>
                 <img width='100%' src=www/general-idea.png><br><br>
                 <p>
-                This application implements and complements some features of the
-                <i><a href=https://cran.r-project.org/web/packages/archeofrag/index.html target=_blank>archeofrag</a></i> R package for spatial analysis in archaeology from the study of refitting fragments of objects. Based on the TSAR method (Topological Study of Archaeological Refitting),  it includes functions to <b>evaluate and validate</b> the distinction between <b>archaeological spatial units</b> (e.g. layers), from the distribution and the topology of the refitting relationships between the fragments contained in these units.
+                 <i>archeofrag.gui</i> aids in assessing the <b>distinctions</b> between observed <b>archaeological spatial units</b> (e.g. layers) and their <b>formation process</b> by examining the refitting relationships between fragments of objects contained in these units.
+                This application complements and draws upon the <i><a href=https://cran.r-project.org/web/packages/archeofrag/index.html target=_blank>archeofrag</a></i> R package, which implements the TSAR method (Topological Study of Archaeological Refitting). TThe TSAR method covers not just the quantity of refitting relationships, but also their corresponding distribution and <b>topology</b>. 
                 </p>
                 <h3>Input Data</h3>
                 <p>
                   Use the menu on the left to upload your 'relations' and 'fragments' data as CSV files. 
                   <ul>
-                    <li>The <b>relations</b> table must have a row for each refitting relationship and two columns containing the identifiers of each pair of refitting fragments, respectively;</li>
+                    <li>The <b>relationships</b> table must have a row for each refitting relationship and two columns containing the identifiers of each pair of refitting fragments, respectively;</li>
                     <li>The <b>fragments</b> table must have a row for each fragment and, at least, a column for fragments' unique identifiers and a column for the spatial units they belong to. Optionally, columns with morphometric data (e.g. length, surface) and with the fragments' X, Y, Z coordinates  can be used.</li>
                   </ul>
                   Alternatively, load one of the real-world example datasets (or explore Rubish Site data).
@@ -594,7 +594,13 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                              uiOutput("OM.disturbance.val.ui")
                                                                       ) #end span
                                                                                       ),
-                                                                     ),
+                                                                     ), #end fluidrow
+                                                  fluidRow(column(10, 
+                                                                  h3("Final state")
+                                                  )),
+                                                  fluidRow(
+                                                    column(3, uiOutput("OM.FinalfragmentsCount.sens.ui"))
+                                                  ), #end fluidrow
                                                   fluidRow(column(10, 
                                                                   h2("Objective variables: values archaeologically observed")), # .. objective var. ----
                                                            column(10, align="center",
@@ -615,8 +621,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      ),
                                                    fluidRow(column(10, h3("Entities count"))),
                                                    fluidRow(
-                                                     column(2, checkboxInput("OM.fragmentCountOut", "Fragment count", value = TRUE), style="padding-top:35px;"),
-                                                     column(2, sliderInput("OM.fragmentCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
+                                                     # column(2, checkboxInput("OM.fragmentCountOut", "Fragment count", value = TRUE), style="padding-top:35px;"),
+                                                     # column(2, sliderInput("OM.fragmentCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
                                                      column(2, checkboxInput("OM.relationCountOut", "Connection count"), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.relationCountOut.sens", "+/- tolerance (%)", value = 0, min = 0, max = 50, step = 1)),
                                                      column(1, checkboxInput("OM.objectCountOut", "Object count", value = TRUE), style="padding-top:35px;"),
@@ -695,10 +701,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <ul>
                   <li><b>Bout des Vergnes</b>:  Ihuel, E. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, N. Mercier., A. Michel, F. Sellami. 2020. <i>Le Bout des Vergnes, Bergerac (Dordogne, Nouvelle-Aquitaine), Contournement ouest de Bergerac, RD 709</i>, Excavation report, Perigueux. </li>
                   <li><b>Chauzeys</b>: Chadelle J.-P. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, F. Jude, S. Kreutzer, A. Michel,  N. Mercier, M. Rabanit, S. Save, F. Sellami, A. Vaughan-Williams. 2021. <i>Chauzeys, Saint-Medard-de-Mussidan (Dordogne, Nouvelle-Aquitaine)</i>, Excavation report, Perigueux. </li>
+                   <li><b>Cuzoul</b>:  Gardeur M. 2025. 'Bone refits from the Cuzoul de Gramat Mesolithic layers (archaeological site, France)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.14975910 target=_blank>10.5281/zenodo.14975910</a>.</li>
                   <li><b>Font-Juvenal</b>: Caro J. 2024. 'Font-Juvenal_Refiting', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.14515444 target=_blank>10.5281/zenodo.14515444</a>.</li>       
                   <li><b>Grande Rivoire</b>: Angelin A. 2025. 'Refitting data from La Grande Rivoire prehistoric site', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.14609875 target=_blank>10.5281/zenodo.14609875</a>.</li>
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a> </li>
-                  <li><b>Tai</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
+                  <li><b>Tai Cave and Tai South</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
                 </ul>
                 <br>
                 
