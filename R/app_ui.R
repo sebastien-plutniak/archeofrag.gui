@@ -71,7 +71,15 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <img width='100%' src=www/general-idea.png><br><br>
                 <p>
                  <i>archeofrag.gui</i> aids in assessing the <b>distinctions</b> between observed <b>archaeological spatial units</b> (e.g. layers) and their <b>formation process</b> by examining the refitting relationships between fragments of objects contained in these units.
-                This application complements and draws upon the <i><a href=https://cran.r-project.org/web/packages/archeofrag/index.html target=_blank>archeofrag</a></i> R package, which implements the TSAR method (Topological Study of Archaeological Refitting). TThe TSAR method covers not just the quantity of refitting relationships, but also their corresponding distribution and <b>topology</b>. 
+                This application complements and draws upon the <i><a href=https://cran.r-project.org/web/packages/archeofrag/index.html target=_blank>archeofrag</a></i> R package, which implements the TSAR method (Topological Study of Archaeological Refitting). The TSAR method covers not just the quantity of refitting relationships, but also their corresponding distribution and <b>topology</b>. 
+                </p>
+                <p>
+                It relies on strong principles:
+                  <ul>
+                    <li> <b>Physical refits only give evidence of common origin</b>: fragments are considered as parts of the same original object only if they physically refit to each other (relationships based on other factors such as motif style, estimation of chemical composition, etc. are excluded).</li>
+                    <li> <b>The spatial location of isolated objects is uncertain</b>: the association between an object and the spatial unit where it was found is a weak relationship, due to the many factors which might have moved it since its deposition. For this reason, the analysis focuses on fragments with at least one refitting relationship, that provides minimal support about their inclusion in a spatial unit. </li>
+                  </ul>
+                  These principles reduce the quantity of relevant and usable data, but ensure analytical robustness in return.
                 </p>
                 <h3>Input Data</h3>
                 <p>
@@ -196,11 +204,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                               </p>
                                                               <h2>Material objects</h2>
                                                               <p>
-                                                              In the archaeological study process, archaeologists aim to use excavation to reconstruct and learn about past state(s) corresponding to deposition event(s). In practice, they:
+                                                              In the archaeological study process, archaeologists use excavation data from a location to reconstruct and learn about past state(s) of this location.  In practice:
                                                               <ol>
-                                                                <li>Observe a <b>set of fragmented objects</b> when excavating (at <sub>t0</sub>).</li>
-                                                                <li>Reconstruct a theoretical state included in the <b>alteration phase</b> (t<sub>-1</sub>), from determining  <b>refitting relationships</b> between fragments.</li>
-                                                                <li>Because fragments are often missing, they make <b>assumptions</b>  about the assemblage's possible completion state at the <b>deposition event</b> (t<sub>-2</sub>). </b></li>
+                                                                <li> When excavating (at <sub>t0</sub>), <b>sets of fragmented objects</b> associated with spatial units are observed.</li>
+                                                                <li> Studying <b>refitting relationships</b> between fragments at the lab, a theoretical state of the assemblage is reconstructed, corresponding to a moment in the <b>alteration phase</b> (t<sub>-1</sub>).</li>
+                                                                <li>Because fragments are often missing,  <b>assumptions</b>  are made about the assemblage's possible completion state at an earlier moment, the <b>deposition event</b> (t<sub>-2</sub>). </b></li>
                                                               </ol>
                                                             </p>
                                                             <h2>Simulations</h2>
@@ -213,7 +221,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             </p>
                                                             <h2>Testing formation scenarios</h2>
                     <p>
-                    Hypotheses about two aspects of formation processes are of particular interest and can be studied by generating series of fragmentation graphs to compare: the <b>number of deposition events</b> and the <b>direction of fragments transport</b> between the first and second spatial unit considered. 
+                    Hypotheses about two aspects of formation processes are of particular interest and can be studied by generating series of fragmentation graphs to compare: the <b>number of deposition events</b> and the <b>direction of fragments transport</b> between the first and second spatial units considered. 
                     <p>
                     Combining these parameters allows to explore and test 6 formation scenarios (A to F):
                    <table><thead>
@@ -267,10 +275,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ), # end tabpanel
                                                    tabPanel("Alteration -> Excavation", # Alteration > Excavation----  
                                                             fluidRow(
-                                                              h1("From (a point in) the Alteration phase to the Excavation event"),
+                                                              h1("From (a moment in) the Alteration phase to the Excavation event"),
                                                               column(10,  align = "center",
                                                                      HTML(
                    "<div style=width:40%;, align=left>
+                    <h2>Presentation</h2>
+                    <p>
+                      This tool enables simulating the formation process of two spatial units. Its advantages method includes:
+                      <ul>
+                        <li>Robustness: the parameters are based on observed evidence, no assumptions are required.</li>
+                        <li>Fast computation: it can be run on a personal computer.</li>
+                      </ul>
+                      However, it simulates what might have happen during a period of time from an undetermined moment in the 'alteration phase' to the excavation event (it does not cover not the assemblage's entire timespan from the deposition event to the excavation event). 
+                    </p>
                     <h2>Instructions</h2>
                     <p>
                       <ul>
@@ -511,7 +528,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                           <div  style=width:40%;, align=left>
                                                                           <h3>The problem</h3>
                                                                           <p>
-                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due to, for example, partial excavation of the site, move of the material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to <a href=https://en.wikipedia.org/wiki/Combinatorial_explosion target=_blank>combinatorial explosions</a>. How many objects did this site originally included? How many fragments of this vessel are missing and not observed? </p>
+                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due, for example, to the partial excavation of the site, transport of material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to <a href=https://en.wikipedia.org/wiki/Combinatorial_explosion target=_blank>combinatorial explosions</a>. How many objects did this site originally included? How many fragments of this vessel are missing and not observed? </p>
                                                                             <h3>Origin Space Exploration</h3>
                                                                             <p>
                                                                             Model exploration methods address those cases. In particular, the <a href=https://openmole.org/HDOSE.html target=_blank>High Dimension Origin Space Exploration</a> method (HDOSE) enables determining the possible combinations of a model's initial parameters, overcoming combinatorial explosions.  Conducting an HDOSE analysis requires defining:
@@ -547,10 +564,18 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(2, selectInput("OM.layerNumber.val", "Initial number of spatial units", choices = c("1, 2", "1", "2"))),
                                                                      ),
                                                                      fluidRow(
-                                                                       column(2, uiOutput("OM.objectsNumber.min.ui")),
-                                                                       column(1, uiOutput("OM.objectsNumber.max.ui")),
+                                                                       column(2, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore about the number of initially non-fragmented objects to generate.",
+                                                                              uiOutput("OM.objectsNumber.min.ui")
+                                                                              ) #end span
+                                                                              ),
+                                                                       column(1, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore about the number of initially non-fragmented objects to generate.",
+                                                                              uiOutput("OM.objectsNumber.max.ui")
+                                                                              ) #end span
+                                                                              ),
                                                                        column(3,
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of objects in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 20%.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of objects in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 10%.",
                                                                                    uiOutput("OM.objectBalance.val.ui")
                                                                               ) #end span
                                                                                    ),
@@ -559,11 +584,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                       h3("Formation process")
                                                                      )),
                                                                      fluidRow(
-                                                                       column(2, uiOutput("OM.fragmentsNumber.min.ui")),
-                                                                       column(1, uiOutput("OM.fragmentsNumber.max.ui")),      
+                                                                       column(2, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
+                                                                                   uiOutput("OM.fragmentsNumber.min.ui")
+                                                                       ) #end span
+                                                                                   ),
+                                                                       column(1, 
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
+                                                                              uiOutput("OM.fragmentsNumber.max.ui")
+                                                                              ) #end span
+                                                                              ),      
                                                                        column(2, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top",
-                                                                                   title = "Whether to try to preserve the number of objects (i.e. sets of connected fragments) when removing fragments to reach the targeted final fragment number.",
+                                                                                   title = "Whether or not to try to preserve the object count (i.e. sets of connected fragments) when removing fragments to reach the targeted final fragment count.",
                                                                                    selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("true", "false", "true, false"), selected = "false", width = "100%")
                                                                               ) # end span
                                                                                    ),
@@ -572,25 +605,25 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("true", "false", "true, false"), selected = "true, false"), style="padding-top:35px;"),
                                                                        column(1),
                                                                        column(3, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding fragment aggregation. Higher the value, more unequal the distribution of fragments between the objects (i.e. sets of fragments). By default: observed value +/- 20%.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore for fragment aggregation. The higher the value, the more uneven the distribution of fragments between the objects (i.e. sets of fragments). By default: observed value +/- 10%.",
                                                                               uiOutput("OM.aggregFactor.val.ui")
                                                                               ) #end span
                                                                               ), # end column
                                                                      ), #end fluidrow
                                                                     fluidRow(
                                                                        column(2, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of parameters to explore regarding the direction of transport between spatial units.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Parameters to explore for the direction of transport between spatial units.",
                                                                               uiOutput("OM.asymmetric.selection")
                                                                               ) #end span
                                                                        ), # end column
                                                                        column(1),
                                                                        column(3, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of fragments in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 20%.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of fragments in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 10%.",
                                                                               uiOutput("OM.fragmentsBalance.val.ui")
                                                                               ) #end span
                                                                               ),
                                                                       column(3,  
-                                                                             span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the disturbance, i.e. the final proportion of fragments moved from a spatial unit to the other. By default: observed value +/- 20%.",
+                                                                             span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore for disturbance, i.e. the final proportion of fragments moved from a spatial unit to another. Highest admixture are generated for disturbance=0.5. By default: observed value +/- 10%.",
                                                                              uiOutput("OM.disturbance.val.ui")
                                                                       ) #end span
                                                                                       ),
@@ -602,7 +635,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     column(3, uiOutput("OM.FinalfragmentsCount.sens.ui"))
                                                   ), #end fluidrow
                                                   fluidRow(column(10, 
-                                                                  h2("Objective variables: values archaeologically observed")), # .. objective var. ----
+                                                                  h2("Objective variables: archaeologically observed values")), # .. objective var. ----
                                                            column(10, align="center",
                                                                   HTML("
                                                                      <div  style=width:40%;, align=left>

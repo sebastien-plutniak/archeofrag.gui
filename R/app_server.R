@@ -1117,8 +1117,7 @@ server <- function(input, output, session) {
     sliderInput("OM.fragmentsBalance.val", 
                 paste0("Fragments balance (obs. value: ", input.graph.params()$balance, ")"),
                 min = 0.01, max=0.99, step = 0.01, 
-                value = c(bal - bal * .2,
-                          bal + bal * .2))
+                value = c(bal - .1, bal + .1))
   })
   
   output$OM.objectBalance.val.ui <- renderUI({
@@ -1126,8 +1125,7 @@ server <- function(input, output, session) {
     sliderInput("OM.objectBalance.val", 
                 paste0("Initial objects balance (obs. value: ", input.graph.params()$components.balance, ")"),
                 min = 0.01, max = 0.99, step = 0.01, 
-                value = c(comp.bal - comp.bal * .2,
-                          comp.bal + comp.bal * .2))
+                value = c(comp.bal - .1, comp.bal + .1))
   })
   
   output$OM.disturbance.val.ui <- renderUI({
@@ -1136,8 +1134,7 @@ server <- function(input, output, session) {
     sliderInput("OM.disturbance.val",
                 paste0("Disturbance (obs. value: ", input.graph.params()$disturbance, ")"), 
                 min = 0, max = 1, step = 0.01, 
-                  value = c(dist - dist * .2,
-                            dist + dist * .2))
+                  value = c(dist - .1, dist + .1))
   })
   
   output$OM.aggregFactor.val.ui <- renderUI({
@@ -1146,8 +1143,7 @@ server <- function(input, output, session) {
     sliderInput("OM.aggregFactor.val", 
                 paste0("Fragments aggregation (obs. value: ", input.graph.params()$aggreg.factor, ")"),
                 min = 0, max = 1, step = 0.01, 
-            value = c(agreg - agreg * .2,
-                      agreg + agreg * .2))
+            value = c(agreg - .1, agreg + .1))
   })
   
   output$OM.asymmetric.selection <- renderUI({
@@ -1305,7 +1301,7 @@ server <- function(input, output, session) {
       OM.relationCountOut.R.init.str <- "            relationCountOut <- -1<br>"
       OM.relationCountOut.R.str <- "                relationCountOut <- frag.params$edges<br>"
       OM.relationCountOut.obj.str <- paste0("    relationCountOut evaluate \"relationCountOut.map(x => math.abs(x - ",
-                                          input.graph.params()$edges, " )).max\" under ",
+                                          input.graph.params()$edges, ")).max\" under ",
                                           round(input.graph.params()$edges * input$OM.relationCountOut.sens / 100, 0), ",<br>")
     }
     
@@ -1315,7 +1311,7 @@ server <- function(input, output, session) {
       OM.objectCountOut.R.init.str <- '            objectCountOut   <- -1<br>'
       OM.objectCountOut.R.str <- '                objectCountOut   <- frag.params$n.components<br>'
       OM.objectCountOut.obj.str <- paste0("    objectCountOut evaluate \"objectCountOut.map(x => math.abs(x - ",
-                                          input.graph.params()$n.components, " )).max\" under ",
+                                          input.graph.params()$n.components, ")).max\" under ",
                                           round(input.graph.params()$n.components * input$OM.objectCountOut.sens / 100, 0), ",<br>")
     }
     
@@ -1325,7 +1321,7 @@ server <- function(input, output, session) {
       OM.disturbanceOut.R.init.str <- '            disturbanceOut   <- -1.0<br>'
       OM.disturbanceOut.R.str <- '                disturbanceOut   <- frag.params$disturbance<br>'
       OM.disturbanceOut.obj.str <- paste0("    disturbanceOut evaluate \"disturbanceOut.map(x => math.abs(x - ",
-                                            input.graph.params()$disturbance, " )).max\" under ",
+                                            input.graph.params()$disturbance, ")).max\" under ",
                                             format(round(input.graph.params()$disturbance * input$OM.disturbanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
@@ -1335,7 +1331,7 @@ server <- function(input, output, session) {
       OM.objectBalanceOut.R.init.str <- '            objectBalanceOut <- -1.0<br>'
       OM.objectBalanceOut.R.str <- '                objectBalanceOut <- frag.params$components.balance<br>'
       OM.objectBalanceOut.obj.str <- paste0("    objectBalanceOut evaluate \"objectBalanceOut.map(x => math.abs(x - ",
-                                          input.graph.params()$components.balance, " )).max\" under ",
+                                          input.graph.params()$components.balance, ")).max\" under ",
                                           format(round(input.graph.params()$components.balance * input$OM.objectBalanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
@@ -1345,7 +1341,7 @@ server <- function(input, output, session) {
       OM.fragBalanceOut.R.init.str <- '            fragBalanceOut   <- -1.0<br>'
       OM.fragBalanceOut.R.str <- '                fragBalanceOut   <- frag.params$balance<br>'
       OM.fragBalanceOut.obj.str <- paste0("    fragBalanceOut evaluate \"fragBalanceOut.map(x => math.abs(x - ",
-                                          input.graph.params()$balance, " )).max\" under ",
+                                          input.graph.params()$balance, ")).max\" under ",
                                            format(round(input.graph.params()$balance * input$OM.fragBalanceOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
@@ -1356,7 +1352,7 @@ server <- function(input, output, session) {
       OM.aggregFactorOut.R.str <- '                aggregationOut   <- frag.params$aggreg.factor<br>'
         
       OM.aggregFactorOut.obj.str <- paste0("    aggregationOut evaluate \"aggregationOut.map(x => math.abs(x - ",
-                                      obs.admix, " )).max\" under ",
+                                      obs.admix, ")).max\" under ",
                                       format(round(input.graph.params()$aggreg.factor * input$OM.aggregFactorOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     # if(input$OM.weightsumOut) OM.weightsumOut.str <- paste0("weightsumOut delta", input$TODO, "under", OM.weightsumOut.sens, ",<br>")
@@ -1371,7 +1367,7 @@ server <- function(input, output, session) {
       OM.cohesion1Out.R.init.str <- '            cohesion1Out     <- -1.0<br>'
       OM.cohesion1Out.R.str <- '                cohesion1Out     <- cohesion.results[1]<br>'
       OM.cohesion1Out.obj.str <- paste0("    cohesion1Out evaluate \"cohesion1Out.map(x => math.abs(x - ",
-                                        obs.cohesion[1], " )).max\" under ", 
+                                        obs.cohesion[1], ")).max\" under ", 
                                         format(round(obs.cohesion[1] * input$OM.cohesion1Out.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
@@ -1381,7 +1377,7 @@ server <- function(input, output, session) {
       OM.cohesion2Out.R.init.str <- '            cohesion2Out     <- -1.0<br>'
       OM.cohesion2Out.R.str <- '                cohesion2Out     <- cohesion.results[2]<br>'
       OM.cohesion2Out.obj.str <- paste0("    cohesion2Out evaluate \"cohesion2Out.map(x => math.abs(x - ",
-                                        obs.cohesion[2], " )).max\" under ", 
+                                        obs.cohesion[2], ")).max\" under ", 
                                         format(round(obs.cohesion[2] * input$OM.cohesion2Out.sens / 100, 2), nsmall = 2), ",<br>")
     }
     
@@ -1394,7 +1390,7 @@ server <- function(input, output, session) {
       #                                                       obs.admix, " under ", 
       #                                                       format(round(obs.admix * input$OM.admixtureOut.sens / 100, 2), nsmall = 2), ",<br>")
       OM.admixtureOut.obj.str <- paste0("    admixtureOut evaluate \"admixtureOut.map(x => math.abs(x - ",
-                                        obs.admix, " )).max\" under ", 
+                                        obs.admix, ")).max\" under ", 
                                         format(round(obs.admix * input$OM.admixtureOut.sens / 100, 2), nsmall = 2), ",<br>")
     }
     

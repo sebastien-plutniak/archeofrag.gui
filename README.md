@@ -34,14 +34,13 @@ This [R Shiny application](https://analytics.huma-num.fr/Sebastien.Plutniak/arch
 
 # Contents
 
-- [**Abstract**](#abstract)
 - [**Installation**](#installation)
 - [**About archeofrag**](#about-archeofrag)
 - [**archeofrag.gui features**](#archeofrag.gui-features)
   - [Reporting bugs](#reporting-bugs)
   - [Suggesting changes](#suggesting-changes)
 - [**Data input**](#data-input)
-- [**Comparison with simulated data**](#comparison-with-simulated-data)
+- [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
 - [**Community guidelines**](#community-guidelines)
 - [**References**](#references)
 
@@ -93,39 +92,44 @@ Please refer to the `archeofrag` package documentation on [CRAN](https://github.
 * Integrated workflow for quick and efficient use of `archeofrag` functionalities
 * Convenient access to refitting datasets included in `archeofrag`
 * Built-in documentation
-* R code generation
 * Charts generation and export as SVG
+* R code generation
+* [*openMOLE*](https://openmole.org) code generation, a model exploration software
 * Interoperability: data can be exported to `archeofrag.gui` from the [*archeoViz*](https://analytics.huma-num.fr/archeoviz/en) application for archaeological spatial data visualisation.
-
-
-
 
 
 
 
 # Data input
 
-Either load one of the example data sets or upload your own data. Use the menu on the left to upload your 'relation' and 'fragments' data as CSV files.
+Either load an embeded example data sets or upload your data. Use the menu on the left to upload your 'relationships' and 'fragments' data as CSV files.
 
-* The relation table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
-* The fragments table must have a row for each fragment, the first column contains the fragments identifiers and the second column contains their layer.
+* The relationships table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
+* The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
 
 
-# Comparison with simulated data
+# Comparison with simulated data to test formation scenarios
+
+Hypotheses about two aspects of site formation processes are of particular interest and can be studied by generating series of fragmentation graphs to compare: 
+
+1. the number of deposition events and 
+2. the direction of fragments transport between the first and second spatial units considered. 
+
+Select the pair of spatial units to compare in the left menu, set the number of simulated data sets to generate, and click on the “Run” button. Depending on the size of the data set, the computing time can be long. Charts are generated for various parameters measured on the fragmentation graphs: the value observed on the empirical graph is represented by a vertical bar, the distribution of values for each hypotheses are represented by dark (H1) and light (H2) grey shades.
+
+## 1. Number of deposition events
+
+Fragmentation graphs can be generated for two hypotheses regarding the number of deposition events involved in the formation of the considered pair of spatial units:
+
+* H1. The objects were buried during one deposition event forming a single spatial unit, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists;
+* H2. The objects were buried during two deposition events forming two spatial units, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists.
+
+
+## 2. Direction of fragments transport
+
+The 'Unidirectional transport from unit...' parameter makes it possible to constrain the direction of fragments transport between the two spatial units under study.
 
 The observed data can be compared to similar simulated data for two formation hypothesis:
-
-* H1, the archaeological material studied comes from a single deposition episode, within which archaeologists distinguished two subsets;
-* H2, the material was deposited during two deposition episodes, that archaeologists could not distinguish due to subsequent perturbations, admixture, and sampling resulting either from human or non-human action
-
-Select the pair of spatial units to compare in the menu, set the number of simulated data sets to generate, and click on the “Run” button. Depending on the size of the data set, the computing time can be long. Charts are generated for various parameters measured on the fragmentation graphs: the value observed on the empirical graph is represented by a vertical bar, the distribution of values for each hypotheses are represented by dark (H1) and light (H2) grey shades.
-
-
-
-
-
-
-
 
 
 
