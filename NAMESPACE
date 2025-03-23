@@ -12,5 +12,5 @@ importFrom(grDevices, dev.off, svg)
 importFrom(igraph, gorder, V, E, count_components, gsize,  "%--%", vertex_attr, delete_vertices) 
 importFrom(shinythemes, shinytheme)
 importFrom(stats, as.dendrogram, as.dist, complete.cases, hclust, reshape, median, mad)
-importFrom(utils, combn, packageVersion, read.csv, data)
+importFrom(utils, combn, packageVersion, read.csv, data, sessionInfo, toLatex)
 

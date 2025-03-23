@@ -40,6 +40,7 @@ This [R Shiny application](https://analytics.huma-num.fr/Sebastien.Plutniak/arch
   - [Reporting bugs](#reporting-bugs)
   - [Suggesting changes](#suggesting-changes)
 - [**Data input**](#data-input)
+- [**Spatial units merging**](#spatial-units-merging)
 - [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
 - [**Community guidelines**](#community-guidelines)
 - [**References**](#references)
@@ -102,10 +103,21 @@ Please refer to the `archeofrag` package documentation on [CRAN](https://github.
 
 # Data input
 
-Either load an embeded example data sets or upload your data. Use the menu on the left to upload your 'relationships' and 'fragments' data as CSV files.
+Either load one of the built-in example data sets or upload your data. Use the menu on the left to upload your 'relationships' and 'fragments' data as CSV files.
 
 * The relationships table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
 * The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
+
+
+# Spatial units merging
+
+Archaeological spatial units are likely to be recombined, for example when there are reasons to merge stratigraphic layers. The 'Spatial units optimisation' tab helps in this task. It draws on the measurement of the difference between the cohesion values of a pair of spatial units: the lower this difference, the more balanced the archaeological information about them (regardless of their possible admixture). 
+Given  a series of spatial units, this functionality: 
+1. determines the list of possible combinations of pair of spatial units
+2. computes the cohesion values for each combination and summarises it by calculating its median values
+3. return and sort the solutions.
+
+Merging solutions with lower median values reflect spatial divisions for which the archaeological information is best balanced.
 
 
 # Comparison with simulated data to test formation scenarios
@@ -125,7 +137,7 @@ Fragmentation graphs can be generated for two hypotheses regarding the number of
 * H2. The objects were buried during two deposition events forming two spatial units, were subsequently fragmented and moved, and were discovered in two spatial units according to the archaeologists.
 
 
-## 2. Direction of fragments transport
+## 2. Direction of fragments transport
 
 The 'Unidirectional transport from unit...' parameter makes it possible to constrain the direction of fragments transport between the two spatial units under study.
 

@@ -1,4 +1,9 @@
 
+# archeofrag.gui 1.0.2
+
+* Add R session information in 'R code' tab. 
+* Display information about embedded datasets in 'Measurements' tab.
+* Add new functionality: 'Spatial units optimisation' to explore solutions of spatial units merging.
 
 # archeofrag.gui 1.0.0
 Released: 2025-03-09

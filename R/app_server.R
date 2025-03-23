@@ -1,5 +1,6 @@
 server <- function(input, output, session) { 
   .data <- NULL  
+  i <- NULL  
   value <- NULL
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
@@ -66,8 +67,10 @@ server <- function(input, output, session) {
   output$rubish.text <- renderUI({
     if(input$use_example != "Rubish Site *") return()
     
-    HTML("<div style=width:40%;, align=left>
-    <h1>This is Rubish Site</h1>
+    HTML("
+        <div align=left><h1>Data set presentation: Rubish Site</h1></div>
+        <div align=center>
+        <div style=width:40%;, align=left>
          <p/>
          Rubish Site is an impressive archaeological location situated at N189 24' 0, W66 6' 0, on the slopes of In Silico Valley (Randomness county). It was extensively excavated from April, 1st, 1969 (2 am) to April, 1st, 1969 (3 am) by Professor Sauvignon & associates. Their efforts led to determining 5+1 stratigraphic units (=6). Intensive post-excavation studies were carried out the next day, despite the difficult conditions faced by the excavation team. Refits were tirelessly researched among fragments of glass bottle material, which excited the archaeologists for looking surprisingly similar to modern bottles they were familiar with.
          </p>
@@ -96,6 +99,7 @@ server <- function(input, output, session) {
          <p>
          And that's how, based on these breathtaking results afterwards reproduced using <i>R programming code</i>,  Prof. Sauvignon famously gave the site its name, known worldwide: Rubish Site.
          </p>
+         </div>
          </div>
          ")
   })
@@ -258,7 +262,7 @@ server <- function(input, output, session) {
   
   
   # MAKE GRAPH LIST----
-  graph.list <- reactive({ 
+  graph.complete <- reactive({ 
     req(graph.data2, input$spatial.variable)
     
     g.data <- graph.data2()
@@ -287,7 +291,13 @@ server <- function(input, output, session) {
     if( ! is.null(input$x.variable)){ graph <- check.and.delete.frag(graph, input$x.variable)}
     if( ! is.null(input$y.variable)){ graph <- check.and.delete.frag(graph, input$y.variable)}
     if( ! is.null(input$z.variable)){ graph <- check.and.delete.frag(graph, input$z.variable)}
-    
+    graph
+  })
+  
+  graph.list <- reactive({ 
+    req(graph.complete)
+    graph <- graph.complete()
+      
     pairs <- utils::combn(sort(unique(igraph::V(graph)$spatial.variable)), 2)
     
     g.list <- lapply(seq_len(ncol(pairs)), function(x,
@@ -383,6 +393,24 @@ server <- function(input, output, session) {
   
   
   # MEASUREMENT-----
+  # data set presentations ----
+  output$dataset.presentation <- renderUI({
+    if(input$use_example  %in% data.names) {
+      graph.data <- graph.data()
+      fragments.df <- graph.data$objects.df
+      edges.df <- graph.data$edges.df
+      HTML(paste0(" <div align=left>
+                  <h1>Data set presentation: ", comment(fragments.df)[1], "</h1>",
+                  "<ul>",
+                    "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
+                    "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
+                    "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
+                    "<li><b>Fragments count</b>: ", nrow(fragments.df), "</li>",
+                    "<li><b>Connection count</b>: ", nrow(edges.df), "</li>",
+                  "</ul></div>"
+           ))
+    }
+  })
   
   stats.table <- reactive({    # stats table ----
     req(graph.list, input$morpho.variable)
@@ -955,6 +983,168 @@ server <- function(input, output, session) {
   })
   
   
+  # SPATIAL UNITS OPTIMISATION ####
+  output$optimisation.sp.ui <- renderUI({
+    req(graph.complete)
+    graph <- graph.complete()
+    
+    spatial.units <- sort(unique(igraph::V(graph)$spatial.variable))
+    checkboxGroupInput("optimisation.sp", "Spatial units",
+                       choices = spatial.units,
+                       selected = spatial.units[seq_len(6)],
+                       inline = TRUE
+                       )
+  })
+  
+  
+  
+  optimisation.table <- eventReactive(input$optimisationButton, {
+    req(graph.complete, input$optimisation.sp)
+    graph <- graph.complete()
+    
+    start.time <- Sys.time()  # save start time
+    
+    spatial.units <- unique(igraph::V(graph)$spatial.variable)
+    spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
+    
+    if(length(spatial.units) > 7){
+      showNotification("Select no more than 7 spatial units to combine.", duration = 10, type = "warning")
+      return()
+    } 
+    if(length(spatial.units) %in% c(6, 7)){
+      showNotification("Computation has started... Please wait...", duration = 20, type ="message")
+    } 
+
+    # list all combinations:
+    eval(parse(text =  paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units) - 1), collapse = ""),
+                              "spatial.units, stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
+    pairs <- as.matrix(pairs)
+    
+    # keep only the combinations including all spatial.units
+    items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is slow
+    items.nr <- length(spatial.units)
+    pairs <- pairs[ items == items.nr, ]
+    
+    # filter duplicated, considering that within a pair the order of the spatial units does not matter:
+    n.pairs <- floor(length(spatial.units) / 2)
+    n.pairs <- matrix(seq_len(2 * n.pairs), ncol = 2, byrow = TRUE)
+    
+    # for each pair of columns, replace by 
+    for(row in seq_len(nrow(n.pairs))){
+      pairs <- cbind(pairs, apply(pairs, 1, function(x, cols = c(n.pairs[row, ]))  paste0(sort(x[ cols ]), collapse = "")))
+      pairs <- pairs[duplicated(pairs[,  - c(n.pairs[row, ]) ]), ]
+    }
+    
+    # clean
+    pairs <- pairs[, seq_len(length(spatial.units))]
+    
+    # create a reference table with recoded spatial units
+    recoded.spatial.units <- pairs
+    
+    # merge some or all possible pairs of spatial units:
+    recoded.spatial.units <-  foreach::foreach(i = 0:c(nrow(n.pairs) -1), .combine = "rbind", .errorhandling = "remove") %dopar%{
+      df <- recoded.spatial.units
+      for(row in seq_len(nrow(n.pairs) - i) ){
+        df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
+      }
+      df
+    }
+    
+    # demultiply the reference table to get the same row numbers:
+    eval(parse(text =  paste0("pairs <- rbind(", paste0(rep("pairs, ", nrow(n.pairs) - 1), collapse = ""), "pairs)")))
+    
+    # add a line for no merging at all:
+    pairs <- rbind(spatial.units, pairs, deparse.level = 0)
+    recoded.spatial.units <- rbind(spatial.units, recoded.spatial.units, deparse.level = 0)
+    
+    # Function that, for each combination of spatial units ----
+    frag.get.cohesion.dispersion <- function(g, raw.spatial.units.row, recoded.spatial.units.row){
+      # 1) recodes spatial units:
+      additional.sp.units <- unique(igraph::V(g)$spatial.variable) # determine non selected spatial units
+      additional.sp.units <- additional.sp.units[ ! additional.sp.units %in% raw.spatial.units.row]
+      
+      igraph::V(g)$sp.u.aggregated <- as.character(factor(igraph::V(g)$spatial.variable,
+                                              levels = c(raw.spatial.units.row, additional.sp.units),
+                                              labels = c(recoded.spatial.units.row, additional.sp.units)))
+      # 2) summarises the difference between cohesion values:
+      cohesion.res <- NA
+      cohesion.res <- frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
+      cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
+
+      c("Cohesion difference median" = stats::median(cohesion.res, na.rm = TRUE),
+        "MAD" = stats::mad(cohesion.res, na.rm = TRUE))
+    }
+    
+    # run computation (Note that's the slowest step of the workflow)
+    cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
+      frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
+                                   recoded.spatial.units.row = recoded.spatial.units[i, ])
+    }
+    
+    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = F) # remove duplicated merged spatial units labels
+    recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
+    recoded.spatial.units <- data.frame(recoded.spatial.units)
+    recoded.spatial.units <- cbind(recoded.spatial.units, cohes.diff.res)
+    
+    # remove duplicates:
+    idx <- apply(recoded.spatial.units[, seq_len(ncol(pairs))], 1, function(x)  paste0(sort.int(x), collapse = ""))
+    recoded.spatial.units <- recoded.spatial.units[ ! duplicated(idx), ]
+    
+    recoded.spatial.units[recoded.spatial.units == ""] <- NA
+    
+    # sort the contents of the lines:
+    idx <- seq_len(ncol(pairs))
+    recoded.spatial.units[, idx] <- t(apply(recoded.spatial.units[, idx], 1,
+                   function(x) sort(unlist(x), na.last = T)))
+    
+    # remove empty columns
+    idx <- apply(recoded.spatial.units, 2, function(x) ! all(is.na(x)))
+    recoded.spatial.units <- recoded.spatial.units[, idx ]
+    
+    colnames(recoded.spatial.units) <- gsub("Var", "Sp. unit ", colnames(recoded.spatial.units))
+    rownames(recoded.spatial.units) <- NULL
+    # order the result by cohesion difference median value:
+    recoded.spatial.units$"Cohesion difference median" <- round(recoded.spatial.units$"Cohesion difference median", 3)
+    
+    exec.time <- Sys.time() - start.time
+    exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
+    
+    recoded.spatial.units$MAD <- round(recoded.spatial.units$MAD, 3)
+    list(recoded.spatial.units[order(recoded.spatial.units$"Cohesion difference median", recoded.spatial.units[,1]), ],
+         exec.time)
+    })  
+  
+  output$optimisationTab <- DT::renderDT({ 
+      DT::datatable(optimisation.table()[[1]], rownames=F,  escape=F, style = "default", selection = 'none',
+                    options = list(dom = 'tp'))
+    })
+  
+    output$optimisationText <- renderText({
+    req(optimisation.table)
+    graph <- graph.complete()
+    optim.results <- optimisation.table()
+    
+    cohesion.res <- frag.layers.cohesion(graph, layer.attr = "spatial.variable", verbose = FALSE)
+    cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
+    median.res <- round(stats::median(cohesion.res, na.rm = TRUE), 3)
+    
+    if(median.res <= min(optim.results[[1]]$"Cohesion difference median")){
+      comments.str <- "none of the merging solutions returned a lower value."
+    } else{
+      comments.str <- "some merging solutions returned lower values."
+    }
+    
+    paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
+           " merging solutions evaluated in ", optim.results[[2]], " (using ", foreach::getDoParWorkers(), " parallel workers).<br>",
+          "<b>Median of the cohesion differences without merging:</b> ",
+          median.res, 
+          " +/- ", round(stats::mad(cohesion.res, na.rm = TRUE), 3), "<br>",
+          "<b>Comment:</b> ", comments.str
+          )
+  })
+  
+  
+  
   # VISUALISATION ####
   output$visualisation.title <- renderText({
     units.pair <- names(graph.list())[as.numeric(input$units.pair)]
@@ -1480,8 +1670,11 @@ server <- function(input, output, session) {
     # nfrag string, determining the number of fragments to remove
     frag.reduce.str <- paste0(
     '                g <- frag.graph.reduce(graph = g,<br>',
-    '                                       n.frag.to.remove = igraph::gorder(g) - finalFragmentsNumberMin,<br>',
+    '                                       n.frag.to.remove = length(g) - finalFragmentsNumberMin,<br>',
     '                                       conserve.objects.nr = preserveObjectsNumber)<br>')
+    # '                                       conserve.objects.nr = preserveObjectsNumber)<br>',
+    # '                                       conserve.fragments.balance = conserveFragmentsBalance,<br>',
+    # '                                       conserve.inter.units.connection = conserveInterunitsConnection)<br>')
                               
     if(finalFragCountMin != finalFragCountMax){
       frag.reduce.str <- paste0(
