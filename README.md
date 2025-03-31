@@ -1,8 +1,8 @@
 archeofrag.gui: Spatial Analysis in Archaeology from Refitting Fragments (GUI)
 =====
 
-An R 'Shiny' application to access the functionalities and datasets of the 'archeofrag' package for spatial analysis in archaeology from refitting data. Quick and seamless exploration of archaeological refitting datasets, focusing on connection relationships only (i.e. physical refits). Features include: built-in documentation and convenient workflow, plot generation and export, R code generation to re-execute the simulations in R and ensure reproducibility, support for parallel computing to speed up computation. A demonstration version of the app is available [online](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag).
-
+A 'Shiny' application to access the functionalities and datasets of the 'archeofrag' package for spatial analysis in archaeology from refitting data. Quick and seamless exploration of archaeological refitting datasets, focusing on physical refits only. Features include: built-in documentation and convenient workflow, plot generation and exports, exploration of spatial units merging solutions, simulation of archaeological site formation processes, support for parallel computing, R code generation to re-execute simulations and ensure reproducibility, code generation for the 'openMOLE' model exploration software.
+A demonstration version of the app is available [online](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag).
 
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -25,7 +25,7 @@ This [R Shiny application](https://analytics.huma-num.fr/Sebastien.Plutniak/arch
 
 
 
-[![alt Click to launch a demonstration](archeofraggui.png "Click to launch a demonstration")](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/)
+[![Click to launch a demonstration](archeofraggui.png "Click to launch a demonstration")](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/)
 
 
 

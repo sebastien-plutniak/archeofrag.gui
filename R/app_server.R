@@ -7,8 +7,8 @@ server <- function(input, output, session) {
     span(`data-toggle` = "tooltip", `data-placement` = "bottom",
          title = "Enabling parallelization uses half of the available cores to speed up the computation.",
           checkboxInput("parallelize",
-                        paste0("Parallelize (n workers: ",
-                               foreach::getDoParWorkers(), ")"), value = TRUE)
+                        paste0("Parallelize (using ",
+                               foreach::getDoParWorkers(), " workers)"), value = TRUE)
     )
   })
   
@@ -407,6 +407,7 @@ server <- function(input, output, session) {
                     "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
                     "<li><b>Fragments count</b>: ", nrow(fragments.df), "</li>",
                     "<li><b>Connection count</b>: ", nrow(edges.df), "</li>",
+                    "<li><b>Reference</b>: see the 'References' tab</li>",
                   "</ul></div>"
            ))
     }
@@ -1021,7 +1022,7 @@ server <- function(input, output, session) {
     pairs <- as.matrix(pairs)
     
     # keep only the combinations including all spatial.units
-    items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is slow
+    items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is a little slow
     items.nr <- length(spatial.units)
     pairs <- pairs[ items == items.nr, ]
     
@@ -1042,7 +1043,7 @@ server <- function(input, output, session) {
     recoded.spatial.units <- pairs
     
     # merge some or all possible pairs of spatial units:
-    recoded.spatial.units <-  foreach::foreach(i = 0:c(nrow(n.pairs) -1), .combine = "rbind", .errorhandling = "remove") %dopar%{
+    recoded.spatial.units <-  foreach::foreach(i = seq(0, c(nrow(n.pairs) -1)), .combine = "rbind", .errorhandling = "remove") %dopar%{
       df <- recoded.spatial.units
       for(row in seq_len(nrow(n.pairs) - i) ){
         df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
@@ -1066,21 +1067,26 @@ server <- function(input, output, session) {
       igraph::V(g)$sp.u.aggregated <- as.character(factor(igraph::V(g)$spatial.variable,
                                               levels = c(raw.spatial.units.row, additional.sp.units),
                                               labels = c(recoded.spatial.units.row, additional.sp.units)))
-      # 2) summarises the difference between cohesion values:
+      # 2) computes edges weights
+      g <- frag.edges.weighting(g, "sp.u.aggregated", verbose=FALSE)
+      # 3) summarises the difference between cohesion values:
       cohesion.res <- NA
       cohesion.res <- frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
       cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
+      admix.res <- frag.layers.admixture(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
 
       c("Cohesion difference median" = stats::median(cohesion.res, na.rm = TRUE),
-        "MAD" = stats::mad(cohesion.res, na.rm = TRUE))
+        "MAD" = stats::mad(cohesion.res, na.rm = TRUE),
+        "Admixture median"  = stats::median(admix.res, na.rm = TRUE),
+        "MAD." = stats::mad(admix.res, na.rm = TRUE))
     }
+    
     
     # run computation (Note that's the slowest step of the workflow)
     cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
       frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
                                    recoded.spatial.units.row = recoded.spatial.units[i, ])
     }
-    
     recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = F) # remove duplicated merged spatial units labels
     recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     recoded.spatial.units <- data.frame(recoded.spatial.units)
@@ -1105,18 +1111,41 @@ server <- function(input, output, session) {
     rownames(recoded.spatial.units) <- NULL
     # order the result by cohesion difference median value:
     recoded.spatial.units$"Cohesion difference median" <- round(recoded.spatial.units$"Cohesion difference median", 3)
+    recoded.spatial.units$MAD <- round(recoded.spatial.units$MAD, 3)
+    recoded.spatial.units$"Admixture median" <- round(recoded.spatial.units$"Admixture median", 3)
+    recoded.spatial.units$MAD. <- round(recoded.spatial.units$MAD., 3)
     
     exec.time <- Sys.time() - start.time
     exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
     
-    recoded.spatial.units$MAD <- round(recoded.spatial.units$MAD, 3)
-    list(recoded.spatial.units[order(recoded.spatial.units$"Cohesion difference median", recoded.spatial.units[,1]), ],
-         exec.time)
+    idx <- order(recoded.spatial.units$"Cohesion difference median",
+                 recoded.spatial.units$"Admixture median", recoded.spatial.units[,1])
+    
+    list(recoded.spatial.units[idx, ], exec.time)
     })  
   
   output$optimisationTab <- DT::renderDT({ 
-      DT::datatable(optimisation.table()[[1]], rownames=F,  escape=F, style = "default", selection = 'none',
-                    options = list(dom = 'tp'))
+    tab <- optimisation.table()[[1]]
+    
+    sketch <-  paste0("<table class='display'>
+  <thead>
+    <tr>",
+       paste0(sapply(seq_len(ncol(tab) - 4),
+         function(x)  paste0('<th rowspan=2>Sp. unit ', x, '</th>' , collapse = "")), collapse = ""),
+      "<th colspan=2>Cohesion differences</th>
+      <th colspan=2>Admixture values</th>
+    </tr>
+    <tr>
+      <th>Median</th>
+      <th>MAD</th>
+      <th>Median</th>
+      <th>MAD</th>
+    </tr>
+  </thead>
+</table>", collapse="")
+    
+    DT::datatable(tab, rownames=F, container = sketch, escape=F, style = "default", selection = 'none',
+                  options = list(dom = 'tp'))
     })
   
     output$optimisationText <- renderText({
@@ -1345,8 +1374,7 @@ server <- function(input, output, session) {
 
     sliderInput("OM.aggregFactor.val", 
                 paste0("Fragments aggregation (obs. value: ", input.graph.params()$aggreg.factor, ")"),
-                min = 0, max = 1, step = 0.01, 
-            value = c(agreg - .1, agreg + .1))
+                min = 0, max = 1, step = 0.01, value = c(0, 0))
   })
   
   output$OM.asymmetric.selection <- renderUI({
@@ -1383,6 +1411,8 @@ server <- function(input, output, session) {
     OM.disturbance.str <- ""
     OM.aggregFactor.str <- ""
     OM.preserveObjectsNumber.str <- ""
+    OM.preserveFragmentsBalance.str <- ""
+    OM.preserveInterUnitsConnection.str <- ""
     OM.planarGraphsOnly.str <- ""
     OM.asymmetric.str <- ""
     
@@ -1413,14 +1443,28 @@ server <- function(input, output, session) {
     preserveObjectsNumber.str <- unlist(strsplit(input$OM.preserveObjectsNumber.val, split = ", "))
     
     if(length(preserveObjectsNumber.str) > 1){
-      OM.preserveObjectsNumber.str <- paste0("    preserveObjectsNumber in TrueFalse,<br>")
+      OM.preserveObjectsNumber.str <- "    preserveObjectsNumber in TrueFalse,<br>"
     }
+    
+    # preserve fragments balance
+    preserveFragmentsBalance.str <- unlist(strsplit(input$OM.preserveFragmentsBalance.val, split = ", "))
+    
+    if(length(preserveFragmentsBalance.str) > 1){
+      OM.preserveFragmentsBalance.str <- "    preserveFragmentsBalance in TrueFalse,<br>"
+    }    
+    
+    # preserve inter units connection
+    preserveInterUnitsConnection.str <- unlist(strsplit(input$OM.preserveInterUnitsConnection.val, split = ", "))
+    
+    if(length(preserveInterUnitsConnection.str) > 1){
+      OM.preserveInterUnitsConnection.str <- "    preserveInterUnitsConnection in TrueFalse,<br>"
+    }    
     
     # planarity
     planarGraphOnly.str <- unlist(strsplit(input$OM.planarGraphsOnly.val, split = ", "))
     
     if(length(planarGraphOnly.str) > 1){
-      OM.planarGraphsOnly.str <- paste0("    planarGraphsOnly in TrueFalse,<br>") 
+      OM.planarGraphsOnly.str <- "    planarGraphsOnly in TrueFalse,<br>"
     }
     
     # asymmetric transport
@@ -1670,19 +1714,19 @@ server <- function(input, output, session) {
     # nfrag string, determining the number of fragments to remove
     frag.reduce.str <- paste0(
     '                g <- frag.graph.reduce(graph = g,<br>',
-    '                                       n.frag.to.remove = length(g) - finalFragmentsNumberMin,<br>',
-    '                                       conserve.objects.nr = preserveObjectsNumber)<br>')
-    # '                                       conserve.objects.nr = preserveObjectsNumber)<br>',
-    # '                                       conserve.fragments.balance = conserveFragmentsBalance,<br>',
-    # '                                       conserve.inter.units.connection = conserveInterunitsConnection)<br>')
+    '                                       n.frag.to.remove = length(g) - finalFragmentsNumberMin,<br>')
                               
     if(finalFragCountMin != finalFragCountMax){
       frag.reduce.str <- paste0(
         '                n.frag <- igraph::gorder(g) - sample(seq.int(finalFragmentsNumberMin, finalFragmentsNumberMax), 1)<br>',
         '                g <- frag.graph.reduce(graph = g,<br>',
-        '                                       n.frag.to.remove = n.frag,<br>',
-        '                                       conserve.objects.nr = preserveObjectsNumber)<br>')
+        '                                       n.frag.to.remove = n.frag,<br>')
     }
+    
+    frag.reduce.str <- paste0(frag.reduce.str,
+    '                                       conserve.objects.nr = preserveObjectsNumber,<br>',
+    '                                       conserve.fragments.balance = preserveFragmentsBalance,<br>',
+    '                                       conserve.inter.units.connection = preserveInterUnitsConnection)<br>')
     
     # .. settings ----
     OM.islands.str <- ""
@@ -1705,6 +1749,8 @@ server <- function(input, output, session) {
            'val asymmetricTransport = Val[Int]<br>',
            'val planarGraphsOnly = Val[Boolean]<br>',
            'val preserveObjectsNumber = Val[Boolean]<br>',
+           'val preserveFragmentsBalance = Val[Boolean]<br>',
+           'val preserveInterUnitsConnection = Val[Boolean]<br>',
            'val mySeed = Val[Int]<br>',
            '<br>',
            '// Output values<br>',
@@ -1778,6 +1824,8 @@ server <- function(input, output, session) {
            '  inputs += finalFragmentsNumberMin.mapped,<br>',
            OM.finalFragmentsNumberMax.map.str,
            '  inputs += preserveObjectsNumber.mapped,<br>',
+           '  inputs += preserveFragmentsBalance.mapped,<br>',
+           '  inputs += preserveInterUnitsConnection.mapped,<br>',
            '  inputs += fragmentsBalance.mapped,<br>',
            '  inputs += objectsBalance.mapped,<br>',
            '  inputs += disturbance.mapped,<br>',
@@ -1804,6 +1852,8 @@ server <- function(input, output, session) {
            OM.finalFragmentsNumberMinOut.str, 
            OM.finalFragmentsNumberMaxOut.str, 
            '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
+           '  preserveFragmentsBalance := ', preserveFragmentsBalance.str[1], ',<br>',
+           '  preserveInterUnitsConnection := ', preserveInterUnitsConnection.str[1], ',<br>',
            '  aggregation := ', aggregFactor.default, ',<br>', 
            '  objectsBalance := ', objectsBalance.default, ',<br>', 
            '  fragmentsBalance := ', fragmentsBalance.default, ',<br>', 
@@ -1828,6 +1878,8 @@ server <- function(input, output, session) {
            OM.aggregFactor.str,
            OM.asymmetric.str,
            OM.preserveObjectsNumber.str,
+           OM.preserveFragmentsBalance.str,
+           OM.preserveInterUnitsConnection.str,
            OM.planarGraphsOnly.str,
            '  ),<br>',
            '  objective = Seq(<br>', # .... objective ----
