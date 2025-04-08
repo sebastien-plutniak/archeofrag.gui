@@ -258,13 +258,14 @@ server <- function(input, output, session) {
     selectInput("z.variable", "Z coordinates",
                 choices = choices.val, width= "90%")
   })
-  
-  
-  
+
   # MAKE GRAPH LIST----
-  graph.complete <- reactive({ 
+  # graph.complete <- reactiveVal(igraph::graph_from_data_frame(data.frame("", "")))
+  graph.complete <- reactiveVal()
+  graph.complete.init <- reactiveVal() # save copy to retrieve it with the 'reset' button
+
+  observe({ 
     req(graph.data2, input$spatial.variable)
-    
     g.data <- graph.data2()
     
     try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = T)
@@ -291,13 +292,20 @@ server <- function(input, output, session) {
     if( ! is.null(input$x.variable)){ graph <- check.and.delete.frag(graph, input$x.variable)}
     if( ! is.null(input$y.variable)){ graph <- check.and.delete.frag(graph, input$y.variable)}
     if( ! is.null(input$z.variable)){ graph <- check.and.delete.frag(graph, input$z.variable)}
-    graph
+    
+    graph.complete.init(graph)
+    graph.complete(graph)
   })
+  
+  
   
   graph.list <- reactive({ 
     req(graph.complete)
+    
+    if(is.null(graph.complete)) return()
+    
     graph <- graph.complete()
-      
+
     pairs <- utils::combn(sort(unique(igraph::V(graph)$spatial.variable)), 2)
     
     g.list <- lapply(seq_len(ncol(pairs)), function(x,
@@ -324,6 +332,8 @@ server <- function(input, output, session) {
     
     graph.list[[as.numeric(input$units.pair)]]
   })
+  
+  
   
   # GET GRAPH PARAMS ----
   input.graph.params <- reactive({ 
@@ -986,8 +996,9 @@ server <- function(input, output, session) {
   
   # SPATIAL UNITS OPTIMISATION ####
   output$optimisation.sp.ui <- renderUI({
-    req(graph.complete)
     graph <- graph.complete()
+    
+    if(is.null(graph)) return()
     
     spatial.units <- sort(unique(igraph::V(graph)$spatial.variable))
     checkboxGroupInput("optimisation.sp", "Spatial units",
@@ -998,7 +1009,48 @@ server <- function(input, output, session) {
   })
   
   
+  # ... merge dataset ----
+  optimisation.sp.merge <- reactive({
+  req(graph.complete, graph.list)
+  graph <- graph.complete()
   
+  if(is.null(graph)) return()
+  
+  spatial.units <- sort(unique(igraph::V(graph)$spatial.variable))
+  spatial.units2 <- expand.grid(spatial.units, spatial.units)
+  
+  merge.su.pairs <- apply(spatial.units2, 1, function(su){
+    as.character(checkboxInput(inputId = paste0("merge.", su[1], ".", su[2]), label="", width="10px") )
+  })
+  
+  df <- matrix(merge.su.pairs, ncol = length(spatial.units))
+  df <- as.data.frame(df)
+  rownames(df) <- spatial.units
+  colnames(df) <- spatial.units
+  
+  df[upper.tri(df, diag = TRUE)] <- ""
+  
+  df[ -1, -ncol(df)]
+  })
+  
+  
+  output$optimisation.sp.merge.ui <- renderDT({
+    req(optimisation.sp.merge)
+    df <- optimisation.sp.merge()
+    
+    if(length(df) == 1){
+      df <- data.frame(Message = "No additional merge possible. Click on 'reset' to explore other options.")
+    }
+    
+    DT::datatable(df,
+                  escape = F,  selection = 'none', filter = "none",
+                  options = list(dom = 't', ordering = FALSE, paging = FALSE, autoWidth = F,
+                                 preDrawCallback = DT::JS("function() {Shiny.unbindAll(this.api().table().node()); }"), 
+                                 drawCallback = DT::JS("function() {Shiny.bindAll(this.api().table().node()); } ")
+                  ))
+  })
+  
+  # ... units to merge ----
   optimisation.table <- eventReactive(input$optimisationButton, {
     req(graph.complete, input$optimisation.sp)
     graph <- graph.complete()
@@ -1007,6 +1059,11 @@ server <- function(input, output, session) {
     
     spatial.units <- unique(igraph::V(graph)$spatial.variable)
     spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
+    
+    if(length(spatial.units) == 2){
+      showNotification("There are only 2 spatial units. Nothing to merge.", duration = 10, type = "warning")
+      return()
+    } 
     
     if(length(spatial.units) > 7){
       showNotification("Select no more than 7 spatial units to combine.", duration = 10, type = "warning")
@@ -1058,7 +1115,7 @@ server <- function(input, output, session) {
     pairs <- rbind(spatial.units, pairs, deparse.level = 0)
     recoded.spatial.units <- rbind(spatial.units, recoded.spatial.units, deparse.level = 0)
     
-    # Function that, for each combination of spatial units ----
+    # Function which, for each combination of spatial units 
     frag.get.cohesion.dispersion <- function(g, raw.spatial.units.row, recoded.spatial.units.row){
       # 1) recodes spatial units:
       additional.sp.units <- unique(igraph::V(g)$spatial.variable) # determine non selected spatial units
@@ -1082,7 +1139,8 @@ server <- function(input, output, session) {
     }
     
     
-    # run computation (Note that's the slowest step of the workflow)
+    # ... run computation ----
+    # (Note that it is the slowest step of the workflow)
     cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
       frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
                                    recoded.spatial.units.row = recoded.spatial.units[i, ])
@@ -1124,8 +1182,12 @@ server <- function(input, output, session) {
     list(recoded.spatial.units[idx, ], exec.time)
     })  
   
+  
+  # ... merge stats table ----
   output$optimisationTab <- DT::renderDT({ 
     tab <- optimisation.table()[[1]]
+    
+    if(is.null(tab)) return()
     
     sketch <-  paste0("<table class='display'>
   <thead>
@@ -1148,10 +1210,14 @@ server <- function(input, output, session) {
                   options = list(dom = 'tp'))
     })
   
+  
+  
     output$optimisationText <- renderText({
-    req(optimisation.table)
+    req(optimisation.table, graph.selected)
     graph <- graph.complete()
     optim.results <- optimisation.table()
+    
+    if(is.null(optim.results[[1]])) return()
     
     cohesion.res <- frag.layers.cohesion(graph, layer.attr = "spatial.variable", verbose = FALSE)
     cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
@@ -1172,6 +1238,43 @@ server <- function(input, output, session) {
           )
   })
   
+    
+  # ... merge and udpate graph.complete ----
+    observeEvent(input$mergeButton, { 
+      req(optimisation.sp.merge, graph.selected)
+      graph.init <- graph.complete()    # save a copy
+      graph.to.update <- graph.complete()
+      
+      units.to.merge <- optimisation.sp.merge()
+      units.to.merge <- expand.grid(rownames(units.to.merge), colnames(units.to.merge))
+      
+      idx <- apply(units.to.merge, 1, function(su){
+        eval(parse(text = paste0("isTRUE(input$merge.", su[1], ".", su[2], ")" )))
+      })
+      
+      units.to.merge <- units.to.merge[idx, ]
+      
+      g <- igraph::graph_from_data_frame(units.to.merge)
+      igraph::V(g)$membership <- igraph::components(g)$membership
+      
+      for(cluster in unique(igraph::V(g)$membership)){
+        selected.units <- sort(igraph::V(g)[igraph::V(g)$membership == cluster]$name)
+        igraph::V(graph.to.update)[ igraph::V(graph.to.update)$spatial.variable %in% selected.units]$spatial.variable <- paste0(selected.units, collapse = "+")
+      }
+      
+      if(length(unique(igraph::V(graph.to.update)$spatial.variable)) == 1){
+        showNotification("Merging results in only one spatial units. Change settings.",
+                         duration = 10, type = "warning")
+        graph.complete(graph.init)
+      } else {
+        graph.complete(graph.to.update)
+      }
+    })
+    
+    
+    observeEvent(input$resetMergeButton, {
+      graph.complete(graph.complete.init())
+    })
   
   
   # VISUALISATION ####
@@ -1316,7 +1419,7 @@ server <- function(input, output, session) {
   # .. UI elements  ----
   
   output$OM.objectsNumber.min.ui <- renderUI({
-    numericInput("OM.objectsNumber.min", "Initial objects count: minimum", min = 1, step = 1, 
+    numericInput("OM.objectsNumber.min", "minimum", min = 1, step = 1, 
                  value = input.graph.params()$n.components)
   })
   
@@ -1326,7 +1429,7 @@ server <- function(input, output, session) {
   })
   
   output$OM.fragmentsNumber.min.ui <- renderUI({
-    numericInput("OM.fragmentsNumber.min", "Total fragments count: minimum", min = 1, step = 1, 
+    numericInput("OM.fragmentsNumber.min", "minimum", min = 1, step = 1, 
                  value =  input.graph.params()$vertices)
   })
   
@@ -1338,6 +1441,7 @@ server <- function(input, output, session) {
   output$OM.FinalfragmentsCount.sens.ui <- renderUI({
     sliderInput("OM.fragmentsCountOut.sens", 
                 paste0("Final fragments count (obs. value: ", input.graph.params()$vertices, ") +/- (%)"), 
+                width="100%",
                 value = 0, min = 0, max = 50, step = 1)
   })
   

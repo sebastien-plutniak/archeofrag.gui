@@ -100,7 +100,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <h3>Measurements</h3>
                 <p>In this tab, statistics are reported for all pairs of spatial units for the selected 'Spatial variable': number of fragments and refitting relationships, etc. The <b>cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results.</p>
                 <h3>Spatial units optimisation</h3>
-                <p> The spatial units defined in the input dataset might need critical revision. This tab allows to study alternative spatial divisions by exploring various options to merge those spatial units.</p>
+                <p> The spatial units defined in the input dataset might need critical revision. This tab allows
+                <ul>
+                  <li> 1. <b>fast exploration</b> of multiple options to merge those spatial units,</li>
+                  <li> 2. to actually <b>modify</b> the dataset by merging a selection of spatial units (which are then available from <i>archeofrag.gui</i>'s functionalities).</li>
+                </ul>  
+                  </p>
                 <h3>Comparison with simulated data</h3>
                 <p>This tab presents functions to investigate the formation process of the selected pair of spatial units. 
                 Simulation is used to compare it to similar artificial data while controlling differences in some parameters.
@@ -202,8 +207,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                  It 1) determines the series of possible spatial units merging, 2) generates the corresponding fragmentation graphs, 3) computes the cohesion value of each unit for all possible pairs of spatial units (as in the 'Measurements' tab), 4) summarises these values by measuring their median and <a href=https://en.wikipedia.org/wiki/Median_absolute_deviation target=_blank>median absolute deviation</a>.</p>
                                                                  <h2>Instructions</h2>
                                                                    <ul>
-                                                                      <li>Select the spatial units to consider for  possible merging. Due to combinatorial explosion, the maximum number of units is <b>limited to 7</b> (in this case, and depending on graph size, computation might be slow). Note that the merging of spatial units is evaluated regardless of their relative position (adjacent or not) in the archaeological space.</li>
-                                                                      <li>  In the <b>results</b>, merged spatial units are indicated by the <b>'+' symbol</b>. Results are decreasingly ordered according to the median value of the differences between cohesion values: the lower the median, the more balanced the archaeological information about the series of spatial units. In addition, the median of the admixture values is also reported: the higher the value, the more mixed the spatial units. Use the dynamic table to explore the combinations and find out which optimal merging solution fits best with archaeological interpretation.</li>
+                                                                      <li>Select the spatial units to consider for  possible merging. Due to combinatorial explosion, the maximum number of units is <b>limited to 7</b> (in this case, and depending on the graph size, the computation might be slow). Note that the merging of spatial units is evaluated regardless of their relative position (adjacent or not) in the archaeological space.</li>
+                                                                      <li>  In the <b>Results</b> section, merged spatial units are indicated by the <b>'+' symbol</b>. Results are decreasingly ordered according to the median value of the differences between cohesion values: the lower the median, the more balanced the archaeological information about the series of spatial units. In addition, the median of the admixture values is also reported: the higher the value, the more mixed the spatial units. Use the dynamic table to explore the combinations and find out which optimal merging solution fits best with archaeological interpretation.</li>
+                                                                  <li> In the <b>Merge units</b> section, the dataset can be edited to actually merge the selected spatial units. The resulting spatial units are then available from all <i>archeofrag.gui</i>'s functions. By reducing the number of spatial units, this feature is a way around the aforementioned limit to 7 spatial units. </li>
                                                                    </ul>
                                                                  </p>
                                                                  
@@ -214,7 +220,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             br(), br(), 
                                                             uiOutput("optimisation.sp.ui"),
                                                             HTML("Select up to 7 spatial units and launch the computation:"),
-                                                            br(),   br(),  
+                                                            br(), br(),  
                                                             actionButton("optimisationButton", "Run computation"), 
                                                             br(),  
                                                             h1("Results"),
@@ -231,10 +237,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <li><b>Cohesion difference</b>: for a pair of spatial units, highest cohesion value - lowest cohesion value.</li>
                                                           <li><b>MAD</b>: <a href=https://en.wikipedia.org/wiki/Median_absolute_deviation target=_blank>median absolute deviation</a>.</li>
                                                         </ul>
-                                                        <br>
                                                         "),
                                                      ) #end column
-                                                   ) # end fluidrow
+                                                   ), # end fluidrow
+                                                   fluidRow( # merge units -----
+                                                     h1(" Merge units"),
+                                                     column(12, align = "center",
+                                                            actionButton("mergeButton",
+                                                                         "Merge selected units"), 
+                                                            actionButton("resetMergeButton", "Reset"), 
+                                                           DT::DTOutput("optimisation.sp.merge.ui"),
+                                                           br(), br()
+                                                   ) # end column
+                                                   )#end fluidrow
                                           ), #end tabPanel
                                           tabPanel("Simulations", # SIMULATIONS ---- 
                                                    tabsetPanel(id="simul", 
@@ -617,10 +632,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            ), #end  column
                                                   ), #end fluid row
                                                                      fluidRow(
-                                                                       column(2, selectInput("OM.layerNumber.val", "Initial number of spatial units", choices = c("1, 2", "1", "2"))),
+                                                                       column(2, selectInput("OM.layerNumber.val", "Initial number of spatial units", choices = c("1, 2", "1", "2")),
+                                                                       h4("Initial objects count:"),
+                                                                              ),
                                                                      ),
                                                                      fluidRow(
-                                                                       column(2, 
+                                                                       column(1, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore about the number of initially non-fragmented objects to generate.",
                                                                               uiOutput("OM.objectsNumber.min.ui")
                                                                               ) #end span
@@ -633,18 +650,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                        column(3,
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of objects in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 0.1. Only applies if the initial number of spatial units = 2.",
                                                                                    uiOutput("OM.objectsBalance.val.ui")
-                                                                              ) #end span
-                                                                                   ),
-                                                                     ),
-                                                                     fluidRow(column(10, 
-                                                                      h3("Formation process")
-                                                                     )),
+                                                                                   ) #end span
+                                                                             ), #end column
+                                                                     ), #end fluidrow
+                                                  fluidRow(column(10, h3("Formation process"))),
+                                                  fluidRow(column(2, h4("Total fragments count")),
+                                                           column(10, h4("Fragments deletion"))
+                                                  ), #end fluidrow
                                                                      fluidRow(
-                                                                       column(2, 
+                                                                       column(1, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
                                                                                    uiOutput("OM.fragmentsNumber.min.ui")
-                                                                       ) #end span
-                                                                                   ),
+                                                                                ) #end span
+                                                                               ), #end column
                                                                        column(1, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
                                                                               uiOutput("OM.fragmentsNumber.max.ui")
@@ -662,29 +680,30 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                             selectInput("OM.preserveObjectsNumber.val", "Preserve objects number", choices = c("true", "false", "true, false"), selected = "false", width = "100%")
                                                                        ) # end span
                                                                      ), #end column
-                                                  column(2,
-                                                         span(`data-toggle` = "tooltip", `data-placement` = "top",
-                                                              title = "Whether or not to try to preserve the proportion of connection relationships between spatial units when removing fragments to reach the targeted final fragment count.",
-                                                              selectInput("OM.preserveInterUnitsConnection.val", "Preserve inter-units connection", choices = c("true", "false", "true, false"), selected = "true", width = "100%")
-                                                         ) # end span
-                                                  ), #end column
+                                                                      column(2,
+                                                                             span(`data-toggle` = "tooltip", `data-placement` = "top",
+                                                                                  title = "Whether or not to try to preserve the proportion of connection relationships between spatial units when removing fragments to reach the targeted final fragment count.",
+                                                                                  selectInput("OM.preserveInterUnitsConnection.val", "Preserve inter-units connection", choices = c("true", "false", "true, false"), selected = "true", width = "100%")
+                                                                             ) # end span
+                                                                      ), #end column
                                                                     ), #end fluidrow
+                                                                    fluidRow(column(4, h4("Graph topology"))),
                                                                     fluidRow(
-                                                                       column(2, selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("true", "false", "true, false"), selected = "true, false"), style="padding-top:35px;"),
-                                                                       column(1),
+                                                                       column(2, 
+                                                                              selectInput("OM.planarGraphsOnly.val", "Generate only planar graphs", choices = c("true", "false", "true, false"), selected = "true, false")),
                                                                        column(3, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore for fragment aggregation. The higher the value, the more uneven the distribution of fragments between the objects (i.e. sets of fragments). By default: 0, assuming similar fragmentation patterns for all objects.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore for aggregation. Higher values increase the likelihood that the biggest sets of fragments are selected when adding fragments or connections during the creation of the graph. By default: 0, assuming similar fragmentation patterns for all objects.",
                                                                               uiOutput("OM.aggregFactor.val.ui")
                                                                               ) #end span
-                                                                              ), # end column
+                                                                              ) # end column
                                                                      ), #end fluidrow
+                                                                    fluidRow(column(4, h4("Inter-units perturbation"))),
                                                                     fluidRow(
                                                                        column(2, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Parameters to explore for the direction of transport between spatial units.",
                                                                               uiOutput("OM.asymmetric.selection")
                                                                               ) #end span
                                                                        ), # end column
-                                                                       column(1),
                                                                        column(3, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore regarding the proportion of fragments in the first (alphanumerically) spatial unit, regardless of disturbance. By default: observed value +/- 0.1.",
                                                                               uiOutput("OM.fragmentsBalance.val.ui")
@@ -693,15 +712,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                       column(3,  
                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Range of values to explore for disturbance, i.e. the final proportion of fragments moved from a spatial unit to another. Highest admixture are generated for disturbance=0.5. By default: observed value +/- 0.1.",
                                                                              uiOutput("OM.disturbance.val.ui")
-                                                                      ) #end span
-                                                                                      ),
+                                                                              ) #end span
+                                                                            ), #en column
                                                                      ), #end fluidrow
-                                                  fluidRow(column(10, 
-                                                                  h3("Final state")
-                                                  )),
-                                                  fluidRow(
-                                                    column(5, uiOutput("OM.FinalfragmentsCount.sens.ui"))
-                                                  ), #end fluidrow
+                                                  fluidRow(column(10, h3("Final state"))),
+                                                  fluidRow(column(3, uiOutput("OM.FinalfragmentsCount.sens.ui"))), 
                                                   fluidRow(column(10, 
                                                                   h2("Objective variables: archaeologically observed values")), # .. objective var. ----
                                                            column(10, align="center",
