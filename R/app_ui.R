@@ -102,8 +102,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <h3>Spatial units optimisation</h3>
                 <p> The spatial units defined in the input dataset might need critical revision. This tab allows
                 <ul>
-                  <li> 1. <b>fast exploration</b> of multiple options to merge those spatial units,</li>
-                  <li> 2. to actually <b>modify</b> the dataset by merging a selection of spatial units (which are then available from <i>archeofrag.gui</i>'s functionalities).</li>
+                  <li> 1. for the <b>fast exploration</b> of multiple options to merge those spatial units,</li>
+                  <li> 2. <b>modifying</b> the dataset by merging a selection of spatial units (which are then available from <i>archeofrag.gui</i>'s functionalities).</li>
                 </ul>  
                   </p>
                 <h3>Comparison with simulated data</h3>
@@ -200,8 +200,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             HTML("
                                                             <h2>Presentation</h2>
                                                             <p>
-                                                                 It happens that archaeological spatial units should be merged for analysis, for example stratigraphic layers. But which ones? <i>archeofrag.gui</i> helps you determine merging solutions that generating the more balanced series of spatial units. Here 'balanced' means that there is as much archaeological information about every spatial units to support their recognition as archaeologically significant.</p>
-                                                                 <p> An ideal situation, where equal information is known about a series of distinct spatial units would result in spatial units with cohesion values = 0.5 and admixture = 0.  (Here, 'information' means information about the number of fragments and the distribution of their refitting relationships.)  In such a case, for every pair of units, the <b>difference</b> between the two cohesion values would be 0. Consequently, looking for spatial divisions minimising the difference between pairs of cohesion values inform us about archaeologically relevant merging of spatial units. 
+                                                                 It happens that archaeological spatial units (e.g.  stratigraphic layers) should be merged for analysis. But which ones? <i>archeofrag.gui</i> helps you determine merging solutions that generate more balanced spatial units series. Here 'balanced' means that there is as much archaeological information about every spatial unit to support their recognition as archaeologically significant.</p>
+                                                                 <p> An ideal situation, where equal information is known about a series of distinct spatial units would result in spatial units with cohesion values = 0.5 and admixture = 0.  (Here, 'information' means information about the number of fragments and the distribution of their refitting relationships.)  In such a case, for every pair of units, the <b>difference</b> between the two cohesion values would be 0. Consequently, looking for spatial divisions minimising the difference between pairs of cohesion values informs us about the archaeologically relevant merging of spatial units. 
                                                                  </p>
                                                                  <p>
                                                                  It 1) determines the series of possible spatial units merging, 2) generates the corresponding fragmentation graphs, 3) computes the cohesion value of each unit for all possible pairs of spatial units (as in the 'Measurements' tab), 4) summarises these values by measuring their median and <a href=https://en.wikipedia.org/wiki/Median_absolute_deviation target=_blank>median absolute deviation</a>.</p>

@@ -149,6 +149,7 @@ server <- function(input, output, session) {
       edges.df <- rubish$connection
       objects.df <- rubish$fragments
     } else {
+      
       query <- shiny::parseQueryString(session$clientData$url_search)
       
       if ( ! is.null(query[['objects']])) {
@@ -189,10 +190,12 @@ server <- function(input, output, session) {
   })
   
   graph.data2 <- reactive({ # add spatial variable ----
-    req(input$spatial.variable)
+    req(graph.data, input$spatial.variable)
     
     g.data <- graph.data()
     objects.df <- g.data$objects.df
+    
+    if( ! input$spatial.variable %in% colnames(objects.df)) return()
     
     objects.df$spatial.variable <- as.character(eval(parse(text = paste0("objects.df$", input$spatial.variable ))))
     
@@ -204,11 +207,11 @@ server <- function(input, output, session) {
   # SELECTORS ----
   # ... pair of units selector ----
   output$layers.selector <- renderUI({
-    req(graph.data2())
+    req(graph.data())
     
     g.list <- graph.list()
     
-    choices.val <- seq(1, length(g.list))
+    choices.val <- seq_len(length(g.list))
     names(choices.val) <- names(g.list)
     
     selectInput("units.pair", "Pair of spatial units",
@@ -260,7 +263,6 @@ server <- function(input, output, session) {
   })
 
   # MAKE GRAPH LIST----
-  # graph.complete <- reactiveVal(igraph::graph_from_data_frame(data.frame("", "")))
   graph.complete <- reactiveVal()
   graph.complete.init <- reactiveVal() # save copy to retrieve it with the 'reset' button
 
@@ -270,7 +272,7 @@ server <- function(input, output, session) {
     
     try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = T)
     if( ! exists("graph")){
-      showNotification(geterrmessage(), duration = 10, type = "error")
+      # showNotification(geterrmessage(), duration = 10, type = "error")
       return()
     }
     
@@ -301,8 +303,7 @@ server <- function(input, output, session) {
   
   graph.list <- reactive({ 
     req(graph.complete)
-    
-    if(is.null(graph.complete)) return()
+    if(is.null(graph.complete())) return()
     
     graph <- graph.complete()
 
@@ -328,6 +329,7 @@ server <- function(input, output, session) {
   
   graph.selected <- reactive({
     req(graph.list(), input$units.pair)
+    
     graph.list <- graph.list()
     
     graph.list[[as.numeric(input$units.pair)]]
