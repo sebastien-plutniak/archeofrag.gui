@@ -202,6 +202,24 @@ server <- function(input, output, session) {
     list("objects.df"=objects.df, "edges.df"=g.data$edges.df)
   })
   
+  graph.data3 <- reactive({ # subset data ----
+    req(graph.data2, input$subset.variable)
+    
+    g.data <- graph.data2()
+    
+    objects.df <- g.data$objects.df
+    edges.df <- g.data$edges.df
+    
+    if( ! is.null(input$subset.values)){
+      expr <- paste0("objects.df[objects.df$", input$subset.variable, " %in% input$subset.values, ]")
+      objects.df <- eval(parse(text = expr))
+      
+      edges.df <- edges.df[edges.df[, 1] %in% objects.df$id, ]
+      edges.df <- edges.df[edges.df[, 2] %in% objects.df$id, ]
+    }
+    
+    list("objects.df"=objects.df, "edges.df"=edges.df)
+  })
   
   
   # SELECTORS ----
@@ -214,13 +232,42 @@ server <- function(input, output, session) {
     choices.val <- seq_len(length(g.list))
     names(choices.val) <- names(g.list)
     
-    selectInput("units.pair", "Pair of spatial units",
+    selectInput("units.pair", "Pair of spatial units to study",
                 choices = choices.val, width= "90%")
   })
   
+  # ... sub-setting variable selector ----
+  output$subset.selector <- renderUI({
+      req(graph.data())
+      
+      g.data <- graph.data()
+      objects.df <- g.data$objects.df
+      
+      choices.val <- names(objects.df)
+      choices.val <- choices.val[ ! tolower(choices.val) == "id"]
+      names(choices.val) <- names(choices.val)
+      choices.val <- c("-", choices.val)
+      
+      selectInput("subset.variable", "Subset by (optional)",
+                  choices = choices.val, width= "90%")
+    })
+  
+  output$subset.options <- renderUI({
+    req(input$subset.variable)
+    
+    if(input$subset.variable == "-") return()
+    
+    g.data <- graph.data()
+    objects.df <- g.data$objects.df
+    values <- sort(unique(eval(parse(text = paste0("objects.df$", input$subset.variable)))))
+
+    checkboxGroupInput("subset.values", "", choices = values, selected = values) 
+  })
+  
+  
   # ... morpho selector ----
   output$morpho.selector <- renderUI({
-    req(graph.data2())
+    req(graph.data3())
     
     choices.val <- c("-", names(graph.data()$objects.df))
     choices.val <- choices.val[ ! tolower(choices.val) == "id"]
@@ -231,7 +278,7 @@ server <- function(input, output, session) {
   
   # ... x selector ----
   output$x.selector <- renderUI({
-    req(graph.data2())
+    req(graph.data3())
     
     choices.val <- c("-", names(graph.data()$objects.df))
     choices.val <- choices.val[ ! tolower(choices.val) == "id"]
@@ -242,7 +289,7 @@ server <- function(input, output, session) {
   
   # ... y selector ----
   output$y.selector <- renderUI({
-    req(graph.data2())
+    req(graph.data3())
     
     choices.val <- c("-", names(graph.data()$objects.df))
     choices.val <- choices.val[ ! tolower(choices.val) == "id"]
@@ -253,7 +300,7 @@ server <- function(input, output, session) {
   
   # ... z selector ----
   output$z.selector <- renderUI({
-    req(graph.data2())
+    req(graph.data3())
     
     choices.val <- c("-", names(graph.data()$objects.df))
     choices.val <- choices.val[ ! tolower(choices.val) == "id"]
@@ -267,12 +314,13 @@ server <- function(input, output, session) {
   graph.complete.init <- reactiveVal() # save copy to retrieve it with the 'reset' button
 
   observe({ 
-    req(graph.data2, input$spatial.variable)
-    g.data <- graph.data2()
+    req(graph.data3, input$spatial.variable)
+    g.data <- graph.data3()
+    if(is.null(g.data)) return()
     
     try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = T)
     if( ! exists("graph")){
-      # showNotification(geterrmessage(), duration = 10, type = "error")
+      showNotification(geterrmessage(), duration = 10, type = "error")
       return()
     }
     
@@ -463,7 +511,7 @@ server <- function(input, output, session) {
   })
   
   admixTab <- reactive({  # admix table ----
-    req(stats.table(), graph.data2())
+    req(stats.table(), graph.data3())
     stats.table <- stats.table()
     
     stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[,1])
@@ -1011,7 +1059,7 @@ server <- function(input, output, session) {
   })
   
   
-  # ... merge dataset ----
+  # ... spatial unit checkboxes grid  ----
   optimisation.sp.merge <- reactive({
   req(graph.complete, graph.list)
   graph <- graph.complete()
@@ -1046,7 +1094,7 @@ server <- function(input, output, session) {
     
     DT::datatable(df,
                   escape = F,  selection = 'none', filter = "none",
-                  options = list(dom = 't', ordering = FALSE, paging = FALSE, autoWidth = F,
+                  options = list(dom = 't', ordering = FALSE, paging = FALSE,
                                  preDrawCallback = DT::JS("function() {Shiny.unbindAll(this.api().table().node()); }"), 
                                  drawCallback = DT::JS("function() {Shiny.bindAll(this.api().table().node()); } ")
                   ))

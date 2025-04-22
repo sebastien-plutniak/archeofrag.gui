@@ -24,6 +24,7 @@ $(function () {
 })
 "
 
+
 paste.js <- "
 Shiny.addCustomMessageHandler('txt', function (txt) {
     navigator.clipboard.writeText(txt);
@@ -38,7 +39,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                             tags$script(HTML(js)),
                             tags$script(HTML(paste.js))
                           ),
-                          sidebarLayout(
+                          sidebarLayout( # side bar ----
                             sidebarPanel(
                               h3(div(HTML("<a href=https://github.com/sebastien-plutniak/archeofrag.gui title='Go to the archeofrag.gui page' target=_blank>archeofrag.gui</a> v",
                                           as.character(utils::packageVersion("archeofrag.gui"))
@@ -56,6 +57,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                            choices = c("," =',' , ";"=';'
                                                        ,"tab"='\t'), inline=T, selected = ','),
                               h3("Variable selection"),
+                              uiOutput("subset.selector"),
+                              uiOutput("subset.options"),
                               uiOutput("variable.selector"),
                               uiOutput("layers.selector"),
                               width=2), # end sidebarpanel
@@ -246,7 +249,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             actionButton("mergeButton",
                                                                          "Merge selected units"), 
                                                             actionButton("resetMergeButton", "Reset"), 
-                                                           DT::DTOutput("optimisation.sp.merge.ui"),
+                                                           tags$style("table.dataTable {width:auto}"),
+                                                           DT::DTOutput("optimisation.sp.merge.ui", width="80%"),
                                                            br(), br()
                                                    ) # end column
                                                    )#end fluidrow
@@ -571,9 +575,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <ul>
                                                             <li>admixture</li>
                                                             <li>cohesion value for the spatial units 1 and 2</li> 
-                                                            <li>number of refitting relations</li>
+                                                            <li>number of refitting relationships</li>
                                                             <li>fragments balance</li>
-                                                            <li>summary statstics for the relationship weights (sum, median, and standard deviation)</li>
+                                                            <li>summary statstics about relationship weights (sum, median, and median absolute deviation)</li>
                                                                        </div>"),
                                                                   br(),
                                                                   HTML(paste("<div style=width:80%;, align=left>",

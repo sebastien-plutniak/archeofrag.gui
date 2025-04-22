@@ -111,13 +111,21 @@ Either load one of the built-in example data sets or upload your data. Use the m
 
 # Spatial units merging
 
-Archaeological spatial units are likely to be recombined, for example when there are reasons to merge stratigraphic layers. The 'Spatial units optimisation' tab helps in this task. It draws on the measurement of the difference between the cohesion values of a pair of spatial units: the lower this difference, the more balanced the archaeological information about them (regardless of their possible admixture). 
-Given  a series of spatial units, this functionality: 
+Archaeological spatial units are likely to be recombined, for example when there are reasons to merge stratigraphic layers. The 'Spatial units optimisation' tab helps in this task with two functions: the first for fast statistical exploration of the effects of the different merging solutions, the second to merge selected spatial units in the data under study. 
+
+## Statistical exploration of merging options
+
+The first function list the possible merging of pairs of spatial units and returns, for each option, summarises the differences between the cohesion values of all the resulting pairs of spatial units: the lower this difference, the more balanced the archaeological information about them (regardless of their possible admixture). 
+Given a series of spatial units, this function: 
 1. determines the list of possible combinations of pair of spatial units
-2. computes the cohesion values for each combination and summarises it by calculating its median values
+2. computes the cohesion values  and its difference for each combination and summarises it by calculating the median value of these differences
 3. return and sort the solutions.
 
 Merging solutions with lower median values reflect spatial divisions for which the archaeological information is best balanced.
+
+## Merging spatial units
+
+The second function makes it possible to select and merge spatial units. The resulting series of units is then available from all *archeofrag.gui* functions.
 
 
 # Comparison with simulated data to test formation scenarios
