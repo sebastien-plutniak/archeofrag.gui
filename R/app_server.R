@@ -357,13 +357,18 @@ server <- function(input, output, session) {
 
     pairs <- utils::combn(sort(unique(igraph::V(graph)$spatial.variable)), 2)
     
-    g.list <- foreach::foreach(x = seq_len(ncol(pairs)), .errorhandling = "remove") %dopar% {
+    morpho.variable <- input$morpho.variable
+    x.variable <- input$x.variable
+    y.variable <- input$y.variable
+    z.variable <- input$z.variable
+    
+    g.list <- foreach::foreach(x = seq_len(ncol(pairs))) %dopar% {
       g <- archeofrag::frag.get.layers.pair(graph, "spatial.variable", pairs[, x], verbose = FALSE)
       if(is.null(g)){ return() }
       if(length(unique(igraph::V(g)$spatial.variable)) != 2){ return() }
       
-      archeofrag::frag.edges.weighting(g, "spatial.variable", morphometry = input$morpho.variable, 
-                                       x = input$x.variable, y = input$y.variable, z = input$z.variable, verbose = FALSE)
+      archeofrag::frag.edges.weighting(g, "spatial.variable", morphometry = morpho.variable, 
+                                       x = x.variable, y = y.variable, z = z.variable, verbose = FALSE)
     }
     
     names(g.list) <- sapply(seq_len(ncol(pairs)), function(x)
