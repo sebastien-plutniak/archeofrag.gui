@@ -21,11 +21,12 @@ A demonstration version of the app is available [online](https://analytics.huma-
 
 ![](inst/www/general-idea.png)
 
-This [R Shiny application](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/) implements and complements some features of the [`archeofrag` package](https://github.com/sebastien-plutniak/archeofrag) R package for spatial analysis in archaeology from the study of refitting fragments of objects. Based on the [TSAR](https://doi.org/10.1016/j.jas.2021.105501) method (Topological Study of Archaeological Refitting), it includes functions to evaluate and validate the distinction between archaeological spatial units (e.g. layers), from the distribution and the topology of the refitting relationships between the fragments contained in these units. 
 
+The [TSAR](https://doi.org/10.1016/j.jas.2021.105501) method (Topological Study of Archaeological Refitting) is a set of methods includes functions to evaluate and validate the distinction between archaeological spatial units (e.g. layers) from the distribution and the topology of the refitting relationships between the fragments of objects contained in these units. 
+This method is implemented in the [`archeofrag`](https://github.com/sebastien-plutniak/archeofrag) R package, which is complemented by a GUI application, [`archeofrag.gui`](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/). 
+This R Shiny application implements and extend `archeofrag` functionalities, making the exploration of refitting dataset fast and easy. 
 
-
-[![Click to launch a demonstration](archeofraggui.png "Click to launch a demonstration")](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/)
+[![Click to launch a demonstration](archeofraggui.png "Click to launch the app")](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/)
 
 
 
@@ -103,7 +104,7 @@ Please refer to the `archeofrag` package documentation on [CRAN](https://github.
 
 # Data input
 
-Either load one of the built-in example data sets or upload your data. Use the menu on the left to upload your 'relationships' and 'fragments' data as CSV files.
+Either load one of the built-in example data sets or upload your data. Use the menu on the left to upload your 'connection' and 'fragments' data as CSV files.
 
 * The relationships table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
 * The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
