@@ -499,8 +499,9 @@ server <- function(input, output, session) {
       )
     }
     
-    df <- lapply(g.list, make.stat.table)
-    df <- do.call(rbind, df)
+    df <- foreach::foreach(g = g.list, .combine = "rbind", .errorhandling = "remove") %dopar% {
+       make.stat.table(g)
+     }
     colnames(df) <- gsub("\\.", " ", colnames(df))
     df
   })
