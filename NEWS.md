@@ -1,7 +1,8 @@
 
 # archeofrag.gui 1.1.1
 
-* Optionnally, selection of a variable and values to subset the dataset
+* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. 
+* Optional selection of a variable and values to subset the dataset.
 
 # archeofrag.gui 1.1.0
 

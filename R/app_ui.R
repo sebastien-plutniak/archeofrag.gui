@@ -45,6 +45,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                           as.character(utils::packageVersion("archeofrag.gui"))
                                           ))),
                               div(HTML("using <a href=https://github.com/sebastien-plutniak/archeofrag title='Go to the archeofrag page' target=_blank>archeofrag</a> v",  as.character(utils::packageVersion("archeofrag")) )),
+                              h3("Computation"),
+                              uiOutput("parallelize.box"),
                               h3("Input data"),
                               uiOutput("dataset.selector"),
                               fileInput('inputEdges', 'Relationships (CSV file):',
@@ -56,6 +58,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                               radioButtons(inputId = 'sep', label = 'Separator:', 
                                            choices = c("," =',' , ";"=';'
                                                        ,"tab"='\t'), inline=T, selected = ','),
+                              
                               h3("Variable selection"),
                               uiOutput("subset.selector"),
                               uiOutput("subset.options"),
@@ -167,17 +170,35 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    h1("Dissimilarity between spatial units"), # .. dissimilarity ----
                                                    column(10, align="center",
                                                    HTML("<div  style=width:40%;, align=left> 
-                                                   <p>The dissimilarity between spatial units A and B is calculated as 1 - admixture(A, B). Results can be normalised (feature scaling) by ticking the box.</p>
-                                                   <p>The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional units. Theoretically, a spatial unit is expected to be more similar to those near it. </p>
-                                                   <p>In the case of stratigraphic layers, a layer is expected to be more related to the layers directly above and below it. The dendrogram's branches are ordered alphanumerically according to their label (following the stratigraphic order of the layers). Anomalies are revealed when, despite this ordering constraint, the expected order of superposition is not observed in the result (see <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>).
+                                                   <h2>Method</h2>
+                                                   <p>The dissimilarity between spatial units A and B is calculated as 1 - admixture(A, B). The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional units.  </p>
+                                                   <p> One assumes that a spatial unit is expected to be more similar to those near it  (i.e. less dissimilar). In the case of stratigraphic layers, a layer is expected to have more refitting connection with the layers located directly above and below it. One also assumes that the alphanumerical labels of the spatial units reflect their relative location (e.g. the labels follow the stratigraphic order). So, constraining the dendrogram's branches to be ordered alphanumerically should reveal anomalies when, despite this ordering constraint, the expected order of superposition is not observed in the results (see <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>).
                                                   </p>
+                                                  <h2>Instructions</h2>
+                                                  <p>
+                                                    <ul>
+                                                      <li>Observe the dissimilarity matrix below.</li>
+                                                      <li>Optionally, tick the box to <b>normalize</b> the values (by feature scaling).</li>
+                                                      <li>Choose a <b>clustering method</b>.</li>
+                                                      <li> The resulting tanglegram includes:
+                                                        <ul>
+                                                          <li>on the left, the clustering result get from  <b>observed</b> refitting data,</li> 
+                                                          <li>on the right, the clustering result get from the <b>expected</b> ordering of the spatial units (assuming no perturbation and an equal number of refits for all spatial units),</li>
+                                                          <li> in the middle of the figure, the lines connect the location of the spatial units in the two clustering results and highlight differences.</li>
+                                                      </ul>
+                                                          The difference between these results is also evaluated with the '<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>entanglement</a>' value: the lower the value, the more similar the expected and observed orderings.</li>
+                                                    </ul>
+                                                  </p>
+                                                  <h2>Results</h2>
                                                   </div> "),
-                                                   checkboxInput("normalise.diss", "Normalise", value = F),
+                                                   checkboxInput("normalise.diss", "Normalise", value = FALSE),
                                                    tableOutput("admixTab"),
                                                    selectInput("clustmethod", "Clustering method", 
-                                                               choices = c(UPGMA = "average", WPGMA = "mcquitty","Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")),
-                                                   imageOutput("admix.plot",  width= "70%"),
-                                                   uiOutput("admix.download.button"),
+                                                               choices = c(UPGMA = "average", WPGMA = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")),
+                                                   br(),
+                                                   imageOutput("tanglegram.plot",  width= "100%"),
+                                                   br(),
+                                                   uiOutput("tanglegram.download.button"),
                                                    br(), br()
                                                    ) # end column
                                           ), #end tabPanel
@@ -485,8 +506,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                            numericInput("seed", "Seed", value=NULL, min=1, max=50, width = "100%"),
                                                         ), #end span
                                                       ), #end column
-                                                      column(2,  uiOutput("parallelize.box"),
-                                                             style="padding:27px;"),
+                                                      # column(2, 
+                                                      #        uiOutput("parallelize.box"),
+                                                      #        style="padding:27px;"),
                                                       column(1, actionButton("goButton", "Run"), style="padding:27px;")
                                                   ), #end fluidrow
                                                   fluidRow( # .. plots----
@@ -826,7 +848,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Eaton</b>: Engelbrecht W. 2014. 'Madison Point Refits', <i>tDAR</i>, doi: <a href=https://doi.org/10.6067/xcv8t43v1j target=_blank>10.6067/xcv8t43v1j</a>. See also Plutniak S. 2025. 'Reprocessing script for William Engelbrecht's 'Madison Point Refits' dataset (including generated tables and figures)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15091301 target=_blank>10.5281/zenodo.15091301</a>.</li>  
                   <li><b>Font-Juvenal</b>: Caro J. 2024. 'Font-Juvenal_Refiting', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.14515444 target=_blank>10.5281/zenodo.14515444</a>.</li>  
                   <li><b>Fumane</b>: Falcucci A. 2025. 'Refitting the context: accepted paper b (v0.1.3)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15017627   target=_blank>10.5281/zenodo.15017627</a>.</li>      
-                  <li><b>Grande Rivoire</b>: Angelin A. 2025. 'Refitting data from La Grande Rivoire prehistoric site', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.14609875 target=_blank>10.5281/zenodo.14609875</a>.</li>
+                  <li><b>Grande Rivoire 1st Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
+                  <li><b>Grande Rivoire 2nd Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a> </li>
                   <li><b>Tai Cave and Tai South</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
                 </ul>

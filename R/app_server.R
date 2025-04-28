@@ -2,12 +2,13 @@ server <- function(input, output, session) {
   .data <- NULL  
   i <- NULL  
   value <- NULL
+  
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
     span(`data-toggle` = "tooltip", `data-placement` = "bottom",
-         title = "Enabling parallelization uses half of the available cores to speed up the computation.",
+         title = "Enabling parallelization using half of the available cores to speed up computations.",
           checkboxInput("parallelize",
-                        paste0("Parallelize (using ",
+                        paste0("Parallelize (",
                                foreach::getDoParWorkers(), " workers)"), value = TRUE)
     )
   })
@@ -362,13 +363,19 @@ server <- function(input, output, session) {
     y.variable <- input$y.variable
     z.variable <- input$z.variable
     
-    g.list <- foreach::foreach(x = seq_len(ncol(pairs))) %dopar% {
+    extract.pair.graph <- function(x){ # this function includes calls to global variables 
       g <- archeofrag::frag.get.layers.pair(graph, "spatial.variable", pairs[, x], verbose = FALSE)
       if(is.null(g)){ return() }
       if(length(unique(igraph::V(g)$spatial.variable)) != 2){ return() }
       
       archeofrag::frag.edges.weighting(g, "spatial.variable", morphometry = morpho.variable, 
                                        x = x.variable, y = y.variable, z = z.variable, verbose = FALSE)
+    }
+    
+    if(input$parallelize){
+      g.list <- foreach::foreach(x = seq_len(ncol(pairs))) %dopar% { extract.pair.graph(x) }
+    } else {
+      g.list <- lapply(seq_len(ncol(pairs)), function(x) extract.pair.graph(x))
     }
     
     names(g.list) <- sapply(seq_len(ncol(pairs)), function(x)
@@ -501,9 +508,13 @@ server <- function(input, output, session) {
       )
     }
     
-    df <- foreach::foreach(g = g.list, .combine = "rbind", .errorhandling = "remove") %dopar% {
-       make.stat.table(g)
-     }
+    if(input$parallelize){
+      df <- foreach::foreach(g = g.list, .combine = "rbind", .errorhandling = "remove") %dopar% { make.stat.table(g) }
+    } else{
+      df <- sapply(g.list, function(g) make.stat.table(g))
+      df <- data.frame(t(df))
+      df[, seq(2, ncol(df))] <- apply(df[, seq(2, ncol(df))], 2, as.numeric)
+    }
     colnames(df) <- gsub("\\.", " ", colnames(df))
     df
   })
@@ -517,21 +528,21 @@ server <- function(input, output, session) {
     req(stats.table(), graph.data3())
     stats.table <- stats.table()
     
-    stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[,1])
-    stats.table$unit2 <- gsub("^.* / (.*$)", "\\1", stats.table[,1])
+    stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[, 1])
+    stats.table$unit2 <- gsub("^.* / (.*$)", "\\1", stats.table[, 1])
     
     pairs <- utils::combn(sort(unique(c(stats.table$unit1, stats.table$unit2))), 2)
     pairs <- t(as.data.frame(pairs))
-    pairs <- rbind(pairs, pairs[, 2:1])
+    pairs <- rbind(pairs, pairs[, c(2, 1)])
     
     colnames(pairs) <- c("unit1", "unit2")
     pairs <- merge(pairs,
                    stats.table[, c("Admixture", "unit1", "unit2")], 
-                   by = c("unit1", "unit2"), all.x = T)
+                   by = c("unit1", "unit2"), all.x = TRUE)
     
     if(input$normalise.diss){
-      pairs$Admixture <- ( pairs$Admixture - min(pairs$Admixture, na.rm = T)) / 
-        (max(pairs$Admixture, na.rm = T) - min(pairs$Admixture, na.rm = T))
+      pairs$Admixture <- ( pairs$Admixture - min(pairs$Admixture, na.rm = TRUE)) / 
+        (max(pairs$Admixture, na.rm = TRUE) - min(pairs$Admixture, na.rm = TRUE))
     }
     
     diss <- stats::reshape(pairs, timevar = "unit1", idvar = "unit2",  v.names = "Admixture", direction = "wide")
@@ -539,52 +550,91 @@ server <- function(input, output, session) {
     rownames(diss) <- diss[, 1]
     diss <- diss[, -1]
     
-    diss[ order(rownames(diss)), order(colnames(diss))]
+    diss <- diss[ order(rownames(diss)), order(colnames(diss))]
+    diss[is.na(diss)] <- 0
+    diss[upper.tri(diss)] <- NA
+    diss
   })
   
   output$admixTab <- renderTable({ 
     req(admixTab())
     admixTab()
-  }, rownames = T, colnames = T, na = "-")
+  }, rownames = TRUE, colnames = TRUE, na = "-")
   
-  # admix plot ----
-  admix.dendr <- reactive({  
+  
+  # tanglegram ----
+  admix.tanglegram <- reactive({
     req(admixTab())
+    
     admixTab <- 1 - admixTab()
     admixTab[is.na(admixTab)] <- 1
     
-    admixTab <- stats::as.dist(admixTab)
+    # observed clustering:
+    observed.admixTab <- stats::as.dist(admixTab)
     
-    dend.plot <- NULL
+    observed.dend.plot <- NULL
     eval(parse(text = paste0(
-    "dend.plot <- stats::as.dendrogram(stats::hclust(admixTab, method = \"", input$clustmethod, "\"))"
+      "observed.dend.plot <- stats::as.dendrogram(stats::hclust(observed.admixTab, method = \"", input$clustmethod, "\"))"
     )))
-    sort(dend.plot, decreasing = T)
+    
+    # expected clustering:
+    expected.admixTab <- admixTab
+    expected.admixTab[ lower.tri(expected.admixTab, diag = FALSE) ] <- 1
+    diag(expected.admixTab) <- 100
+    expected.admixTab <- as.dist(expected.admixTab)
+    
+    expected.dend.plot <- NULL
+    eval(parse(text = paste0(
+      "expected.dend.plot <- stats::as.dendrogram(stats::hclust(expected.admixTab, method = \"", input$clustmethod, "\"))"
+    )))
+    
+    list(observed.dend.plot, expected.dend.plot)
   })
   
-  output$admix.plot <- renderPlot({  
-    req(admix.dendr)
-    
+  
+  method.name <- reactive({
     method.name <- c(UPGMA = "average", WPGMA = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
-    method.name <- names(method.name)[method.name == input$clustmethod]
-    
-    plot(admix.dendr(), horiz = T, main = input$spatial.variable,
-         xlab = paste0("Dissimilarity: 1 - admixture. Clustering method: ", method.name,
-                      "\nAn alphanumerical ordering constraint is applied to the branches of the dendrogram")) 
+    names(method.name)[method.name == input$clustmethod]
   })
   
   
-  output$admix.download <- downloadHandler(
-    filename = paste0("archeofrag-dissimilarity-",  input$spatial.variable, ".svg"),
+  output$tanglegram.plot <- renderPlot({
+    req(admix.tanglegram)
+    
+    dendextend::tanglegram(admix.tanglegram()[[1]], admix.tanglegram()[[2]],
+                           sort = TRUE,
+                           main = toupper(input$spatial.variable),
+                           sub = paste0("Entanglement value: ", 
+                                       round(dendextend::entanglement(admix.tanglegram()[[1]], admix.tanglegram()[[2]]), 2), "\n",
+                                       "Dissimilarity: 1 - admixture.", "\n", "Clustering method: ", method.name()  
+                           ),
+                           margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1.2,
+                           main_left = "Observed", main_right = "Expected",
+                           highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+  })
+  
+  
+  output$tanglegram.download <- downloadHandler(
+    filename = paste0("archeofrag-dissimilarity-tanglegram-", input$spatial.variable, ".svg"),
     content = function(file) {
       grDevices::svg(file)
-      plot(admix.dendr(), horiz = T, main = input$spatial.variable)
+          dendextend::tanglegram(admix.tanglegram()[[1]],  admix.tanglegram()[[2]],
+                                 sort = TRUE,
+                                 main = toupper(input$spatial.variable),
+                                 sub = paste0("Dissimilarity: 1 - admixture.\n",
+                                              "Clustering method: ", method.name(), "\n",
+                                              "Entanglement value: ", 
+                                              round(dendextend::entanglement(admix.tanglegram()[[1]], admix.tanglegram()[[2]]), 2),
+                                 ),
+                                 margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1.2,
+                                 main_left = "Observed", main_right = "Expected",
+                                 highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
       grDevices::dev.off()
     }
   )
   
-  output$admix.download.button <- renderUI({
-    downloadButton("admix.download", "Download as SVG")
+  output$tanglegram.download.button <- renderUI({
+    downloadButton("tanglegram.download", "Download as SVG")
   })
   
   # SIMULATION ####
@@ -1153,12 +1203,23 @@ server <- function(input, output, session) {
     recoded.spatial.units <- pairs
     
     # merge some or all possible pairs of spatial units:
-    recoded.spatial.units <-  foreach::foreach(i = seq(0, c(nrow(n.pairs) -1)), .combine = "rbind", .errorhandling = "remove") %dopar%{
-      df <- recoded.spatial.units
-      for(row in seq_len(nrow(n.pairs) - i) ){
-        df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
+    if(input$parallelize){
+      recoded.spatial.units <- foreach::foreach(i = seq(0, c(nrow(n.pairs) -1)), .combine = "rbind", .errorhandling = "remove") %dopar% {
+        df <- recoded.spatial.units
+        for(row in seq_len(nrow(n.pairs) - i) ){
+          df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
+        }
+        df
       }
-      df
+    } else {
+      recoded.spatial.units <- lapply(seq(0, c(nrow(n.pairs) -1)), function(i){
+        df <- recoded.spatial.units
+        for(row in seq_len(nrow(n.pairs) - i) ){
+          df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
+        }
+        df
+      })
+      recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     }
     
     # demultiply the reference table to get the same row numbers:
@@ -1194,9 +1255,17 @@ server <- function(input, output, session) {
     
     # ... run computation ----
     # (Note that it is the slowest step of the workflow)
-    cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
-      frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
-                                   recoded.spatial.units.row = recoded.spatial.units[i, ])
+    if(input$parallelize){
+      cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
+        frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
+                                     recoded.spatial.units.row = recoded.spatial.units[i, ])
+      }
+    } else{
+      cohes.diff.res <- sapply(seq_len(nrow(pairs)), function(i){
+        frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
+                                     recoded.spatial.units.row = recoded.spatial.units[i, ])
+      })
+      cohes.diff.res <- t(cohes.diff.res)
     }
     recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = F) # remove duplicated merged spatial units labels
     recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
@@ -1277,13 +1346,13 @@ server <- function(input, output, session) {
     median.res <- round(stats::median(cohesion.res, na.rm = TRUE), 3)
     
     if(median.res <= min(optim.results[[1]]$"Cohesion difference median")){
-      comments.str <- "none of the merging solutions returned a lower value."
+      comments.str <- "none of the merging solutions returned a lower median value."
     } else{
-      comments.str <- "some merging solutions returned lower values."
+      comments.str <- "some merging solutions returned lower median values."
     }
     
     paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
-           " merging solutions evaluated in ", optim.results[[2]], " (using ", foreach::getDoParWorkers(), " parallel workers).<br>",
+           " merging solutions evaluated in ", optim.results[[2]], "<br>",
           "<b>Median of the cohesion differences without merging:</b> ",
           median.res, 
           " +/- ", round(stats::mad(cohesion.res, na.rm = TRUE), 3), "<br>",
