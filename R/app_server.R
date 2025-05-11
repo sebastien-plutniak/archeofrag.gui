@@ -1,6 +1,7 @@
 server <- function(input, output, session) { 
   .data <- NULL  
   i <- NULL  
+  x <- NULL
   value <- NULL
   
   # parallelize box, count n workers
@@ -211,7 +212,11 @@ server <- function(input, output, session) {
     objects.df <- g.data$objects.df
     edges.df <- g.data$edges.df
     
-    if( ! is.null(input$subset.values)){
+    subset.values <- input$subset.values
+    
+    if(input$subset.variable == "-") subset.values <- NULL
+    
+    if( ! is.null(subset.values)){
       expr <- paste0("objects.df[objects.df$", input$subset.variable, " %in% input$subset.values, ]")
       objects.df <- eval(parse(text = expr))
       
@@ -563,72 +568,147 @@ server <- function(input, output, session) {
   
   
   # tanglegram ----
-  admix.tanglegram <- reactive({
+  
+clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
+  
+  
+  dissimilarityTab <- reactive({
     req(admixTab())
-    
-    admixTab <- 1 - admixTab()
-    admixTab[is.na(admixTab)] <- 1
-    
-    # observed clustering:
-    observed.admixTab <- stats::as.dist(admixTab)
-    
-    observed.dend.plot <- NULL
-    eval(parse(text = paste0(
-      "observed.dend.plot <- stats::as.dendrogram(stats::hclust(observed.admixTab, method = \"", input$clustmethod, "\"))"
-    )))
-    
-    # expected clustering:
-    expected.admixTab <- admixTab
-    expected.admixTab[ lower.tri(expected.admixTab, diag = FALSE) ] <- 1
-    diag(expected.admixTab) <- 100
-    expected.admixTab <- as.dist(expected.admixTab)
-    
-    expected.dend.plot <- NULL
-    eval(parse(text = paste0(
-      "expected.dend.plot <- stats::as.dendrogram(stats::hclust(expected.admixTab, method = \"", input$clustmethod, "\"))"
-    )))
-    
-    list(observed.dend.plot, expected.dend.plot)
+    diss.tab <- 1 - admixTab()
+    diss.tab[is.na(diss.tab)] <- 1
+    diss.tab
   })
   
   
-  method.name <- reactive({
-    method.name <- c(UPGMA = "average", WPGMA = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
-    names(method.name)[method.name == input$clustmethod]
+  expected.dendrogram <- reactive({
+    req(dissimilarityTab())
+    expected.dissimilarityTab <- dissimilarityTab()
+    expected.dissimilarityTab[ lower.tri(expected.dissimilarityTab, diag = FALSE) ] <- 1
+    diag(expected.dissimilarityTab) <- 100
+    
+    expected.dissimilarityTab <- stats::as.dist(expected.dissimilarityTab)
+    
+    stats::as.dendrogram(stats::hclust(expected.dissimilarityTab, method = "average"))
+  })
+  
+  
+  observed.dendrograms <- reactive({
+    req(dissimilarityTab())
+    
+    observed.dissimilarityTab <- dissimilarityTab()
+    observed.dissimilarityTab <- stats::as.dist(observed.dissimilarityTab)
+    
+    # compute clusterings and dendrograms: 
+    dendrograms.list <- lapply(clustering.method.names, function(method)  
+      stats::as.dendrogram(stats::hclust(observed.dissimilarityTab, method = method)))
+  
+    names(dendrograms.list) <- clustering.method.names
+    dendrograms.list
+  })
+  
+    
+  selected.clustering.method.name <- reactive({
+    names(clustering.method.names)[clustering.method.names == input$clustmethod]
+  })
+  
+
+  clustering.stats.df <- reactive({
+    req(observed.dendrograms(), expected.dendrogram(), dissimilarityTab())
+    
+    observed.dendrograms <- observed.dendrograms()
+    expected.dendrogram <-  expected.dendrogram()
+    
+    # compute entanglement:
+    entanglement.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
+      dendextend::entanglement(observed.dendrograms[[x]], expected.dendrogram))
+    entanglement.values <- round(entanglement.values, 2)
+
+    # compute cophenetic correlations:
+    observed.dissimilarityTab <- dissimilarityTab()
+    observed.dissimilarityTab <- stats::as.dist(observed.dissimilarityTab)
+    
+    cophenetic.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
+      stats::cor(observed.dissimilarityTab, stats::cophenetic(as.hclust(observed.dendrograms[[x]]))))
+    cophenetic.cor.values <- round(cophenetic.cor.values, 2)
+    
+    # output table
+    stats.df <- data.frame("Method" = names(clustering.method.names),
+                           "Entanglement" =  entanglement.values, 
+                           "Cophenetic correlation" = cophenetic.cor.values)
+    stats.df[order(stats.df$Entanglement, decreasing = FALSE), ]
+  })
+  
+  output$clustering.stats <- renderDT({
+    DT::datatable(clustering.stats.df(), rownames = FALSE, style = "default", selection = 'none', options = list(dom = 't'))
+  })
+    
+    
+  output$admix.clustering.selector <- renderUI({
+    clustering.method.options <- clustering.method.names
+    selectInput("clustmethod", "Clustering method", choices = clustering.method.options)
+  })  
+  
+  
+  selected.tanglegrams <- reactive({
+    req(observed.dendrograms(), expected.dendrogram(), input$clustmethod)
+
+    observed.dendrograms <- observed.dendrograms()
+    expected.dendrogram <- expected.dendrogram()
+    
+    list(observed.dendrograms[ names(observed.dendrograms) == input$clustmethod ][[1]],
+         expected.dendrogram)
   })
   
   
   output$tanglegram.plot <- renderPlot({
-    req(admix.tanglegram)
+    req(selected.tanglegrams())
     
-    dendextend::tanglegram(admix.tanglegram()[[1]], admix.tanglegram()[[2]],
+    clustering.stats.df <- clustering.stats.df()
+    idx <- clustering.stats.df[, 1] == names(clustering.method.names)[which(clustering.method.names == input$clustmethod)]
+    
+    dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
                            sort = TRUE,
                            main = toupper(input$spatial.variable),
-                           sub = paste0("Entanglement value: ", 
-                                       round(dendextend::entanglement(admix.tanglegram()[[1]], admix.tanglegram()[[2]]), 2), "\n",
-                                       "Dissimilarity: 1 - admixture.", "\n", "Clustering method: ", method.name()  
+                           sub = paste0(
+                                       "Dissimilarity: 1 - admixture",
+                                       "\n",
+                                       "Clustering method: ", selected.clustering.method.name(),
+                                       "\n",
+                                       "Entanglement value: ", 
+                                       clustering.stats.df[idx, ]$Entanglement,
+                                       "\n",
+                                       "Cophrenetic correlation: ",
+                                       clustering.stats.df[idx, ]$Cophenetic.correlation
                            ),
-                           margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1.2,
+                           margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                            main_left = "Observed", main_right = "Expected",
                            highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
   })
   
   
   output$tanglegram.download <- downloadHandler(
-    filename = paste0("archeofrag-dissimilarity-tanglegram-", input$spatial.variable, ".svg"),
+    filename = paste0("archeofrag-dissimilarity-tanglegram-", input$spatial.variable, "-",  selected.clustering.method.name(), ".svg"),
     content = function(file) {
-      grDevices::svg(file)
-          dendextend::tanglegram(admix.tanglegram()[[1]],  admix.tanglegram()[[2]],
-                                 sort = TRUE,
-                                 main = toupper(input$spatial.variable),
-                                 sub = paste0("Dissimilarity: 1 - admixture.\n",
-                                              "Clustering method: ", method.name(), "\n",
-                                              "Entanglement value: ", 
-                                              round(dendextend::entanglement(admix.tanglegram()[[1]], admix.tanglegram()[[2]]), 2),
-                                 ),
-                                 margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1.2,
-                                 main_left = "Observed", main_right = "Expected",
-                                 highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+      clustering.stats.df <- clustering.stats.df()
+      idx <- clustering.stats.df[, 1] == names(clustering.method.names)[which(clustering.method.names == input$clustmethod)]
+      grDevices::svg(file,  width = 10)
+      dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
+                             sort = TRUE,
+                             main = toupper(input$spatial.variable),
+                             sub = paste0(
+                               "Dissimilarity: 1 - admixture",
+                               "\n",
+                               "Clustering method: ", selected.clustering.method.name(),
+                               "\n",
+                               "Entanglement value: ", 
+                               clustering.stats.df[idx, ]$Entanglement,
+                               "\n",
+                               "Cophrenetic correlation: ",
+                               clustering.stats.df[idx, ]$Cophenetic.correlation
+                             ),
+                             margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
+                             main_left = "Observed", main_right = "Expected",
+                             highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
       grDevices::dev.off()
     }
   )
@@ -1175,14 +1255,14 @@ server <- function(input, output, session) {
     if(length(spatial.units) %in% c(6, 7)){
       showNotification("Computation has started... Please wait...", duration = 20, type ="message")
     } 
-
     # list all combinations:
-    eval(parse(text =  paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units) - 1), collapse = ""),
-                              "spatial.units, stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
+    eval(parse(text = paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units)), collapse = ""),
+                              "stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
     pairs <- as.matrix(pairs)
     
     # keep only the combinations including all spatial.units
     items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is a little slow
+
     items.nr <- length(spatial.units)
     pairs <- pairs[ items == items.nr, ]
     
@@ -1232,19 +1312,19 @@ server <- function(input, output, session) {
     # Function which, for each combination of spatial units 
     frag.get.cohesion.dispersion <- function(g, raw.spatial.units.row, recoded.spatial.units.row){
       # 1) recodes spatial units:
-      additional.sp.units <- unique(igraph::V(g)$spatial.variable) # determine non selected spatial units
+      additional.sp.units <- unique(igraph::V(g)$spatial.variable) # determine which are the non selected spatial units
       additional.sp.units <- additional.sp.units[ ! additional.sp.units %in% raw.spatial.units.row]
       
       igraph::V(g)$sp.u.aggregated <- as.character(factor(igraph::V(g)$spatial.variable,
                                               levels = c(raw.spatial.units.row, additional.sp.units),
                                               labels = c(recoded.spatial.units.row, additional.sp.units)))
       # 2) computes edges weights
-      g <- frag.edges.weighting(g, "sp.u.aggregated", verbose=FALSE)
+      g <- archeofrag::frag.edges.weighting(g, "sp.u.aggregated", verbose=FALSE)
       # 3) summarises the difference between cohesion values:
       cohesion.res <- NA
-      cohesion.res <- frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
+      cohesion.res <- archeofrag::frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
       cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
-      admix.res <- frag.layers.admixture(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
+      admix.res <- archeofrag::frag.layers.admixture(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
 
       c("Cohesion difference median" = stats::median(cohesion.res, na.rm = TRUE),
         "MAD" = stats::mad(cohesion.res, na.rm = TRUE),

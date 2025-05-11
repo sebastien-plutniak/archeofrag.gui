@@ -41,6 +41,7 @@ This R Shiny application implements and extend `archeofrag` functionalities, mak
   - [Reporting bugs](#reporting-bugs)
   - [Suggesting changes](#suggesting-changes)
 - [**Data input**](#data-input)
+- [**Exploration of observed and expected spatial units orderings**](#exploration-of-observed-and-expected-spatial-units-orderings)
 - [**Spatial units merging**](#spatial-units-merging)
 - [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
 - [**Community guidelines**](#community-guidelines)
@@ -94,7 +95,7 @@ Please refer to the `archeofrag` package documentation on [CRAN](https://github.
 * Integrated workflow for quick and efficient use of `archeofrag` functionalities
 * Convenient access to refitting datasets included in `archeofrag`
 * Built-in documentation
-* Charts generation and export as SVG
+* Charts generation and SVG export
 * R code generation
 * [*openMOLE*](https://openmole.org) code generation, a model exploration software
 * Interoperability: data can be exported to `archeofrag.gui` from the [*archeoViz*](https://analytics.huma-num.fr/archeoviz/en) application for archaeological spatial data visualisation.
@@ -109,6 +110,19 @@ Either load one of the built-in example data sets or upload your data. Use the m
 * The relationships table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
 * The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
 
+
+# Exploration of observed and expected spatial units orderings
+
+Let us assume that:
+
+* a spatial unit is expected to be more similar to those near it (i.e. less dissimilar). E.g., In the case of stratigraphic layers, a layer is expected to have more refitting connection with the layers located directly above and below it,
+* the alphanumerical labels of the spatial units reflect their relative location (e.g. the labels follow the stratigraphic order).
+
+`archeofrag.gui` 'Measurement' tab offers a workflow where:
+* the `archeofrag` 'admixture' is used as a dissimilarity measure and hierarchical clustering methods are applied.
+* The dendrogram's branches are constrained to be ordered alphanumerically, revealing anomalies when, despite this ordering constraint, the expected order of superposition is not observed in the results.
+* Using a tanglegram makes it possible to compare the resulting 'observed' dendrogram and an 'expected' dendrogram representing the spatial ordering assuming no perturbation and an equal number of refits for all spatial units.
+* Computing the *entanglement* value of the tanglegram and the *cophrenetic correlation* value of the 'observed' dendrogram help evaluating the results of the different clustering methods.
 
 # Spatial units merging
 

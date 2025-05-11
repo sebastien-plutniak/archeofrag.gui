@@ -1,8 +1,8 @@
 
 # archeofrag.gui 1.1.1
 
-* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. 
-* Optional selection of a variable and values to subset the dataset.
+* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. Entanglement and cophrenetic correlation are reported.
+* A variable and its values can be optionally selected to subset the dataset.
 
 # archeofrag.gui 1.1.0
 

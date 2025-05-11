@@ -145,7 +145,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="center",
                                                    HTML(
                                                   "<div style=width:40%;, align=left>
-                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). Details about the method are given in  <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>.</p>
+                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to include physical distances between the object found places in the computation (whatever the unit: metre, centimetre, inch, etc.). See   <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a> for details.</p>
                                                    <p>Note that these weighting options are <b>not</b> supported by the simulation function, which computes cohesion values from the topology of the connection relationships only.</p>
                                                   </div>"
                                                    ), #end HTML
@@ -171,30 +171,56 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="center",
                                                    HTML("<div  style=width:40%;, align=left> 
                                                    <h2>Method</h2>
-                                                   <p>The dissimilarity between spatial units A and B is calculated as 1 - admixture(A, B). The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional units.  </p>
+                                                   <p>The dissimilarity between spatial units A and B is calculated as <i>1 - admixture(A, B)</i>. The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional units.  </p>
                                                    <p> One assumes that a spatial unit is expected to be more similar to those near it  (i.e. less dissimilar). In the case of stratigraphic layers, a layer is expected to have more refitting connection with the layers located directly above and below it. One also assumes that the alphanumerical labels of the spatial units reflect their relative location (e.g. the labels follow the stratigraphic order). So, constraining the dendrogram's branches to be ordered alphanumerically should reveal anomalies when, despite this ordering constraint, the expected order of superposition is not observed in the results (see <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>).
                                                   </p>
                                                   <h2>Instructions</h2>
                                                   <p>
                                                     <ul>
                                                       <li>Observe the dissimilarity matrix below.</li>
-                                                      <li>Optionally, tick the box to <b>normalize</b> the values (by feature scaling).</li>
-                                                      <li>Choose a <b>clustering method</b>.</li>
-                                                      <li> The resulting tanglegram includes:
+                                                      <li>Optionally, tick the box to <b>normalize</b> the values (by <a href=https://en.wikipedia.org/wiki/Feature_scaling target=_blank>feature scaling</a>).</li>
+                                                      <li>Select a <a href=https://en.wikipedia.org/wiki/Hierarchical_clustering#Common_Linkage_Criteria target=_blank>clustering method</a>:
                                                         <ul>
-                                                          <li>on the left, the clustering result get from  <b>observed</b> refitting data,</li> 
-                                                          <li>on the right, the clustering result get from the <b>expected</b> ordering of the spatial units (assuming no perturbation and an equal number of refits for all spatial units),</li>
-                                                          <li> in the middle of the figure, the lines connect the location of the spatial units in the two clustering results and highlight differences.</li>
+                                                          <li>UPGMA, average linkage (Unweighted Pair Group Method with Arithmetic Mean)</li>
+                                                          <li>WPGMA, weighted average linkage</li>
+                                                          <li>Single linkage </li>
+                                                          <li>Complete linkage </li>
+                                                          <li>Ward, using Ward's clustering <a href=https://doi.org/10.1007/s00357-014-9161-z target=_blank>criterion</a>.</li>
+                                                        </ul>
+                                                      </li>
+                                                      <li> The resulting <a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>tanglegram</a> includes:
+                                                        <ul>
+                                                          <li>on the left, the clustering result obtained from <b>observed</b> refitting data,</li> 
+                                                          <li>on the right, the clustering result obtained from the <b>expected</b> ordering of the spatial units (assuming no perturbation and an equal number of refits for all spatial units),</li>
+                                                          <li> in the middle of the figure, the lines connect the location of the spatial units in the two clustering results, highlighting differences.</li>
                                                       </ul>
-                                                          The difference between these results is also evaluated with the '<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>entanglement</a>' value: the lower the value, the more similar the expected and observed orderings.</li>
+                                                          The difference between these results is evaluated using
+                                                        <ul>
+                                                         <li>
+                                                        "),
+                                                   span(`data-toggle` = "tooltip", `data-placement` = "left", title = "Entanglement measures how well the labels of two dendrograms are aligned, from 0 (fully aligned labels) to 1 (fully mismatched labels). It is computed by numbering the labels (1 to the total number of labels) of each dendrogram, and then computing the L-norm distance between these two vectors. Click for more information.",
+                                                          HTML("<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>Entanglement</a>")
+                                                        ),#end span 
+                                                          HTML(": the lower the value, the more similar the expected and observed spatial units' orderings.</li>
+                                                          <li>"),
+                                                               span(`data-toggle` = "tooltip", `data-placement` = "left", title = " The cophenetic distance between two observations that have been clustered is defined to be the intergroup dissimilarity at which the two observations are first combined into a single cluster. A dendrogram is an appropriate summary of some data if the correlation between the original distances and the cophenetic distances is high. Click for more information.",
+                                                          HTML("<a href=https://en.wikipedia.org/wiki/Cophenetic_correlation target=_blank>Cophenetic correlation</a>")
+                                                               ), #end span
+                                                          HTML(": reflects the quality of the dendrogram for observed refitting data. The higher the value, the higher the quality.</li>
+                                                          </ul>
+                                                          </li>
                                                     </ul>
                                                   </p>
                                                   <h2>Results</h2>
                                                   </div> "),
+                                                   h3("Dissimilarity matrix"),
                                                    checkboxInput("normalise.diss", "Normalise", value = FALSE),
                                                    tableOutput("admixTab"),
-                                                   selectInput("clustmethod", "Clustering method", 
-                                                               choices = c(UPGMA = "average", WPGMA = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")),
+                                                   h3("Clustering"),
+                                                   DT::DTOutput("clustering.stats"), 
+                                                   br(),
+                                                   uiOutput("admix.clustering.selector"),
+                                                   # HTML("</div>"),
                                                    br(),
                                                    imageOutput("tanglegram.plot",  width= "100%"),
                                                    br(),
@@ -233,7 +259,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                    <ul>
                                                                       <li>Select the spatial units to consider for  possible merging. Due to combinatorial explosion, the maximum number of units is <b>limited to 7</b> (in this case, and depending on the graph size, the computation might be slow). Note that the merging of spatial units is evaluated regardless of their relative position (adjacent or not) in the archaeological space.</li>
                                                                       <li>  In the <b>Results</b> section, merged spatial units are indicated by the <b>'+' symbol</b>. Results are decreasingly ordered according to the median value of the differences between cohesion values: the lower the median, the more balanced the archaeological information about the series of spatial units. In addition, the median of the admixture values is also reported: the higher the value, the more mixed the spatial units. Use the dynamic table to explore the combinations and find out which optimal merging solution fits best with archaeological interpretation.</li>
-                                                                  <li> In the <b>Merge units</b> section, the dataset can be edited to actually merge the selected spatial units. The resulting spatial units are then available from all <i>archeofrag.gui</i>'s functions. By reducing the number of spatial units, this feature is a way around the aforementioned limit to 7 spatial units. </li>
+                                                                  <li> In the <b>Merge units</b> section, the dataset can be edited to actually merge the selected spatial units. The resulting spatial units are then available from all <i>archeofrag.gui</i>'s functions. Reducing the number of spatial units is a way around to the 7 spatial units limit. </li>
                                                                    </ul>
                                                                  </p>
                                                                  
@@ -243,7 +269,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      column(10, align="left",
                                                             br(), br(), 
                                                             uiOutput("optimisation.sp.ui"),
-                                                            HTML("Select up to 7 spatial units and launch the computation:"),
+                                                            HTML("Select up to 7 spatial units and run the computation:"),
                                                             br(), br(),  
                                                             actionButton("optimisationButton", "Run computation"), 
                                                             br(),  
