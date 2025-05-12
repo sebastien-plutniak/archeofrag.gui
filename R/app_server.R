@@ -911,7 +911,11 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                                      varying = c("cohes.cohesion1", "cohes.cohesion2"),
                                      v.names = "cohesion", timevar="Layer")
     
-    hypotheses.df2$Layer <- factor(hypotheses.df2$Layer, labels = c("1", "2"))
+    units.pair <- names(graph.list())[as.numeric(input$units.pair)]
+    
+    hypotheses.df2$Layer <- factor(hypotheses.df2$Layer, 
+                                   labels = c(gsub("^(.*) /.*", "\\1", units.pair), gsub("^.*/ (.*)", "\\1", units.pair)))
+    
     hypotheses.df2$hypothesis <- factor(hypotheses.df2$hypothesis, levels = c("1", "2"),
                                         labels=c("Hypothesis 1", "Hypothesis 2"))
     

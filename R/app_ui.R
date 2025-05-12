@@ -101,10 +101,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                      <ul>
                       <li>the <b>spatial variable</b>  to consider (i.e. the spatial unit containing the fragments),
                       <li>the <b>pair of spatial units</b> to consider: this selection determines the plot generated in the 'Visualisation' tab and the simulation presets in the 'Simulation' tab.</li>
+                      <li>Optionally, a variable can be used to subset the dataset and specify certain values.</li>
                     </ul>
                   </p>
                 <h3>Measurements</h3>
-                <p>In this tab, statistics are reported for all pairs of spatial units for the selected 'Spatial variable': number of fragments and refitting relationships, etc. The <b>cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results.</p>
+                <p>In this tab, statistics are reported for all pairs of spatial units for the selected 'Spatial variable': number of fragments and refitting relationships, etc. The <b>cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results. Using admixture values helps  detecting anomaly in the spatial distribution of refitting connection.</p>
                 <h3>Spatial units optimisation</h3>
                 <p> The spatial units defined in the input dataset might need critical revision. This tab allows
                 <ul>
@@ -152,7 +153,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ) #end columns
                                                    ), # end fluidrow
                                                    fluidRow(
-                                                   h1("Stats by pair of spatial units"),
+                                                   h1("Statistics by pair of spatial units"),
                                                    column(12, align="center",
                                                    DT::DTOutput("resultsTab",  width="90%"), 
                                                    ), # end column
@@ -167,12 +168,20 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         "),
                                                    ) # end column
                                                    ), #end fluirow
-                                                   h1("Dissimilarity between spatial units"), # .. dissimilarity ----
+                                                   h1("Anomaly detection in the spatial unit series"), # .. dissimilarity ----
                                                    column(10, align="center",
                                                    HTML("<div  style=width:40%;, align=left> 
                                                    <h2>Method</h2>
-                                                   <p>The dissimilarity between spatial units A and B is calculated as <i>1 - admixture(A, B)</i>. The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional units.  </p>
-                                                   <p> One assumes that a spatial unit is expected to be more similar to those near it  (i.e. less dissimilar). In the case of stratigraphic layers, a layer is expected to have more refitting connection with the layers located directly above and below it. One also assumes that the alphanumerical labels of the spatial units reflect their relative location (e.g. the labels follow the stratigraphic order). So, constraining the dendrogram's branches to be ordered alphanumerically should reveal anomalies when, despite this ordering constraint, the expected order of superposition is not observed in the results (see <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>).
+                                                   <p> Let us assume that:
+                                                   <ul>
+                                                    <li>A spatial unit is expected to be more related to those near it  (i.e. having higher admixture values). In the case of stratigraphic layers, for example, a layer is expected to have more refitting connection with the layers located directly above and below it.</li>
+                                                    <li>The alphanumerical labels of the spatial units in the dataset reflect their relative location (e.g. the labels follow the stratigraphic order).</li>
+                                                    </ul>
+                                                   Then, admixture can be used to study a series of related spatial units and detect anomaly in the spatial distribution of refitting connection.
+                                                   </p>
+                                                   <p>
+                                                   Dissimilarity between two spatial units A and B is calculated as <i>1 - admixture(A, B)</i>. The higher the dissimilarity value, the more likely it is that these two archaeological units correspond to different depositional events.
+                                                    Computing a hierarchical clustering on this dissimilarity matrix and constraining the resulting dendrogram's branches to be ordered alphanumerically should reveal anomalies when, despite this ordering constraint, the expected proximity relationships are not observed in the results (see <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a>).
                                                   </p>
                                                   <h2>Instructions</h2>
                                                   <p>

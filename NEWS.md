@@ -1,10 +1,12 @@
 
 # archeofrag.gui 1.1.1
+Released: 2025-05-12
 
-* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. Entanglement and cophrenetic correlation are reported.
+* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. Entanglement and cophenetic correlation are reported.
 * A variable and its values can be optionally selected to subset the dataset.
 
 # archeofrag.gui 1.1.0
+Released: 2025-04-10
 
 * Add R session information in 'R code' tab. 
 * Display information about embedded datasets in 'Measurements' tab.

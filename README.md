@@ -1,7 +1,7 @@
 archeofrag.gui: Spatial Analysis in Archaeology from Refitting Fragments (GUI)
 =====
 
-A 'Shiny' application to access the functionalities and datasets of the 'archeofrag' package for spatial analysis in archaeology from refitting data. Quick and seamless exploration of archaeological refitting datasets, focusing on physical refits only. Features include: built-in documentation and convenient workflow, plot generation and exports, exploration of spatial units merging solutions, simulation of archaeological site formation processes, support for parallel computing, R code generation to re-execute simulations and ensure reproducibility, code generation for the 'openMOLE' model exploration software.
+A 'Shiny' application to access the functionalities and datasets of the 'archeofrag' package for spatial analysis in archaeology from refitting data. Quick and seamless exploration of archaeological refitting datasets, focusing on physical refits only. Features include: built-in documentation and convenient workflow, plot generation and exports, anomaly detection in the spatial distribution of refitting connection, exploration of spatial units merging solutions, simulation of archaeological site formation processes, support for parallel computing, R code generation to re-execute simulations and ensure reproducibility, code generation for the 'openMOLE' model exploration software.
 A demonstration version of the app is available [online](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag).
 
 
@@ -41,7 +41,7 @@ This R Shiny application implements and extend `archeofrag` functionalities, mak
   - [Reporting bugs](#reporting-bugs)
   - [Suggesting changes](#suggesting-changes)
 - [**Data input**](#data-input)
-- [**Exploration of observed and expected spatial units orderings**](#exploration-of-observed-and-expected-spatial-units-orderings)
+- [**Anomaly detection in the spatial distribution of refitting connection**](#anomaly-detection-in-the-spatial-distribution-of-refitting-connection)
 - [**Spatial units merging**](#spatial-units-merging)
 - [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
 - [**Community guidelines**](#community-guidelines)
@@ -111,7 +111,7 @@ Either load one of the built-in example data sets or upload your data. Use the m
 * The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
 
 
-# Exploration of observed and expected spatial units orderings
+# Anomaly detection in the spatial distribution of refitting connection
 
 Let us assume that:
 
