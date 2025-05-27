@@ -266,9 +266,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                  It 1) determines the series of possible spatial units merging, 2) generates the corresponding fragmentation graphs, 3) computes the cohesion value of each unit for all possible pairs of spatial units (as in the 'Measurements' tab), 4) summarises these values by measuring their median and <a href=https://en.wikipedia.org/wiki/Median_absolute_deviation target=_blank>median absolute deviation</a>.</p>
                                                                  <h2>Instructions</h2>
                                                                    <ul>
-                                                                      <li>Select the spatial units to consider for  possible merging. Due to combinatorial explosion, the maximum number of units is <b>limited to 7</b> (in this case, and depending on the graph size, the computation might be slow). Note that the merging of spatial units is evaluated regardless of their relative position (adjacent or not) in the archaeological space.</li>
+                                                                      <li>Select the spatial units to consider for possible merging. The maximum number of units is <b>limited to 8</b> (for more than 6 units, and depending on  graph size and the available computational power, the computation might take several minutes). Note that the merging of all selected spatial units are considered, regardless of their relative position (adjacent or not) in the archaeological space.</li>
                                                                       <li>  In the <b>Results</b> section, merged spatial units are indicated by the <b>'+' symbol</b>. Results are decreasingly ordered according to the median value of the differences between cohesion values: the lower the median, the more balanced the archaeological information about the series of spatial units. In addition, the median of the admixture values is also reported: the higher the value, the more mixed the spatial units. Use the dynamic table to explore the combinations and find out which optimal merging solution fits best with archaeological interpretation.</li>
-                                                                  <li> In the <b>Merge units</b> section, the dataset can be edited to actually merge the selected spatial units. The resulting spatial units are then available from all <i>archeofrag.gui</i>'s functions. Reducing the number of spatial units is a way around to the 7 spatial units limit. </li>
+                                                                  <li> In the <b>Merge units</b> section, the dataset can be edited to actually merge the selected spatial units. The resulting spatial units are then available from all <i>archeofrag.gui</i>'s functions. Reducing the number of spatial units is a way around to the 8 spatial units limit. </li>
                                                                    </ul>
                                                                  </p>
                                                                  
@@ -278,7 +278,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      column(10, align="left",
                                                             br(), br(), 
                                                             uiOutput("optimisation.sp.ui"),
-                                                            HTML("Select up to 7 spatial units and run the computation:"),
+                                                            HTML("Select up to 8 spatial units and run the computation:"),
                                                             br(), br(),  
                                                             actionButton("optimisationButton", "Run computation"), 
                                                             br(),  
@@ -813,7 +813,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     column(2, checkboxInput("OM.aggregFactorOut", "Fragments aggregation"), style="padding-top:35px;"),
                                                     column(2, sliderInput("OM.aggregFactorOut.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.01))
                                                     ), #end fluidrow
-                                                  fluidRow(column(10, h3("Distribution of materials in the two spatial units"))),
+                                                  fluidRow(column(10, h3("Distribution of the material in the two spatial units"))),
                                                    fluidRow(
                                                      column(2, checkboxInput("OM.objectsBalanceOut", "Objects balance"), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.objectsBalanceOut.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.01)),
@@ -885,7 +885,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Fumane</b>: Falcucci A. 2025. 'Refitting the context: accepted paper b (v0.1.3)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15017627   target=_blank>10.5281/zenodo.15017627</a>.</li>      
                   <li><b>Grande Rivoire 1st Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
                   <li><b>Grande Rivoire 2nd Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
-                  <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a> </li>
+                  <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a>.</li>
                   <li><b>Tai Cave and Tai South</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
                 </ul>
                 <br>

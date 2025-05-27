@@ -677,7 +677,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                                        "Entanglement value: ", 
                                        clustering.stats.df[idx, ]$Entanglement,
                                        "\n",
-                                       "Cophrenetic correlation: ",
+                                       "Cophenetic correlation: ",
                                        clustering.stats.df[idx, ]$Cophenetic.correlation
                            ),
                            margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
@@ -1230,7 +1230,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     }
     
     DT::datatable(df,
-                  escape = F,  selection = 'none', filter = "none",
+                  escape = FALSE,  selection = 'none', filter = "none",
                   options = list(dom = 't', ordering = FALSE, paging = FALSE,
                                  preDrawCallback = DT::JS("function() {Shiny.unbindAll(this.api().table().node()); }"), 
                                  drawCallback = DT::JS("function() {Shiny.bindAll(this.api().table().node()); } ")
@@ -1248,47 +1248,50 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
     
     if(length(spatial.units) == 2){
-      showNotification("There are only 2 spatial units. Nothing to merge.", duration = 10, type = "warning")
+      showNotification("There are only 2 spatial units. No possible merge.", duration = 10, type = "warning")
       return()
     } 
     
-    if(length(spatial.units) > 7){
-      showNotification("Select no more than 7 spatial units to combine.", duration = 10, type = "warning")
+    if(length(spatial.units) > 8){
+      showNotification("Select no more than 8 spatial units to combine.", duration = 10, type = "warning")
       return()
+    }
+    if(length(spatial.units) > 5){
+      showNotification("Computation has started... Please wait... It can take several minutes.", duration = 20, type ="message")
     } 
-    if(length(spatial.units) %in% c(6, 7)){
-      showNotification("Computation has started... Please wait...", duration = 20, type ="message")
-    } 
-    # list all combinations:
-    eval(parse(text = paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units)), collapse = ""),
-                              "stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
-    pairs <- as.matrix(pairs)
     
-    # keep only the combinations including all spatial.units
-    items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is a little slow
+    pairs  <- .heap_permutation(spatial.units)
+    
+    # 1. list all combinations:
+    # eval(parse(text = paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units)), collapse = ""),
+    #                           "stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
+    # pairs <- as.matrix(pairs)
+    # 
+    # # 2. keep only the combinations including all spatial.units
+    # items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is a little slow
+    # 
+    # items.nr <- length(spatial.units)
+    # pairs <- pairs[ items == items.nr, ]
 
-    items.nr <- length(spatial.units)
-    pairs <- pairs[ items == items.nr, ]
-    
     # filter duplicated, considering that within a pair the order of the spatial units does not matter:
     n.pairs <- floor(length(spatial.units) / 2)
     n.pairs <- matrix(seq_len(2 * n.pairs), ncol = 2, byrow = TRUE)
     
-    # for each pair of columns, replace by 
+    # for each pair of columns, create a tag combining the two labels
     for(row in seq_len(nrow(n.pairs))){
       pairs <- cbind(pairs, apply(pairs, 1, function(x, cols = c(n.pairs[row, ]))  paste0(sort(x[ cols ]), collapse = "")))
-      pairs <- pairs[duplicated(pairs[,  - c(n.pairs[row, ]) ]), ]
     }
+    pairs <- pairs[ ! duplicated(pairs[, seq(length(spatial.units) + 1, ncol(pairs))]), ] 
     
-    # clean
+    # clean, remove tags columns
     pairs <- pairs[, seq_len(length(spatial.units))]
     
-    # create a reference table with recoded spatial units
+    # 3.  create a reference table with recoded spatial units
     recoded.spatial.units <- pairs
     
     # merge some or all possible pairs of spatial units:
     if(input$parallelize){
-      recoded.spatial.units <- foreach::foreach(i = seq(0, c(nrow(n.pairs) -1)), .combine = "rbind", .errorhandling = "remove") %dopar% {
+      recoded.spatial.units <- foreach::foreach(i = seq(0, nrow(n.pairs) -1), .combine = "rbind", .errorhandling = "remove") %dopar% {
         df <- recoded.spatial.units
         for(row in seq_len(nrow(n.pairs) - i) ){
           df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
@@ -1296,7 +1299,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
         df
       }
     } else {
-      recoded.spatial.units <- lapply(seq(0, c(nrow(n.pairs) -1)), function(i){
+      recoded.spatial.units <- lapply(seq(0, nrow(n.pairs) -1), function(i){
         df <- recoded.spatial.units
         for(row in seq_len(nrow(n.pairs) - i) ){
           df[, n.pairs[row, ]] <- apply(df[, n.pairs[row, ]], 1, function(x) paste0(sort(unlist(x)), collapse = " + "))
@@ -1306,7 +1309,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     }
     
-    # demultiply the reference table to get the same row numbers:
+    # duplicate the rows of reference table to get the same row numbers than the recoded table:
     eval(parse(text =  paste0("pairs <- rbind(", paste0(rep("pairs, ", nrow(n.pairs) - 1), collapse = ""), "pairs)")))
     
     # add a line for no merging at all:
@@ -1323,35 +1326,36 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                                               levels = c(raw.spatial.units.row, additional.sp.units),
                                               labels = c(recoded.spatial.units.row, additional.sp.units)))
       # 2) computes edges weights
-      g <- archeofrag::frag.edges.weighting(g, "sp.u.aggregated", verbose=FALSE)
+      g <- archeofrag::frag.edges.weighting(g, "sp.u.aggregated", verbose = FALSE)
       # 3) summarises the difference between cohesion values:
       cohesion.res <- NA
       cohesion.res <- archeofrag::frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
-      cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
-      admix.res <- archeofrag::frag.layers.admixture(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
+      cohesion.diff <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
+      admix.res <- apply(cohesion.res, 1, function(x) 1 - sum(x))
 
-      c("Cohesion difference median" = stats::median(cohesion.res, na.rm = TRUE),
-        "MAD" = stats::mad(cohesion.res, na.rm = TRUE),
+      c("Cohesion difference median" = stats::median(cohesion.diff, na.rm = TRUE),
+        "MAD" = stats::mad(cohesion.diff, na.rm = TRUE),
         "Admixture median"  = stats::median(admix.res, na.rm = TRUE),
         "MAD." = stats::mad(admix.res, na.rm = TRUE))
     }
     
-    
     # ... run computation ----
-    # (Note that it is the slowest step of the workflow)
+    # (Note that it is by far the slowest step of the workflow and it should be improved
     if(input$parallelize){
       cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
-        frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
+        frag.get.cohesion.dispersion(graph, 
+                                     raw.spatial.units.row = pairs[i, ],
                                      recoded.spatial.units.row = recoded.spatial.units[i, ])
       }
     } else{
       cohes.diff.res <- sapply(seq_len(nrow(pairs)), function(i){
-        frag.get.cohesion.dispersion(graph, raw.spatial.units.row = pairs[i, ],
+        frag.get.cohesion.dispersion(graph,
+                                     raw.spatial.units.row = pairs[i, ],
                                      recoded.spatial.units.row = recoded.spatial.units[i, ])
       })
       cohes.diff.res <- t(cohes.diff.res)
     }
-    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = F) # remove duplicated merged spatial units labels
+    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = FALSE) # remove duplicated merged spatial units labels
     recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     recoded.spatial.units <- data.frame(recoded.spatial.units)
     recoded.spatial.units <- cbind(recoded.spatial.units, cohes.diff.res)
@@ -1365,7 +1369,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     # sort the contents of the lines:
     idx <- seq_len(ncol(pairs))
     recoded.spatial.units[, idx] <- t(apply(recoded.spatial.units[, idx], 1,
-                   function(x) sort(unlist(x), na.last = T)))
+                   function(x) sort(unlist(x), na.last = TRUE)))
     
     # remove empty columns
     idx <- apply(recoded.spatial.units, 2, function(x) ! all(is.na(x)))
@@ -1383,7 +1387,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
     
     idx <- order(recoded.spatial.units$"Cohesion difference median",
-                 recoded.spatial.units$"Admixture median", recoded.spatial.units[,1])
+                 recoded.spatial.units$"Admixture median", recoded.spatial.units[, 1])
     
     list(recoded.spatial.units[idx, ], exec.time)
     })  
@@ -1412,36 +1416,39 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   </thead>
 </table>", collapse="")
     
-    DT::datatable(tab, rownames=F, container = sketch, escape=F, style = "default", selection = 'none',
+    DT::datatable(tab, rownames = FALSE, container = sketch, escape = FALSE, style = "default", selection = 'none',
                   options = list(dom = 'tp'))
     })
   
   
   
     output$optimisationText <- renderText({
-    req(optimisation.table, graph.selected)
-    graph <- graph.complete()
-    optim.results <- optimisation.table()
-    
-    if(is.null(optim.results[[1]])) return()
-    
-    cohesion.res <- frag.layers.cohesion(graph, layer.attr = "spatial.variable", verbose = FALSE)
-    cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
-    median.res <- round(stats::median(cohesion.res, na.rm = TRUE), 3)
-    
-    if(median.res <= min(optim.results[[1]]$"Cohesion difference median")){
-      comments.str <- "none of the merging solutions returned a lower median value."
-    } else{
-      comments.str <- "some merging solutions returned lower median values."
-    }
-    
-    paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
-           " merging solutions evaluated in ", optim.results[[2]], "<br>",
-          "<b>Median of the cohesion differences without merging:</b> ",
-          median.res, 
-          " +/- ", round(stats::mad(cohesion.res, na.rm = TRUE), 3), "<br>",
-          "<b>Comment:</b> ", comments.str
-          )
+      req(optimisation.table, graph.selected)
+      graph <- graph.complete()
+      optim.results <- optimisation.table()
+      
+      spatial.units <- unique(igraph::V(graph)$spatial.variable)
+      spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
+      
+      if(is.null(optim.results[[1]])) return()
+      
+      cohesion.res <- frag.layers.cohesion(graph, layer.attr = "spatial.variable", verbose = FALSE)
+      cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
+      median.res <- round(stats::median(cohesion.res, na.rm = TRUE), 3)
+      
+      if(median.res <= min(optim.results[[1]]$"Cohesion difference median")){
+        comments.str <- "none of the merging solutions returned a lower median value."
+      } else{
+        comments.str <- "some merging solutions returned lower median values."
+      }
+      
+      paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
+             " merging solutions  from ", length(spatial.units), " spatial units, computed in ", optim.results[[2]], "<br>",
+            "<b>Median of the cohesion differences without merging:</b> ",
+            median.res, 
+            " +/- ", round(stats::mad(cohesion.res, na.rm = TRUE), 3), "<br>",
+            "<b>Comment:</b> ", comments.str
+            )
   })
   
     
@@ -1967,7 +1974,12 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.admixtureOut.init.str <- 'val admixtureOut = Val[Double]<br>'
       OM.admixtureOut.map.str  <- '  outputs += admixtureOut.mapped,<br>'
       OM.admixtureOut.R.init.str <- '            admixtureOut     <- -1.0<br>'
+      
       OM.admixtureOut.R.str <- '                admixtureOut     <- frag.layers.admixture(g, \'layer\')<br>'
+      if(input$OM.cohesion1Out | input$OM.cohesion2Out){
+        OM.admixtureOut.R.str <- '                admixtureOut     <- 1 - sum(cohesion.results)<br>'
+      }
+      
       OM.admixtureOut.obj.str <- paste0("    admixtureOut evaluate \"admixtureOut.map(x => math.abs(x - ",
                                         obs.admix, ")).max\" under ", OM.admixtureOut.sens, ",<br>")
     }

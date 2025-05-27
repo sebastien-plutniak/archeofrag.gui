@@ -1,8 +1,12 @@
 
+# archeofrag.gui 1.1.2
+
+* In the 'Spatial units optimisation' tab, the code has been optimised (including the use of the heap permutation algorithm) and the maximum number of spatial units to merge is set to 8 (versus 7 before).
+
 # archeofrag.gui 1.1.1
 Released: 2025-05-12
 
-* In 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. Entanglement and cophenetic correlation are reported.
+* In the 'Measurements' tab, the simple dendrogram is replaced by a tanglegram. Entanglement and cophenetic correlation are reported.
 * A variable and its values can be optionally selected to subset the dataset.
 
 # archeofrag.gui 1.1.0
