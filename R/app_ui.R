@@ -166,7 +166,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <li><b>Cohesion diff.(erence)</b>: for a pair of spatial units, highest cohesion value - lowest cohesion value. (See the 'Spatial units optimisation' tab for details.) </li>
                                                         </ul>
                                                         "),
-                                                   ) # end column
+                                                   ), # end column
+                                                   column(10, align="center",
+                                                          downloadButton("download.measurements.tab", "Download table")),
                                                    ), #end fluirow
                                                    h1("Anomaly detection in the spatial unit series"), # .. dissimilarity ----
                                                    column(10, align="center",
@@ -207,15 +209,21 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         <ul>
                                                          <li>
                                                         "),
-                                                   span(`data-toggle` = "tooltip", `data-placement` = "left", title = "Entanglement measures how well the labels of two dendrograms are aligned, from 0 (fully aligned labels) to 1 (fully mismatched labels). It is computed by numbering the labels (1 to the total number of labels) of each dendrogram, and then computing the L-norm distance between these two vectors. Click for more information.",
-                                                          HTML("<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>Entanglement</a>")
-                                                        ),#end span 
-                                                          HTML(": the lower the value, the more similar the expected and observed spatial units' orderings.</li>
-                                                          <li>"),
                                                                span(`data-toggle` = "tooltip", `data-placement` = "left", title = " The cophenetic distance between two observations that have been clustered is defined to be the intergroup dissimilarity at which the two observations are first combined into a single cluster. A dendrogram is an appropriate summary of some data if the correlation between the original distances and the cophenetic distances is high. Click for more information.",
                                                           HTML("<a href=https://en.wikipedia.org/wiki/Cophenetic_correlation target=_blank>Cophenetic correlation</a>")
                                                                ), #end span
-                                                          HTML(": reflects the quality of the dendrogram for observed refitting data. The higher the value, the higher the quality.</li>
+                                                          HTML(": a quality measure for the dendrogram about observed refitting data (correlation between the observed dissimilarity and the dendrogram cophenetic distances). Values range between -1 to 1, with near 0 values meaning low quality.</li>
+                                                          <li>"),
+                                                   span(`data-toggle` = "tooltip", `data-placement` = "left", title = "Entanglement measures how well the labels of two dendrograms are aligned, from 0 (fully aligned labels) to 1 (fully mismatched labels). It is computed by numbering the labels (1 to the total number of labels) of each dendrogram, and then computing the L-norm distance between these two vectors. Click for more information.",
+                                                          HTML("<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>Entanglement</a>")
+                                                        ),#end span 
+                                                          HTML(": Values range between 1 (full entanglement) and 0 (no entanglement).</li>
+                                                          <li>"),
+                                                               span(`data-toggle` = "tooltip", `data-placement` = "left", title = " Baker's Gamma index is defined as the rank correlation between the stages at which pairs of objects combine in each of the two trees.",
+                                                                    HTML("<a href=https://search.r-project.org/CRAN/refmans/dendextend/html/cor_bakers_gamma.html target=_blank>Baker's Gamma</a>")
+                                                               ), #end span
+                                                               HTML(": a measure of similarity between the expected and the observed dendrograms. Values range between -1 to 1, with near 0 values meaning that the two dendrograms. are not statistically similar. 
+                                                          </li>
                                                           </ul>
                                                           </li>
                                                     </ul>
@@ -224,14 +232,14 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   </div> "),
                                                    h3("Dissimilarity matrix"),
                                                    checkboxInput("normalise.diss", "Normalise", value = FALSE),
-                                                   tableOutput("admixTab"),
+                                                   tableOutput("dissimilarityTab"),
+                                                   downloadButton("download.dissimilarityTab", "Download table"),
                                                    h3("Clustering"),
                                                    DT::DTOutput("clustering.stats"), 
                                                    br(),
                                                    uiOutput("admix.clustering.selector"),
-                                                   # HTML("</div>"),
                                                    br(),
-                                                   imageOutput("tanglegram.plot",  width= "100%"),
+                                                   imageOutput("tanglegram.plot",  width= "100%", height = "600px"),
                                                    br(),
                                                    uiOutput("tanglegram.download.button"),
                                                    br(), br()
@@ -412,12 +420,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                    "<div style=width:40%;, align=left>
                     <h2>Presentation</h2>
                     <p>
-                      This tool enables simulating the formation process of two spatial units. Its advantages method includes:
+                      This tool enables simulating the formation process of two spatial units. Its advantages includes:
                       <ul>
                         <li>Robustness: the parameters are based on observed evidence, no assumptions are required.</li>
                         <li>Fast computation: it can be run on a personal computer.</li>
                       </ul>
-                      However, it simulates what might have happen during a period of time from an undetermined moment in the 'alteration phase' to the excavation event (it does not cover not the assemblage's entire timespan from the deposition event to the excavation event). 
+                      However, it simulates what might have happen during the period of time spaning from a moment (undetermined) in the 'alteration phase' to the excavation event. (In other words, it does not cover not the assemblage's entire timespan from the deposition event to the excavation event.)
                     </p>
                     <h2>Instructions</h2>
                     <p>
@@ -557,7 +565,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     h2("Cohesion by spatial unit"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
-                                                                Comparing cohesion values is the main purpose of the TSAR method. Because cohesion is a complex measurement combining multiple aspects, this is where differences between compared hypotheses might be more evident and useful for archaeological interpretation. For each hypothesis (top and bottom part of the chart), compare the cohesion values observed for each spatial unit on the empirical graph (purple and yellow vertical bars) and the simulated values (density curves and boxplots).
+                                                                Comparing cohesion values is the main purpose of the TSAR method. Because cohesion is a complex measurement combining multiple aspects, it is likely to reveal differences between compared hypotheses useful for archaeological interpretation. For each hypothesis (top and bottom part of the chart), compare the cohesion values observed for each spatial unit on the empirical graph (purple and yellow vertical bars) and the simulated values (purple and yellow density curves and boxplots).
                                                                 </p></div>")
                                                            )),
                                                   fluidRow(column(10,
@@ -570,7 +578,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     h2("Admixture"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
-                                                                The admixture value summarises a pair of cohesion values. Less informative, it is nevertheless simpler and convenient to examine.
+                                                                The admixture value summarises a pair of cohesion values. Less informative than the cohesion values, it is nevertheless simpler and convenient to examine. In this chart, the grey and light grey density curves corresponds to the admixture values generated for 1 and 2 initial spatial units, respectively.
                                                                 </p></div>")
                                                     )),
                                                   fluidRow(column(10,
@@ -660,10 +668,10 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                           <div  style=width:40%;, align=left>
                                                                           <h3>The problem</h3>
                                                                           <p>
-                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information (due, for example, to the partial excavation of the site, transport of material objects to other places, information loss, etc.). Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to <a href=https://en.wikipedia.org/wiki/Combinatorial_explosion target=_blank>combinatorial explosions</a>. How many objects did this site originally included? How many fragments of this vessel are missing and not observed? </p>
+                                                                            Simulating a formation process from the <i>Deposition event</i> to the <i>Excavation event</i> requires making assumptions about the non-observed part of the archaeological information: i.e., the information not observed due, for example, to the partial excavation of the site,  the transport of material objects to other places, information loss, etc. Estimating missing information raises difficult issues because the range of possibilities is extensive,  leading to <a href=https://en.wikipedia.org/wiki/Combinatorial_explosion target=_blank>combinatorial explosions</a>. How many objects did this site originally included? How many fragments of this vessel are missing and not observed? </p>
                                                                             <h3>Origin Space Exploration</h3>
                                                                             <p>
-                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/HDOSE.html target=_blank>High Dimension Origin Space Exploration</a> method (HDOSE) enables determining the possible combinations of a model's initial parameters, overcoming combinatorial explosions.  Conducting an HDOSE analysis requires defining:
+                                                                            Model exploration methods address those cases. In particular, the <a href=https://openmole.org/HDOSE.html target=_blank>High Dimension Origin Space Exploration</a> method (HDOSE) enables determining the possible combinations of a model's initial parameters, overcoming combinatorial explosions. Conducting an HDOSE analysis requires defining:
                                                                             <ol>
                                                                             <li> <b>Origin values</b>: the ranges of possible initial values for each parameter of the model. </li>
                                                                             <li> <b>Objective values</b>: the values corresponding to an observed state of a model (e.g. the values describing the state of the model at t<sub>0</sub>).</li>
@@ -671,7 +679,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                             The HDOSE procedure returns the combinations of origin values that best generate the observed state (at t<sub>0</sub>) and, consequently, the most probable initial state(s) at t<sub>-2</sub>. Note that this approach requires to define the virtual total number of fragments and simulate the loss of part of it.
                                                                             </p>
                                                                             <p>
-                                                                            The HDOSE method is available from the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i> software. 
+                                                                            The HDOSE method is implemented in the <i><a href=https://openmole.org  target=_blank>openMOLE</a></i> software. 
                                                                             </p>
                                                                             <h3>Instructions</h3>
                                                                             <p>
@@ -699,12 +707,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                      ),
                                                                      fluidRow(
                                                                        column(1, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore about the number of initially non-fragmented objects to generate.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore about the number of initially non-fragmented objects to generate. By default: 50% of observed objects count.",
                                                                               uiOutput("OM.objectsNumber.min.ui")
                                                                               ) #end span
                                                                               ),
                                                                        column(1, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore about the number of initially non-fragmented objects to generate.",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore about the number of initially non-fragmented objects to generate. By default: objects count * 10.",
                                                                               uiOutput("OM.objectsNumber.max.ui")
                                                                               ) #end span
                                                                               ),
@@ -720,12 +728,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   ), #end fluidrow
                                                                      fluidRow(
                                                                        column(1, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Minimal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed). By default: observed fragment count.",
                                                                                    uiOutput("OM.fragmentsNumber.min.ui")
                                                                                 ) #end span
                                                                                ), #end column
                                                                        column(1, 
-                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed).",
+                                                                              span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Maximal value for the range of values to explore regarding the number of fragments to generate in total (including those not archaeologically observed). By default: observed fragment count * 100.",
                                                                               uiOutput("OM.fragmentsNumber.max.ui")
                                                                               ) #end span
                                                                               ),      

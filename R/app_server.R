@@ -322,9 +322,9 @@ server <- function(input, output, session) {
   observe({ 
     req(graph.data3, input$spatial.variable)
     g.data <- graph.data3()
-    if(is.null(g.data)) return()
+    if(is.null(g.data) | is.null(g.data$objects.df)) return()
     
-    try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = T)
+    try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = TRUE)
     if( ! exists("graph")){
       showNotification(geterrmessage(), duration = 10, type = "error")
       return()
@@ -424,7 +424,7 @@ server <- function(input, output, session) {
   })
   
   output$n.final.fragments <- renderUI({
-    req(graph.list())
+    req(input.graph.params())
     numericInput("n.final.fragments", "Final fragments count", value = input.graph.params()$vertices, width = "100%")
   })
   
@@ -509,7 +509,7 @@ server <- function(input, output, session) {
         "Cohesion 1st unit" = cohesion[1],
         "Cohesion 2nd unit" = cohesion[2],
         "Cohesion diff" = cohesion.diff,
-        "Admixture" =  round(archeofrag::frag.layers.admixture(g, "spatial.variable", verbose = FALSE), 2)
+        "Admixture" =  round(archeofrag::frag.layers.admixture(g, "spatial.variable", verbose = FALSE), 3)
       )
     }
     
@@ -525,11 +525,20 @@ server <- function(input, output, session) {
   })
   
   output$resultsTab <- DT::renderDT({ 
-    DT::datatable(stats.table(), rownames=F,  escape=F, style = "default", selection = 'none',
+    DT::datatable(stats.table(), rownames = FALSE, escape = FALSE, style = "default", selection = 'none',
                   options = list(dom = 'tp'))
   })
   
-  admixTab <- reactive({  # admix table ----
+  output$download.measurements.tab <- downloadHandler(
+    filename = paste0("archeofrag-measurements-", input$spatial.variable, ".csv"),
+    content = function(file) {
+      write.csv(stats.table(), file, row.names = TRUE)
+    }
+  )
+  
+  
+  
+  dissimilarityTab <- reactive({  # dissimilarity table ----
     req(stats.table(), graph.data3())
     stats.table <- stats.table()
     
@@ -551,20 +560,33 @@ server <- function(input, output, session) {
     }
     
     diss <- stats::reshape(pairs, timevar = "unit1", idvar = "unit2",  v.names = "Admixture", direction = "wide")
+    diss <- as.matrix(diss)
     colnames(diss) <- gsub("^Admixture.", "", colnames(diss))
     rownames(diss) <- diss[, 1]
     diss <- diss[, -1]
-    
     diss <- diss[ order(rownames(diss)), order(colnames(diss))]
+    diss <- apply(diss, 2,  as.numeric)
+    rownames(diss) <- colnames(diss)
+    
+    diag(diss) <- 1
     diss[is.na(diss)] <- 0
     diss[upper.tri(diss)] <- NA
-    diss
+    1 - diss
   })
   
-  output$admixTab <- renderTable({ 
-    req(admixTab())
-    admixTab()
+  
+  output$dissimilarityTab <- renderTable({ 
+    req(dissimilarityTab())
+    dissimilarityTab()
   }, rownames = TRUE, colnames = TRUE, na = "-")
+  
+
+  output$download.dissimilarityTab <- downloadHandler(
+    filename = paste0("archeofrag-dissimilarity-", input$spatial.variable, ".csv"),
+    content = function(file) {
+      write.csv(dissimilarityTab(), file, row.names = TRUE)
+    }
+  )
   
   
   # tanglegram ----
@@ -572,19 +594,20 @@ server <- function(input, output, session) {
 clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
   
   
-  dissimilarityTab <- reactive({
-    req(admixTab())
-    diss.tab <- 1 - admixTab()
-    diss.tab[is.na(diss.tab)] <- 1
-    diss.tab
-  })
+  # dissimilarityTab <- reactive({
+  #   req(admixTab())
+  #   # diss.tab <- 1 - admixTab()
+  #   diss.tab <- admixTab()
+  #   # diss.tab[is.na(diss.tab)] <- 1
+  #   diss.tab
+  # })
   
   
   expected.dendrogram <- reactive({
     req(dissimilarityTab())
     expected.dissimilarityTab <- dissimilarityTab()
     expected.dissimilarityTab[ lower.tri(expected.dissimilarityTab, diag = FALSE) ] <- 1
-    diag(expected.dissimilarityTab) <- 100
+    diag(expected.dissimilarityTab) <- 0
     
     expected.dissimilarityTab <- stats::as.dist(expected.dissimilarityTab)
     
@@ -620,26 +643,58 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     # compute entanglement:
     entanglement.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
-      dendextend::entanglement(observed.dendrograms[[x]], expected.dendrogram))
+      dendextend::entanglement(sort(observed.dendrograms[[x]]), sort(expected.dendrogram)))
     entanglement.values <- round(entanglement.values, 2)
 
-    # compute cophenetic correlations:
+    # turn dissimilarity tab into distance tab
     observed.dissimilarityTab <- dissimilarityTab()
     observed.dissimilarityTab <- stats::as.dist(observed.dissimilarityTab)
     
+    # compute cophenetic correlations:
     cophenetic.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
-      stats::cor(observed.dissimilarityTab, stats::cophenetic(as.hclust(observed.dendrograms[[x]]))))
+      # stats::cor(observed.dissimilarityTab, stats::cophenetic(observed.dendrograms[[x]])))
+    stats::cor(observed.dissimilarityTab, stats::cophenetic(stats::as.hclust(observed.dendrograms[[x]]))))
     cophenetic.cor.values <- round(cophenetic.cor.values, 2)
+    
+    # sapply(seq_len(length(clustering.method.names)), function(x) 
+    #   dendextend::cor_cophenetic(expected.dendrogram, observed.dendrograms[[x]]))
+    
+    # compute Baker's Gamma  correlations:
+    bakers.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
+      dendextend::cor_bakers_gamma(expected.dendrogram, observed.dendrograms[[x]]))
+    bakers.cor.values <- round(bakers.cor.values, 2)
     
     # output table
     stats.df <- data.frame("Method" = names(clustering.method.names),
+                           "Cophenetic correlation" = cophenetic.cor.values,
                            "Entanglement" =  entanglement.values, 
-                           "Cophenetic correlation" = cophenetic.cor.values)
+                           "Baker's Gamma correlation" = bakers.cor.values,
+                           check.names = FALSE)
     stats.df[order(stats.df$Entanglement, decreasing = FALSE), ]
   })
   
   output$clustering.stats <- renderDT({
-    DT::datatable(clustering.stats.df(), rownames = FALSE, style = "default", selection = 'none', options = list(dom = 't'))
+    
+    tab <- clustering.stats.df()
+    
+    sketch <-  "<table class='display'>
+                  <thead>
+                    <tr>
+                      <th rowspan=2> Method</th>
+                      <th>Observed tree</th>
+                      <th colspan=2> Observed and expected trees</th>
+                    </tr>
+                    <tr>
+                      <th>Cophenetic correlation</th>
+                      <th>Entanglement</th>
+                      <th>Baker's Gamma correlation</th>
+                    </tr>
+                  </thead>
+                </table>"
+    
+    
+    
+    DT::datatable(tab, container = sketch, rownames = FALSE, style = "default", selection = 'none', options = list(dom = 't'))
   })
     
     
@@ -669,20 +724,21 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
                            sort = TRUE,
                            main = toupper(input$spatial.variable),
-                           sub = paste0(
-                                       "Dissimilarity: 1 - admixture",
-                                       "\n",
-                                       "Clustering method: ", selected.clustering.method.name(),
-                                       "\n",
-                                       "Entanglement value: ", 
-                                       clustering.stats.df[idx, ]$Entanglement,
-                                       "\n",
-                                       "Cophenetic correlation: ",
-                                       clustering.stats.df[idx, ]$Cophenetic.correlation
-                           ),
-                           margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
+                           margin_bottom = 11, margin_inner = 12,
+                           lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                            main_left = "Observed", main_right = "Expected",
                            highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+    mtext(paste0("\n\n\n",
+                 "Dissimilarity: 1 - admixture",
+                 "\n",
+                 "Clustering method: ", selected.clustering.method.name(),
+                 "\n",
+                 "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
+                 "\n",
+                 "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
+                 "\n",
+                 "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
+    ), side =  1)
   })
   
   
@@ -692,23 +748,24 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       clustering.stats.df <- clustering.stats.df()
       idx <- clustering.stats.df[, 1] == names(clustering.method.names)[which(clustering.method.names == input$clustmethod)]
       grDevices::svg(file,  width = 10)
-      dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
-                             sort = TRUE,
-                             main = toupper(input$spatial.variable),
-                             sub = paste0(
-                               "Dissimilarity: 1 - admixture",
-                               "\n",
-                               "Clustering method: ", selected.clustering.method.name(),
-                               "\n",
-                               "Entanglement value: ", 
-                               clustering.stats.df[idx, ]$Entanglement,
-                               "\n",
-                               "Cophrenetic correlation: ",
-                               clustering.stats.df[idx, ]$Cophenetic.correlation
-                             ),
-                             margin_inner = 12, lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
-                             main_left = "Observed", main_right = "Expected",
-                             highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+        dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
+                               sort = TRUE,
+                               main = toupper(input$spatial.variable),
+                               margin_bottom = 11, margin_inner = 12,
+                               lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
+                               main_left = "Observed", main_right = "Expected",
+                               highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+        mtext(paste0("\n\n\n",
+                     "Dissimilarity: 1 - admixture",
+                     "\n",
+                     "Clustering method: ", selected.clustering.method.name(),
+                     "\n",
+                     "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
+                     "\n",
+                     "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
+                     "\n",
+                     "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
+        ), side =  1)
       grDevices::dev.off()
     }
   )
@@ -1633,7 +1690,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$OM.objectsNumber.min.ui <- renderUI({
     numericInput("OM.objectsNumber.min", "minimum", min = 1, step = 1, 
-                 value = input.graph.params()$n.components)
+                 value = round(input.graph.params()$n.components / 2, 0))
   })
   
   output$OM.objectsNumber.max.ui <- renderUI({
@@ -1820,6 +1877,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion1Out.map.str  <- ""
     OM.cohesion2Out.map.str  <- ""
     OM.admixtureOut.map.str  <- ""
+    OM.finalFragmentCountOut.map.str <- ""
     
     OM.relationCountOut.R.init.str  <- ""
     OM.objectCountOut.R.init.str  <- ""
@@ -1832,6 +1890,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion1Out.R.init.str  <- ""
     OM.cohesion2Out.R.init.str  <- ""
     OM.admixtureOut.R.init.str  <- ""
+    OM.finalFragmentCountOut.R.init.str <- ""
     
     OM.relationCountOut.R.str  <- ""
     OM.objectCountOut.R.str  <- ""
@@ -1844,6 +1903,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion1Out.R.str  <- ""
     OM.cohesion2Out.R.str  <- ""
     OM.admixtureOut.R.str  <- ""
+    OM.finalFragmentCountOut.R.str <- ""
     
     OM.relationCountOut.init.str <- ""
     OM.objectCountOut.init.str <- ""
@@ -1855,6 +1915,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion1Out.init.str <- ""
     OM.cohesion2Out.init.str <- ""
     OM.admixtureOut.init.str <- ""
+    OM.finalFragmentCountOut.init.str <- ""
     
     obs.admix <-  round(archeofrag::frag.layers.admixture(graph.selected(), "spatial.variable", verbose = FALSE), 2)
     obs.cohesion <- round(archeofrag::frag.layers.cohesion(graph.selected(), "spatial.variable", verbose = FALSE), 2)
@@ -1983,7 +2044,13 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.admixtureOut.obj.str <- paste0("    admixtureOut evaluate \"admixtureOut.map(x => math.abs(x - ",
                                         obs.admix, ")).max\" under ", OM.admixtureOut.sens, ",<br>")
     }
-
+# browser()
+    if(input$OM.fragmentsCountOut.sens > 0){
+      OM.finalFragmentCountOut.init.str <-   'val finalFragmentCountOut = Val[Int]<br>' 
+      OM.finalFragmentCountOut.map.str  <-   '  outputs += finalFragmentCountOut.mapped,<br>'
+      OM.finalFragmentCountOut.R.init.str <- '            finalFragmentCountOut <- -1.0<br>'
+      OM.finalFragmentCountOut.R.str <-      '                finalFragmentCountOut <- frag.params$vertices <br>'
+    }
     
     get.param.str <- ""
     if(input$OM.relationCountOut | input$OM.objectCountOut | input$OM.disturbanceOut | input$OM.objectsBalanceOut | input$OM.fragBalanceOut | input$OM.aggregFactorOut){
@@ -2085,11 +2152,12 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.fragBalanceOut.init.str,
            OM.disturbanceOut.init.str,
            OM.aggregFactorOut.init.str,
+           OM.finalFragmentCountOut.init.str,
            '<br>',
            'val local = LocalEnvironment(', input$OM.parallelize, ')  // Number of cores to use. Adjust as needed<br>',
            '<br>',
            'val archeofrag =  RTask(<br>',
-           '  containerSystem = SingularityFlatImage(), // optionnal <br>',
+           '//  containerSystem = SingularityFlatImage(), // optionnal <br>',
            '  script = """<br>',
            '            library(archeofrag)<br>',
            '            # Declare default values:<br>',
@@ -2102,7 +2170,9 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.disturbanceOut.R.init.str,
            OM.fragBalanceOut.R.init.str,
            OM.aggregFactorOut.R.init.str,
+           OM.finalFragmentCountOut.R.init.str,
            '            try({<br>',
+           '                set.seed(mySeed)<br>',
            '                # Generate fragmentation graph:<br>',
            '                g <- frag.simul.process(initial.layers = layerNumber,<br>',
            '                                        n.components = objectsNumber,<br>',
@@ -2132,11 +2202,12 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.disturbanceOut.R.str,
            OM.fragBalanceOut.R.str,
            OM.aggregFactorOut.R.str,
+           OM.finalFragmentCountOut.R.str,
            '            }, silent = FALSE)<br>',
            '            """,<br>',
            '  install = Seq(<br>',
            '    """R --slave -e \'install.packages("BiocManager") ; library("BiocManager") ; BiocManager::install("RBGL")\' """,<br>',
-           '    """R --slave -e \'install.packages("remotes", dependencies = T)\' """,<br>',
+           '    """R --slave -e \'install.packages("remotes", dependencies = TRUE)\' """,<br>',
            '    """R --slave -e \'library(remotes); remotes::install_github("sebastien-plutniak/archeofrag", force=TRUE)\' """<br>',
            '  )<br>',
            ') set (<br>',
@@ -2159,12 +2230,12 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.cohesion2Out.map.str,
            OM.admixtureOut.map.str,
            OM.relationCountOut.map.str,
-           # OM.fragmentCountOut.map.str,
            OM.objectCountOut.map.str,
            OM.objectsBalanceOut.map.str,
            OM.disturbanceOut.map.str,
            OM.fragBalanceOut.map.str,
            OM.aggregFactorOut.map.str,
+           OM.finalFragmentCountOut.map.str,
            # OM.weightsumOut.map.str,
            '  // Default values, taken from the studied graph:<br>',
            '  mySeed := 1,<br>',

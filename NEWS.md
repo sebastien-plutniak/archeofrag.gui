@@ -1,4 +1,8 @@
 
+# archeofrag.gui 1.1.3
+
+* Replace the admixture table in 'Measurements' tab by a dissimilarity matrix. Add Baker's Gamme index. 
+
 # archeofrag.gui 1.1.2
 
 * In the 'Spatial units optimisation' tab, the code has been optimised (including the use of the heap permutation algorithm) and the maximum number of spatial units to merge is set to 8 (versus 7 before).
