@@ -168,8 +168,20 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         "),
                                                    ), # end column
                                                    column(10, align="center",
-                                                          downloadButton("download.measurements.tab", "Download table")),
+                                                          downloadButton("download.measurements.tab", "Download table"),
+                                                          ) #end column
                                                    ), #end fluirow
+                                                  fluidRow(
+                                                  h1("Ranking of spatial units by cohesion"), # .. ranking ----
+                                                  column(10, align="center",
+                                                         HTML("<div  style=width:40%;, align=left> 
+                                                              Considering the series of spatial units pairs, the units are ranked based on the number of pairs where they have the higher cohesion value. Higher count suggest relatively better defined and reliable units in the series:
+                                                              </div>"),
+                                                         br(),
+                                                         tableOutput("unit.ranks")
+                                                   ), #end column
+                                                   ), #end fluirow
+                                                   fluidRow(
                                                    h1("Anomaly detection in the spatial unit series"), # .. dissimilarity ----
                                                    column(10, align="center",
                                                    HTML("<div  style=width:40%;, align=left> 
@@ -244,6 +256,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    uiOutput("tanglegram.download.button"),
                                                    br(), br()
                                                    ) # end column
+                                                   ) #end fluidrow
                                           ), #end tabPanel
                                           tabPanel("Visualisation", # VISUALISATION ----
                                                    fluidRow(
@@ -739,8 +752,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                               ),      
                                                                        column(2, 
                                                                               span(`data-toggle` = "tooltip", `data-placement` = "top",
-                                                                                   title = "Whether or not to try to preserve the fragments balance (i.e. proportion of fragments in each spatial units) when removing fragments to reach the targeted final fragment count.",
-                                                                                   selectInput("OM.preserveFragmentsBalance.val", "Preserve fragments balance", choices = c("true", "false", "true, false"), selected = "false", width = "100%")
+                                                                                   title = "Whether or not to try to preserve the fragments balance (i.e. proportion of fragments in each spatial units) when removing fragments to reach the targeted final fragment count. By default: active.",
+                                                                                   selectInput("OM.preserveFragmentsBalance.val", "Preserve fragments balance", choices = c("true", "false", "true, false"), selected = "true", width = "100%")
                                                                               ) # end span
                                                                        ), #end column                                                                     
                                                                        column(2,
@@ -798,11 +811,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   fluidRow(column(10, h3("Relevance of spatial units"))),
                                                   fluidRow(
                                                     column(2, checkboxInput("OM.cohesion1Out", "Cohesion spatial unit 1", value = TRUE), style="padding-top:35px;"),
-                                                    column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.01)),
+                                                    column(2, sliderInput("OM.cohesion1Out.sens", "+/- tolerance", value = 0.05, min = 0, max = 0.25, step = 0.01)),
                                                      column(2, checkboxInput("OM.cohesion2Out", "Cohesion spatial unit 2", value = FALSE), style="padding-top:35px;"),
                                                      column(2, sliderInput("OM.cohesion2Out.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.01)),
                                                      column(1, checkboxInput("OM.admixtureOut", "Admixture", value = TRUE), style="padding-top:35px;"),
-                                                     column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.01))
+                                                     column(2, sliderInput("OM.admixtureOut.sens", "+/- tolerance", value = 0, min = 0, max = 0.25, step = 0.001))
                                                      ),
                                                    fluidRow(column(10, h3("Entities count"))),
                                                    fluidRow(
@@ -811,7 +824,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      column(1, checkboxInput("OM.objectCountOut", "Object count", value = TRUE), style="padding-top:35px;"),
                                                     column(2, 
                                                            span(`data-toggle` = "tooltip", `data-placement` = "top", title = "Using the final object count as a target value is a good way to get results similar to the archaeological observations. However, because constraining too much the value reduces drastically the accepted results in the HDOSE method, defining a loose constraint more likely generates useful results.",
-                                                           sliderInput("OM.objectCountOut.sens", "+/- tolerance (%)", value = 20, min = 0, max = 50, step = 1)),
+                                                           sliderInput("OM.objectCountOut.sens", "+/- tolerance (%)", value = 15, min = 0, max = 50, step = 1)),
                                                    )#end span
                                                      ),
                                                   fluidRow(column(10, h3("Alteration processes"))),

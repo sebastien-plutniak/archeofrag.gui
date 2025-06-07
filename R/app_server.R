@@ -535,6 +535,44 @@ server <- function(input, output, session) {
       write.csv(stats.table(), file, row.names = TRUE)
     }
   )
+  # spatial units ranking ----
+  output$unit.ranks <- renderTable({
+    req(stats.table)
+    
+    stats.tab <- stats.table()
+    
+    stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
+    stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
+    
+    sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
+    # browser()
+    count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
+    count <- sort(table(count), decreasing = TRUE)
+    count <- t(as.data.frame(count, stringsAsFactors = FALSE))
+    
+    sp.units <- sp.units[ ! sp.units %in% count[1, ]]
+    
+    count <- cbind(count, rbind(sp.units, 0))
+    count2 <- as.numeric(count[2, ])
+    names(count2) <- count[1, ]
+    
+    operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
+    operators.char <- operators
+    operators.char[operators < 0 ] <- ">"
+    operators.char[operators == 0 ] <- "="
+    operators.char <- c(operators.char, "")
+    paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
+    
+    res <- rbind(
+      c(rbind(names(count2), operators.char)),
+      c(rbind(count2, rep("", length(count2))))
+    )
+  
+   res <- data.frame(res)
+   colnames(res) <- res[1,]
+   rownames(res) <- c("", "Count")
+   res[-1, ]
+  }, rownames=TRUE, align="r")
   
   
   
@@ -593,16 +631,6 @@ server <- function(input, output, session) {
   
 clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
   
-  
-  # dissimilarityTab <- reactive({
-  #   req(admixTab())
-  #   # diss.tab <- 1 - admixTab()
-  #   diss.tab <- admixTab()
-  #   # diss.tab[is.na(diss.tab)] <- 1
-  #   diss.tab
-  # })
-  
-  
   expected.dendrogram <- reactive({
     req(dissimilarityTab())
     expected.dissimilarityTab <- dissimilarityTab()
@@ -652,12 +680,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     # compute cophenetic correlations:
     cophenetic.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
-      # stats::cor(observed.dissimilarityTab, stats::cophenetic(observed.dendrograms[[x]])))
     stats::cor(observed.dissimilarityTab, stats::cophenetic(stats::as.hclust(observed.dendrograms[[x]]))))
     cophenetic.cor.values <- round(cophenetic.cor.values, 2)
-    
-    # sapply(seq_len(length(clustering.method.names)), function(x) 
-    #   dendextend::cor_cophenetic(expected.dendrogram, observed.dendrograms[[x]]))
     
     # compute Baker's Gamma  correlations:
     bakers.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
@@ -1519,7 +1543,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       units.to.merge <- expand.grid(rownames(units.to.merge), colnames(units.to.merge))
       
       idx <- apply(units.to.merge, 1, function(su){
-        eval(parse(text = paste0("isTRUE(input$merge.", su[1], ".", su[2], ")" )))
+        eval(parse(text = paste0("isTRUE(input$'merge.", su[1], ".", su[2], "')" )))
       })
       
       units.to.merge <- units.to.merge[idx, ]
@@ -1712,7 +1736,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     sliderInput("OM.fragmentsCountOut.sens", 
                 paste0("Final fragments count (obs. value: ", input.graph.params()$vertices, ") +/- (%)"), 
                 width="100%",
-                value = 0, min = 0, max = 50, step = 1)
+                value = 15, min = 0, max = 50, step = 1)
   })
   
   output$OM.fragmentsBalance.val.ui <- renderUI({
@@ -1748,7 +1772,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
 
     sliderInput("OM.aggregFactor.val", 
                 paste0("Fragments aggregation (obs. value: ", input.graph.params()$aggreg.factor, ")"),
-                min = 0, max = 1, step = 0.01, value = c(0, 0))
+                min = 0, max = 1, step = 0.01, value = c(0, 1))
   })
   
   output$OM.asymmetric.selection <- renderUI({
@@ -1801,17 +1825,26 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     finalFragCountMin <- input.graph.params()$vertices - final.frag.count.adjust
     finalFragCountMax <- input.graph.params()$vertices + final.frag.count.adjust
     
-    OM.finalFragmentsNumberMinOut.str <- paste0('  finalFragmentsNumberMin := ', finalFragCountMin, ',<br>') 
     
     OM.finalFragmentsNumberMaxOut.str <- ""
     OM.finalFragmentsNumberMax.map.str <- ""
     OM.finalFragmentsNumberMax.init.str <- ""
+    finalFragCountMin.comment <- ""
     
     if(finalFragCountMin != finalFragCountMax){
-      OM.finalFragmentsNumberMaxOut.str <- paste0('  finalFragmentsNumberMax := ', finalFragCountMax, ',<br>') 
+      finalFragCountMin.comment <- paste0("  // i.e. observed value -",  input$OM.fragmentsCountOut.sens , "%")
+      finalFragCountMax.comment <- paste0("  // i.e. observed value +",  input$OM.fragmentsCountOut.sens , "%")
+      
+      OM.finalFragmentsNumberMaxOut.str <- paste0('  finalFragmentsNumberMax := ', finalFragCountMax, ',',
+                                                  finalFragCountMax.comment,
+                                                  '<br>') 
       OM.finalFragmentsNumberMax.map.str <- '  inputs += finalFragmentsNumberMax.mapped,<br>'
       OM.finalFragmentsNumberMax.init.str <- 'val finalFragmentsNumberMax = Val[Int]<br>'
     }
+    
+    OM.finalFragmentsNumberMinOut.str <- paste0('  finalFragmentsNumberMin := ', finalFragCountMin, ',',
+                                                finalFragCountMin.comment,
+                                                '<br>') 
     
     # preserve object number
     preserveObjectsNumber.str <- unlist(strsplit(input$OM.preserveObjectsNumber.val, split = ", "))
@@ -1853,7 +1886,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     # .init.str: variable declaration
     # .map.str: OM variable mapping
     # .R.str: R code
-    # .obj.str: opoen mole code to declare the variable as an objective
+    # .obj.str: open mole code to declare the variable as an objective
     OM.relationCountOut.obj.str  <- ""
     OM.objectCountOut.obj.str  <- ""
     OM.disturbanceOut.obj.str  <- ""
@@ -1878,6 +1911,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion2Out.map.str  <- ""
     OM.admixtureOut.map.str  <- ""
     OM.finalFragmentCountOut.map.str <- ""
+    OM.isPlanarOut.map.str <- ""
     
     OM.relationCountOut.R.init.str  <- ""
     OM.objectCountOut.R.init.str  <- ""
@@ -1891,6 +1925,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion2Out.R.init.str  <- ""
     OM.admixtureOut.R.init.str  <- ""
     OM.finalFragmentCountOut.R.init.str <- ""
+    OM.isPlanarOut.R.init.str <- ""
     
     OM.relationCountOut.R.str  <- ""
     OM.objectCountOut.R.str  <- ""
@@ -1904,6 +1939,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion2Out.R.str  <- ""
     OM.admixtureOut.R.str  <- ""
     OM.finalFragmentCountOut.R.str <- ""
+    OM.isPlanarOut.R.str <- ""
     
     OM.relationCountOut.init.str <- ""
     OM.objectCountOut.init.str <- ""
@@ -1916,6 +1952,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OM.cohesion2Out.init.str <- ""
     OM.admixtureOut.init.str <- ""
     OM.finalFragmentCountOut.init.str <- ""
+    OM.isPlanarOut.init.str <- ""
     
     obs.admix <-  round(archeofrag::frag.layers.admixture(graph.selected(), "spatial.variable", verbose = FALSE), 2)
     obs.cohesion <- round(archeofrag::frag.layers.cohesion(graph.selected(), "spatial.variable", verbose = FALSE), 2)
@@ -1935,17 +1972,25 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     }
    
     if(input$OM.objectCountOut){
+      
       OM.objectCountOut.init.str <- 'val objectCountOut = Val[Int]<br>' 
       OM.objectCountOut.map.str  <- '  outputs += objectCountOut.mapped,<br>'
       OM.objectCountOut.R.init.str <- '            objectCountOut   <- -1<br>'
       OM.objectCountOut.R.str <- '                objectCountOut   <- frag.params$n.components<br>'
       
       OM.objectCountOut.sens <- 0.1
+      OM.objectCountOut.comment <- ""
+      
       if(input$OM.objectCountOut.sens != 0){
         OM.objectCountOut.sens <- round(input.graph.params()$n.components * input$OM.objectCountOut.sens / 100, 0)
+        OM.objectCountOut.comment <- paste0("  // i.e. observed value +/-",  input$OM.objectCountOut.sens , "%")
       }
+      
+      
       OM.objectCountOut.obj.str <- paste0("    objectCountOut evaluate \"objectCountOut.map(x => math.abs(x - ",
-                                          input.graph.params()$n.components, ")).max\" under ", OM.objectCountOut.sens, ",<br>")
+                                          input.graph.params()$n.components, ")).max\" under ", OM.objectCountOut.sens, ",",
+                                          OM.objectCountOut.comment,
+                                          "<br>")
     }
     
     if(input$OM.disturbanceOut){
@@ -2003,33 +2048,33 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     if(input$OM.cohesion1Out) {
       
-      OM.cohesion1Out.sens <- 0.001
+      OM.cohesion1Out.sens <- 0.0049
       if(input$OM.cohesion1Out.sens != 0){OM.cohesion1Out.sens <- input$OM.cohesion1Out.sens}
       
       OM.cohesion1Out.init.str <- 'val cohesion1Out = Val[Double]<br>' 
       OM.cohesion1Out.map.str  <- '  outputs += cohesion1Out.mapped,<br>'
       OM.cohesion1Out.R.init.str <- '            cohesion1Out     <- -1.0<br>'
       OM.cohesion1Out.R.str <- '                cohesion1Out     <- cohesion.results[1]<br>'
-      OM.cohesion1Out.obj.str <- paste0("    cohesion1Out evaluate \"cohesion1Out.map(x => math.abs(x - ",
+      OM.cohesion1Out.obj.str <- paste0("    cohesion1Out   evaluate \"cohesion1Out.map(x => math.abs(x - ",
                                         obs.cohesion[1], ")).max\" under ", OM.cohesion1Out.sens, ",<br>")
     }
     
     if(input$OM.cohesion2Out){
       
-      OM.cohesion2Out.sens <- 0.001
+      OM.cohesion2Out.sens <- 0.0049
       if(input$OM.cohesion2Out.sens != 0){OM.cohesion2Out.sens <- input$OM.cohesion2Out.sens}
       
       OM.cohesion2Out.init.str <- 'val cohesion2Out = Val[Double]<br>' 
       OM.cohesion2Out.map.str  <- '  outputs += cohesion2Out.mapped,<br>'
       OM.cohesion2Out.R.init.str <- '            cohesion2Out     <- -1.0<br>'
       OM.cohesion2Out.R.str <- '                cohesion2Out     <- cohesion.results[2]<br>'
-      OM.cohesion2Out.obj.str <- paste0("    cohesion2Out evaluate \"cohesion2Out.map(x => math.abs(x - ",
+      OM.cohesion2Out.obj.str <- paste0("    cohesion2Out   evaluate \"cohesion2Out.map(x => math.abs(x - ",
                                         obs.cohesion[2], ")).max\" under ",  OM.cohesion2Out.sens, ",<br>")
     }
     
     if(input$OM.admixtureOut){
       
-      OM.admixtureOut.sens <- 0.001
+      OM.admixtureOut.sens <- 0.0049
       if(input$OM.admixtureOut.sens != 0){OM.admixtureOut.sens <- input$OM.admixtureOut.sens}
       
       OM.admixtureOut.init.str <- 'val admixtureOut = Val[Double]<br>'
@@ -2041,10 +2086,10 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
         OM.admixtureOut.R.str <- '                admixtureOut     <- 1 - sum(cohesion.results)<br>'
       }
       
-      OM.admixtureOut.obj.str <- paste0("    admixtureOut evaluate \"admixtureOut.map(x => math.abs(x - ",
+      OM.admixtureOut.obj.str <- paste0("    admixtureOut   evaluate \"admixtureOut.map(x => math.abs(x - ",
                                         obs.admix, ")).max\" under ", OM.admixtureOut.sens, ",<br>")
     }
-# browser()
+
     if(input$OM.fragmentsCountOut.sens > 0){
       OM.finalFragmentCountOut.init.str <-   'val finalFragmentCountOut = Val[Int]<br>' 
       OM.finalFragmentCountOut.map.str  <-   '  outputs += finalFragmentCountOut.mapped,<br>'
@@ -2052,9 +2097,19 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.finalFragmentCountOut.R.str <-      '                finalFragmentCountOut <- frag.params$vertices <br>'
     }
     
+    
+    if((length(planarGraphOnly.str) > 1)){
+      OM.isPlanarOut.init.str <-   'val isPlanarOut = Val[Boolean]<br>' 
+      OM.isPlanarOut.map.str  <-   '  outputs += isPlanarOut.mapped,<br>'
+      OM.isPlanarOut.R.init.str <- '            isPlanarOut      <- -1.0<br>'
+      OM.isPlanarOut.R.str <-      '                isPlanarOut      <- frag.params$planar <br>'
+    }
+    
+
+    
     get.param.str <- ""
     if(input$OM.relationCountOut | input$OM.objectCountOut | input$OM.disturbanceOut | input$OM.objectsBalanceOut | input$OM.fragBalanceOut | input$OM.aggregFactorOut){
-      get.param.str <- '                frag.params <- frag.get.parameters(g, \'layer\')<br>'
+      get.param.str <- '                frag.params      <- frag.get.parameters(g, \'layer\')<br>'
     }
     
     # Default initialisation values for ranges: by default, the value read on the studied graph. However, if the values selected by the user are equal, replace the default value by this selected value
@@ -2073,7 +2128,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       disturbance.default <-   input$OM.disturbance.val[1]
     }
     
-    aggregFactor.default <- input.graph.params()$aggreg.factor 
+    aggregFactor.default <- 0 # input.graph.params()$aggreg.factor 
     if(input$OM.aggregFactor.val[1] == input$OM.aggregFactor.val[2]){
       aggregFactor.default <-  input$OM.aggregFactor.val[1]
     }
@@ -2140,9 +2195,10 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            'val preserveObjectsNumber = Val[Boolean]<br>',
            'val preserveFragmentsBalance = Val[Boolean]<br>',
            'val preserveInterUnitsConnection = Val[Boolean]<br>',
-           'val mySeed = Val[Int]<br>',
+           'val seed = Val[Int]<br>',
            '<br>',
            '// Output values<br>',
+           'val seedOut = Val[Int]<br>',
            OM.cohesion1Out.init.str,
            OM.cohesion2Out.init.str,
            OM.admixtureOut.init.str,
@@ -2153,6 +2209,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.disturbanceOut.init.str,
            OM.aggregFactorOut.init.str,
            OM.finalFragmentCountOut.init.str,
+           OM.isPlanarOut.init.str,
            '<br>',
            'val local = LocalEnvironment(', input$OM.parallelize, ')  // Number of cores to use. Adjust as needed<br>',
            '<br>',
@@ -2171,8 +2228,11 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.fragBalanceOut.R.init.str,
            OM.aggregFactorOut.R.init.str,
            OM.finalFragmentCountOut.R.init.str,
+           OM.isPlanarOut.R.init.str,
+           '<br>',
+           '            set.seed(seed)<br>',
+           '            seedOut <- seed<br>',
            '            try({<br>',
-           '                set.seed(mySeed)<br>',
            '                # Generate fragmentation graph:<br>',
            '                g <- frag.simul.process(initial.layers = layerNumber,<br>',
            '                                        n.components = objectsNumber,<br>',
@@ -2203,15 +2263,16 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.fragBalanceOut.R.str,
            OM.aggregFactorOut.R.str,
            OM.finalFragmentCountOut.R.str,
+           OM.isPlanarOut.R.str,
            '            }, silent = FALSE)<br>',
            '            """,<br>',
            '  install = Seq(<br>',
            '    """R --slave -e \'install.packages("BiocManager") ; library("BiocManager") ; BiocManager::install("RBGL")\' """,<br>',
            '    """R --slave -e \'install.packages("remotes", dependencies = TRUE)\' """,<br>',
-           '    """R --slave -e \'library(remotes); remotes::install_github("sebastien-plutniak/archeofrag", force=TRUE)\' """<br>',
+           '    """R --slave -e \'library(remotes); remotes::install_github("sebastien-plutniak/archeofrag", force = TRUE)\' """<br>',
            '  )<br>',
            ') set (<br>',
-           '  inputs += mySeed.mapped,<br>',
+           '  inputs += seed.mapped,<br>',
            '  inputs += objectsNumber.mapped,<br>',
            '  inputs += fragmentsNumber.mapped,<br>',
            '  inputs += finalFragmentsNumberMin.mapped,<br>',
@@ -2226,6 +2287,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            '  inputs += aggregation.mapped,<br>',
            '  inputs += planarGraphsOnly.mapped,<br>',
            '  inputs += asymmetricTransport.mapped,<br>',
+           '  outputs += seedOut.mapped,<br>',
            OM.cohesion1Out.map.str,
            OM.cohesion2Out.map.str,
            OM.admixtureOut.map.str,
@@ -2236,23 +2298,24 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.fragBalanceOut.map.str,
            OM.aggregFactorOut.map.str,
            OM.finalFragmentCountOut.map.str,
-           # OM.weightsumOut.map.str,
-           '  // Default values, taken from the studied graph:<br>',
-           '  mySeed := 1,<br>',
+           OM.isPlanarOut.map.str,
+           '<br>  // Default settings:<br>',
+           '  seed := 1,<br>',
            '  layerNumber := 1,<br>',
+           '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
+           '  preserveFragmentsBalance := ', preserveFragmentsBalance.str[1], ',<br>',
+           '  preserveInterUnitsConnection := ', preserveInterUnitsConnection.str[1], ',<br>',
+           '  asymmetricTransport := ', asymmetric.str[1], ',<br>',
+           '<br>  // Default values, based on the studied graph:<br>',
            '  objectsNumber := ', input.graph.params()$n.components, ',<br>',
            '  fragmentsNumber := ', input.graph.params()$vertices, ',<br>', 
            OM.finalFragmentsNumberMinOut.str, 
            OM.finalFragmentsNumberMaxOut.str, 
-           '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
-           '  preserveFragmentsBalance := ', preserveFragmentsBalance.str[1], ',<br>',
-           '  preserveInterUnitsConnection := ', preserveInterUnitsConnection.str[1], ',<br>',
-           '  aggregation := ', aggregFactor.default, ',<br>', 
            '  objectsBalance := ', objectsBalance.default, ',<br>', 
            '  fragmentsBalance := ', fragmentsBalance.default, ',<br>', 
            '  disturbance := ', disturbance.default, ',<br>', 
-           '  planarGraphsOnly := ', planarGraphOnly.str[1], ',<br>',
-           '  asymmetricTransport := ', asymmetric.str[1], '<br>',
+           '  aggregation := ', aggregFactor.default, ',<br>', 
+           '  planarGraphsOnly := ', planarGraphOnly.str[1], '<br>',
            ')<br>',
            '<br>',
            '<br>',
@@ -2285,9 +2348,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            OM.aggregFactorOut.obj.str,
            OM.objectsBalanceOut.obj.str,
            OM.fragBalanceOut.obj.str,
-           # OM.weightsumOut.str,
            '  ),<br>',
-           '  stochastic = Stochastic(seed = mySeed)<br>',
+           '  stochastic = Stochastic(seed = seed)<br>',
            ') ', OM.islands.str,
            'hook (workDirectory / "hdose-results", frequency = 100) on local // adjust execution machine',
            "</pre>")
