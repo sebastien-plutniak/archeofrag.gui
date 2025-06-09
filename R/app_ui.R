@@ -316,6 +316,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <li><b>Sp. unit</b>: spatial units. Merged spatial  units are associated with a '+' symbol.</li>                               
                                                           <li><b>Cohesion difference</b>: for a pair of spatial units, highest cohesion value - lowest cohesion value.</li>
                                                           <li><b>MAD</b>: <a href=https://en.wikipedia.org/wiki/Median_absolute_deviation target=_blank>median absolute deviation</a>.</li>
+                                                          <li><b>SD</b>: standard deviation.</li>
                                                         </ul>
                                                         "),
                                                      ) #end column

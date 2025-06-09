@@ -1414,10 +1414,13 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       cohesion.diff <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
       admix.res <- apply(cohesion.res, 1, function(x) 1 - sum(x))
 
-      c("Cohesion difference median" = stats::median(cohesion.diff, na.rm = TRUE),
-        "MAD" = stats::mad(cohesion.diff, na.rm = TRUE),
-        "Admixture median"  = stats::median(admix.res, na.rm = TRUE),
-        "MAD." = stats::mad(admix.res, na.rm = TRUE))
+      c("cohesion.diff.median" = stats::median(cohesion.diff, na.rm = TRUE),
+        "cohesion.diff.mad" = stats::mad(cohesion.diff, na.rm = TRUE),
+        "admixture.median"  = stats::median(admix.res, na.rm = TRUE),
+        "admixture.mad" = stats::mad(admix.res, na.rm = TRUE),
+        "admixture.mean"  = mean(admix.res, na.rm = TRUE),
+        "admixture.sd" = stats::sd(admix.res, na.rm = TRUE)
+        )
     }
     
     # ... run computation ----
@@ -1436,9 +1439,17 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       })
       cohes.diff.res <- t(cohes.diff.res)
     }
-    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = FALSE) # remove duplicated merged spatial units labels
+    # remove duplicated merged spatial units labels:
+    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = FALSE) 
     recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     recoded.spatial.units <- data.frame(recoded.spatial.units)
+    
+    # tag observed result
+    recoded.spatial.units$type <- "merged"
+    recoded.spatial.units[1, ]$type <- "observed"
+    recoded.spatial.units[1, seq_len(length(spatial.units))] <- sapply(recoded.spatial.units[1, seq_len(length(spatial.units))], 
+                                                                       function(x) paste0("<i>", x, "</i>"))
+    
     recoded.spatial.units <- cbind(recoded.spatial.units, cohes.diff.res)
     
     # remove duplicates:
@@ -1456,19 +1467,16 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     idx <- apply(recoded.spatial.units, 2, function(x) ! all(is.na(x)))
     recoded.spatial.units <- recoded.spatial.units[, idx ]
     
-    colnames(recoded.spatial.units) <- gsub("Var", "Sp. unit ", colnames(recoded.spatial.units))
-    rownames(recoded.spatial.units) <- NULL
-    # order the result by cohesion difference median value:
-    recoded.spatial.units$"Cohesion difference median" <- round(recoded.spatial.units$"Cohesion difference median", 3)
-    recoded.spatial.units$MAD <- round(recoded.spatial.units$MAD, 3)
-    recoded.spatial.units$"Admixture median" <- round(recoded.spatial.units$"Admixture median", 3)
-    recoded.spatial.units$MAD. <- round(recoded.spatial.units$MAD., 3)
+    idx <- seq(which(names(recoded.spatial.units) == "cohesion.diff.median"), ncol(recoded.spatial.units))
+    recoded.spatial.units[, idx] <- apply(recoded.spatial.units[, idx], 2, round, 3)
     
+    # order the result by cohesion difference median value:
+    idx <- order(recoded.spatial.units$"cohesion.diff.median",
+                 recoded.spatial.units$"admixture.median", recoded.spatial.units[, 1])
+    
+    # retrieve execution time:
     exec.time <- Sys.time() - start.time
     exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
-    
-    idx <- order(recoded.spatial.units$"Cohesion difference median",
-                 recoded.spatial.units$"Admixture median", recoded.spatial.units[, 1])
     
     list(recoded.spatial.units[idx, ], exec.time)
     })  
@@ -1483,51 +1491,55 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     sketch <-  paste0("<table class='display'>
   <thead>
     <tr>",
-       paste0(sapply(seq_len(ncol(tab) - 4),
+       paste0(sapply(seq_len(ncol(tab) - 6),
          function(x)  paste0('<th rowspan=2>Sp. unit ', x, '</th>' , collapse = "")), collapse = ""),
       "<th colspan=2>Cohesion differences</th>
-      <th colspan=2>Admixture values</th>
+      <th colspan=4>Admixture values</th>
     </tr>
     <tr>
       <th>Median</th>
       <th>MAD</th>
       <th>Median</th>
       <th>MAD</th>
+      <th>Mean</th>
+      <th>SD</th>
     </tr>
   </thead>
 </table>", collapse="")
     
     DT::datatable(tab, rownames = FALSE, container = sketch, escape = FALSE, style = "default", selection = 'none',
-                  options = list(dom = 'tp'))
+                  options = list(dom = 'tp',
+                                 columnDefs = list(list(visible = FALSE, targets ="type")))
+                  )
     })
   
   
   
     output$optimisationText <- renderText({
-      req(optimisation.table, graph.selected)
-      graph <- graph.complete()
-      optim.results <- optimisation.table()
+      req(optimisation.table)
       
-      spatial.units <- unique(igraph::V(graph)$spatial.variable)
-      spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
+      optim.results <- optimisation.table()
       
       if(is.null(optim.results[[1]])) return()
       
-      cohesion.res <- frag.layers.cohesion(graph, layer.attr = "spatial.variable", verbose = FALSE)
-      cohesion.res <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
-      median.res <- round(stats::median(cohesion.res, na.rm = TRUE), 3)
+      obs.cohes.diff.median <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.median
+      obs.cohes.diff.mad <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.mad
+     
+      min.cohes.diff.median <- min(optim.results[[1]][, ]$cohesion.diff.median)
+      obs.cohes.diff.median.position <- which(optim.results[[1]][, ]$cohesion.diff.median  %in% obs.cohes.diff.median)
       
-      if(median.res <= min(optim.results[[1]]$"Cohesion difference median")){
-        comments.str <- "none of the merging solutions returned a lower median value."
+      if(obs.cohes.diff.median == min.cohes.diff.median){
+        comments.str <- "No merging solution has a lower median value for cohesion differences."
       } else{
-        comments.str <- "some merging solutions returned lower median values."
+        comments.str <- paste(obs.cohes.diff.median.position - 1, "merging solutions returned lower median value for cohesion differences and must be examined.")
       }
       
+      nr.sp.units <- which(names(optim.results[[1]]) == "type") - 1
+      
       paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
-             " merging solutions  from ", length(spatial.units), " spatial units, computed in ", optim.results[[2]], "<br>",
+             " merging solutions  from ", nr.sp.units, " spatial units, computed in ", optim.results[[2]], "<br>",
             "<b>Median of the cohesion differences without merging:</b> ",
-            median.res, 
-            " +/- ", round(stats::mad(cohesion.res, na.rm = TRUE), 3), "<br>",
+            obs.cohes.diff.median,  " +/- ", obs.cohes.diff.mad, "<br>",
             "<b>Comment:</b> ", comments.str
             )
   })
