@@ -473,14 +473,16 @@ server <- function(input, output, session) {
       graph.data <- graph.data()
       fragments.df <- graph.data$objects.df
       edges.df <- graph.data$edges.df
+      graph.complete <- graph.complete()
+      
       HTML(paste0(" <div align=left>
                   <h1>Data set presentation: ", comment(fragments.df)[1], "</h1>",
                   "<ul>",
                     "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
                     "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
                     "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
-                    "<li><b>Fragments count</b>: ", nrow(fragments.df), "</li>",
-                    "<li><b>Connection count</b>: ", nrow(edges.df), "</li>",
+                    "<li><b>Fragments count</b>: ", igraph::gorder(graph.complete), "</li>",
+                    "<li><b>Connection count</b>: ", igraph::gsize(graph.complete), "</li>",
                     "<li><b>Reference</b>: see the 'References' tab</li>",
                   "</ul></div>"
            ))
@@ -1424,7 +1426,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     }
     
     # ... run computation ----
-    # (Note that it is by far the slowest step of the workflow and it should be improved
+    # (Note this the slowest step of the workflow (and it should be improved)
     if(input$parallelize){
       cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
         frag.get.cohesion.dispersion(graph, 
