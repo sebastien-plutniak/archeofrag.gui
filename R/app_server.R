@@ -542,12 +542,13 @@ server <- function(input, output, session) {
     req(stats.table)
     
     stats.tab <- stats.table()
+    if(nrow(stats.tab) == 1) return()
     
     stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
     stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
     
     sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
-    # browser()
+    
     count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
     count <- sort(table(count), decreasing = TRUE)
     count <- t(as.data.frame(count, stringsAsFactors = FALSE))
