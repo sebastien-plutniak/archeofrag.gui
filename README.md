@@ -38,13 +38,13 @@ This R Shiny application implements and extend `archeofrag` functionalities, mak
 - [**Installation**](#installation)
 - [**About archeofrag**](#about-archeofrag)
 - [**archeofrag.gui features**](#archeofrag.gui-features)
-  - [Reporting bugs](#reporting-bugs)
-  - [Suggesting changes](#suggesting-changes)
 - [**Data input**](#data-input)
 - [**Anomaly detection in the spatial distribution of refitting connection**](#anomaly-detection-in-the-spatial-distribution-of-refitting-connection)
 - [**Spatial units merging**](#spatial-units-merging)
 - [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
 - [**Community guidelines**](#community-guidelines)
+  - [Reporting bugs](#reporting-bugs)
+  - [Suggesting changes](#suggesting-changes)
 - [**References**](#references)
 
 
@@ -196,3 +196,4 @@ For more details, see the following publications:
 * **Plutniak, S. 2022b**. “[Archeofrag: un package R pour les remontages et l'analyse spatiale en archéologie](https://rzine.gitpages.huma-num.fr/site/ressources/20220811_archeofrag_joss/)”, *Rzine*.
 * **Plutniak, S. 2022c**. “[L'analyse topologique des remontages archéologiques : la méthode TSAR et le package R archeofrag](http://www.prehistoire.org/offres/doc_inline_src/515/0-BSPF_2022_1_2e_partie_Correspondance_PLUTNIAK.pdf)”, *Bulletin de la Société préhistorique française*, 119 (1), p. 110-113.
 * **Plutniak, S., J. Caro, C. Manen 2023**. “Four Problems for Archaeological Fragmentation Studies. Discussion and Application to the Taï Cave’s Neolithic Pottery Material (France)”, in A. Sörman et al., *Broken Bodies, Places and Objects. New Perspectives on Fragmentation in Archaeology*, London: Routledge, DOI: [10.4324/9781003350026-10](https://doi.org/10.4324/9781003350026-10).
+* **Plutniak, S. 2025**. “[Évaluer les unités spatiales et analyser la formation des ensembles archéologiques à partir des remontages : l’application archeofrag.gui, une chaîne opératoire intégrée](https://hal.archives-ouvertes.fr/hal-05352218)”, *Bulletin de la Société préhistorique française*, 122 (3), p. 489-493.

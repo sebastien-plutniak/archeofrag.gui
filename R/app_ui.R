@@ -880,10 +880,12 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="center",
                                                           tags$div(
                                                             HTML("<div style=width:40%;, align=left>
-                <h2>About <i>archeofrag</i></h2>
+                <h2>About <i>archeofrag</i>(<i>.gui</i>)</h2>
                 <p>
                 To cite <i>archeofrag</i> or <i>archeofrag.gui</i>, please use <b>Plutniak 2022a</b>. 
                 <ul>
+                  <li><b>Plutniak, S. 2025b</b>. '<a href=https://hal.archives-ouvertes.fr/hal-05352218 target=_blank>L'analyse topologique des remontages archeologiques : la methode TSAR et le package R archeofrag</a>', <i>BSPF</i>, 122 (3), p. 489-493.</li>
+                 <li><b>Plutniak, S. 2025a</b>. 'Making advanced archaeological refitting and spatial analysis easy: the archeofrag open-source software tools', 10th World Archaeological Congress, Darwin (Australia). hal: <a href=https://hal.science/hal-05148935v1 target=_blank>hal-05148935</a>.</li>
                   <li><b>Plutniak, S. 2022a</b>. 'Archeofrag: an R package for Refitting and Spatial Analysis in Archaeology', <i>Journal of Open Source Software</i>, 7 (75), p. 4335. doi: <a href=https://doi.org/10.21105/joss.04335 target=_blank>10.21105/joss.04335</a>.</li>
                   <li><b>Plutniak, S. 2022b</b>. '<a href=https://rzine.gitpages.huma-num.fr/site/ressources/20220811_archeofrag_joss/ target=_blank>Archeofrag: un package R pour les remontages et l'analyse spatiale en archeologie</a>', <i>Rzine</i>.</li>
                 </ul>
@@ -905,7 +907,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Eaton</b>: Engelbrecht W. 2014. 'Madison Point Refits', <i>tDAR</i>, doi: <a href=https://doi.org/10.6067/xcv8t43v1j target=_blank>10.6067/xcv8t43v1j</a>. See also Plutniak S. 2025. 'Reprocessing script for William Engelbrecht's 'Madison Point Refits' dataset (including generated tables and figures)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15091301 target=_blank>10.5281/zenodo.15091301</a>.</li>  
                   <li><b>Font-Juvenal</b>: Caro J. 2024. 'Font-Juvenal_Refiting', <i>Zenodo</i>, doi:  <a href=https://doi.org/10.5281/zenodo.14515444 target=_blank>10.5281/zenodo.14515444</a>.</li>  
                   <li><b>Fumane</b>: Falcucci A. 2025. 'Refitting the context: accepted paper b (v0.1.3)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15017627   target=_blank>10.5281/zenodo.15017627</a>.</li> 
-                  <li><b>Geelbek</b>: Conard N. J.,  A. W. Kandel,  S. Plutniak. 2025. 'Refitting archaeological objects from the Geelbek Dunes Middle Stone Age site (South Africa)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15803288 target=_blank>10.5281/zenodo.15803288</a>.</li>
+                  <li><b>Geelbek</b>: Conard N. J.,  A. W. Kandel,  S. Plutniak. 2025. 'Refitting archaeological objects from the Geelbek Dunes Middle and Later Stone Age site (South Africa)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15803288 target=_blank>10.5281/zenodo.15803288</a>.</li>
                   <li><b>Grande Rivoire 1st Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
                   <li><b>Grande Rivoire 2nd Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
                   <li><b>Grotte 16</b>: Dancette C., E. Discamps, S. Plutniak. 2025. 'Bone refits from the Grotte XVI Pleistocene Faunal Assemblage (Cénac-et-Saint-Julien, France)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15655628 target=_blank>10.5281/zenodo.15655628</a>.</li>
