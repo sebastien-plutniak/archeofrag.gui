@@ -17,18 +17,18 @@ server <- function(input, output, session) {
   # rubish generator
   generate.rubish <- function(){
     l13 <- archeofrag::frag.simul.process(n.components=24, vertices=70, disturbance=.4, balance = .6)
-    igraph::V(l13)[igraph::V(l13)$layer == 2]$layer <- 3
+    igraph::V(l13)[igraph::V(l13)$layer == "2"]$layer <- "3"
     
     l24 <- archeofrag::frag.simul.process(n.components=20, vertices=44, balance=.6, disturbance=0)
-    igraph::V(l24)[igraph::V(l24)$layer == 1]$layer <- 4
+    igraph::V(l24)[igraph::V(l24)$layer == "1"]$layer <- "4"
     igraph::V(l24)$name <- paste0(igraph::V(l24)$name, "l24")
     
     l5 <- archeofrag::frag.simul.process(n.components=5, vertices=20)
-    igraph::V(l5)$layer  <- 5
+    igraph::V(l5)$layer  <- "5"
     igraph::V(l5)$name <- paste0(igraph::V(l5)$name, "l5")
     
     l6 <- archeofrag::frag.simul.process(n.components=6, vertices=15)
-    igraph::V(l6)$layer  <- 6
+    igraph::V(l6)$layer  <- "6"
     igraph::V(l6)$name <- paste0(igraph::V(l6)$name, "l6")
     
     # merge

@@ -3,9 +3,9 @@
 # archeofrag.gui 1.1.4
 
 * In 'Spatial units optimisation', add mean and standard deviation for admixture. 
+* Fix 'generate.rubish()' according to the new 'igraph' constraint on vertices name type.
 
 # archeofrag.gui 1.1.3
-Released: 2025-
 
 * Replace the admixture table in 'Measurements' tab by a dissimilarity matrix and add a download button. Add Baker's Gamme index. Improve entanglement computation.
 * In the 'Measurements' tab, add new function to rank the spatial units based on their relative cohesion values.   
