@@ -521,6 +521,7 @@ server <- function(input, output, session) {
       df <- sapply(g.list, function(g) make.stat.table(g))
       df <- data.frame(t(df))
       df[, seq(2, ncol(df))] <- apply(df[, seq(2, ncol(df))], 2, as.numeric)
+      df[, 1] <- as.character(df[, 1])
     }
     colnames(df) <- gsub("\\.", " ", colnames(df))
     df
