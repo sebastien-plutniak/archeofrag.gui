@@ -39,6 +39,7 @@ This R Shiny application implements and extend `archeofrag` functionalities, mak
 - [**About archeofrag**](#about-archeofrag)
 - [**archeofrag.gui features**](#archeofrag.gui-features)
 - [**Data input**](#data-input)
+- [**Parallelization**](#parallelization)
 - [**Anomaly detection in the spatial distribution of refitting connection**](#anomaly-detection-in-the-spatial-distribution-of-refitting-connection)
 - [**Spatial units merging**](#spatial-units-merging)
 - [**Comparison with simulated data to test formation scenarios**](#comparison-with-simulated-data-to-test-formation-scenarios)
@@ -110,6 +111,15 @@ Either load one of the built-in example data sets or upload your data. Use the m
 * The relationships table must have a row for each refitting relationship, and two columns containing the identifiers of the two fragments.
 * The fragments table must have a row for each fragment, the first column is for fragments identifier and the second column contains the spatial unit they are associated to.
 
+
+# Parallelization
+
+Parallelization in `archeofrag.gui` relies on the `foreach` and `doParallel`  packages.
+By default, half of the available cores are registered when the app is launched but this number can be controlled with the `n.cores` parameter:
+
+```r
+archeofrag.gui(n.cores=15)
+```
 
 # Anomaly detection in the spatial distribution of refitting connection
 

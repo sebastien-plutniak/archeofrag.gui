@@ -7,10 +7,11 @@ importFrom(archeofrag, make_frag_object, make_cr_graph, frag.get.parameters, fra
 importFrom(dendextend, cor_bakers_gamma, is.dendrogram, entanglement, tanglegram)
 importFrom(doRNG, registerDoRNG)
 importFrom(DT, renderDT, DTOutput, JS)
+importFrom(graphics, mtext)
 importFrom(ggplot2, aes, theme_light, geom_density, scale_fill_grey, scale_fill_manual, geom_vline, xlab, ggtitle, geom_boxplot, facet_wrap, scale_x_continuous, theme, element_text)
 importFrom(grDevices, dev.off, svg)
 importFrom(igraph, gorder, V, E, components, count_components, gsize, "%--%", vertex_attr, delete_vertices, graph_from_data_frame) 
 importFrom(shinythemes, shinytheme)
 importFrom(stats, as.dendrogram, as.dist, as.hclust, cophenetic, cor, complete.cases, hclust, reshape, median, mad)
-importFrom(utils, combn, packageVersion, read.csv, data, sessionInfo, toLatex)
+importFrom(utils, combn, packageVersion, read.csv, data, sessionInfo, toLatex, write.csv)
 

@@ -446,7 +446,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                       <ul>
                       <li>Select the pair of spatial units to compare in the sidebar menu.</li>
                       <li>The parameters of the simulation are automatically filled with the values measured on the graph corresponding to the two spatial units chosen (number of objects, fragments balance, <a href=https://en.wikipedia.org/wiki/Planar_graph target=_blank>planarity</a>, etc.). However, those parameters can be edited to test other hypotheses. The final number of refitting relationships is not constrained.</li>
-                      <li>Optionally, set an amount of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
+                      <li>Optionally, set an percentage of 'Information loss' to simulate the non-observation of connection relationships or fragments, respectively.</li>
                       <li> Set the number of simulated graphs to generate for each hypothesis, and click on the 'Run' button.</li>
                       </ul>
                     </p>
@@ -910,7 +910,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Geelbek</b>: Conard N. J.,  A. W. Kandel,  S. Plutniak. 2025. 'Refitting archaeological objects from the Geelbek Dunes Middle and Later Stone Age site (South Africa)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15803288 target=_blank>10.5281/zenodo.15803288</a>.</li>
                   <li><b>Grande Rivoire 1st Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
                   <li><b>Grande Rivoire 2nd Meso</b>: Derbord L., A. Angelin. 2025. 'Mesolithic artefact refitting data from La Grande Rivoire (Sassenage, Isere)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15289796 target=_blank>10.5281/zenodo.15289796</a>.</li>
-                  <li><b>Grotte 16</b>: Dancette C., E. Discamps, S. Plutniak. 2025. 'Bone refits from the Grotte XVI Pleistocene Faunal Assemblage (Cénac-et-Saint-Julien, France)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15655628 target=_blank>10.5281/zenodo.15655628</a>.</li>
+                  <li><b>Grotte 16</b>: Dancette C., E. Discamps, S. Plutniak. 2025. 'Bone refits from the Grotte XVI Pleistocene Faunal Assemblage (Cenac-et-Saint-Julien, France)', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15655628 target=_blank>10.5281/zenodo.15655628</a>.</li>
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a>.</li>
                   <li><b>St Cesaire 1987</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche a Pierrot site (Saint-Cesaire, France), Excavations 1976-1987', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15638561 target=_blank>10.5281/zenodo.15638561</a>.</li>
                   <li><b>St Cesaire 2024</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche a Pierrot site (Saint-Cesaire, France), Excavations 2013-2024', <i>Zenodo</i>, doi: <a href=https://doi.org/10.5281/zenodo.15638691 target=_blank>10.5281/zenodo.15638691</a>.</li>

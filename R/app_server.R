@@ -9,8 +9,8 @@ server <- function(input, output, session) {
     span(`data-toggle` = "tooltip", `data-placement` = "bottom",
          title = "Enabling parallelization using half of the available cores to speed up computations.",
           checkboxInput("parallelize",
-                        paste0("Parallelize (",
-                               foreach::getDoParWorkers(), " workers)"), value = TRUE)
+                        paste0("Parallelize (", foreach::getDoParWorkers(), "/", 
+                                                parallel::detectCores(), " cores)"), value = TRUE)
     )
   })
   
@@ -756,7 +756,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                            lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                            main_left = "Observed", main_right = "Expected",
                            highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
-    mtext(paste0("\n\n\n",
+    graphics::mtext(paste0("\n\n\n",
                  "Dissimilarity: 1 - admixture",
                  "\n",
                  "Clustering method: ", selected.clustering.method.name(),

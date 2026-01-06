@@ -1,9 +1,12 @@
 
 
 # archeofrag.gui 1.1.4
+Released: 2026-01-08
 
 * In 'Spatial units optimisation', add mean and standard deviation for admixture. 
 * Fix 'generate.rubish()' according to the new 'igraph' constraint on vertices name type.
+* Fix error in spatial units ranking when parallelization isn't used.
+* Add the `n.cores` parameter to control the number of cores to register for parallelization.
 
 # archeofrag.gui 1.1.3
 

@@ -5,8 +5,13 @@
 \description{Launch the archeofrag.gui application}
 
 \usage{
-archeofrag.gui()
+archeofrag.gui(n.cores=NULL)
 }
+
+\arguments{
+  \item{n.cores}{integer. The number of cores to use for parallel execution. If NULL, half of the available cores are registered.}
+}
+
 \details{
 
 This function launches the `archeofrag.gui` application.
@@ -22,6 +27,7 @@ Note that the  optional determination of graph planarity in  the \code{\link[arc
   \code{\link[archeofrag]{archeofrag}}
 	\code{\link[archeofrag]{frag.simul.process}}
 	\code{\link[archeofrag]{frag.get.parameters}}
+	\code{\link[doParallel]{registerDoParallel}}
 }
 
 \examples{
