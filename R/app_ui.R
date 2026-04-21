@@ -175,7 +175,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   h1("Ranking of spatial units by cohesion"), # .. ranking ----
                                                   column(10, align="center",
                                                          HTML("<div  style=width:40%;, align=left> 
-                                                              Considering the series of spatial units pairs, the units are ranked based on the number of pairs where they have the higher cohesion value. Higher count suggest relatively better defined and reliable units in the series:
+                                                              Considering the series of spatial units pairs, the units are ranked based on the number of pairs where they have the higher cohesion value. Higher values suggest relatively better defined and reliable units in the series:
                                                               </div>"),
                                                          br(),
                                                          tableOutput("unit.ranks")
@@ -234,7 +234,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                span(`data-toggle` = "tooltip", `data-placement` = "left", title = " Baker's Gamma index is defined as the rank correlation between the stages at which pairs of objects combine in each of the two trees.",
                                                                     HTML("<a href=https://search.r-project.org/CRAN/refmans/dendextend/html/cor_bakers_gamma.html target=_blank>Baker's Gamma</a>")
                                                                ), #end span
-                                                               HTML(": a measure of similarity between the expected and the observed dendrograms. Values range between -1 to 1, with near 0 values meaning that the two dendrograms. are not statistically similar. 
+                                                               HTML(": a measure of similarity between the expected and the observed dendrograms. Values range between -1 to 1, with near 0 values meaning that the two dendrograms are not statistically similar. 
                                                           </li>
                                                           </ul>
                                                           </li>
@@ -884,7 +884,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <p>
                 To cite <i>archeofrag</i> or <i>archeofrag.gui</i>, please use <b>Plutniak 2022a</b>. 
                 <ul>
-                  <li><b>Plutniak, S. 2025b</b>. '<a href=https://hal.archives-ouvertes.fr/hal-05352218 target=_blank>L'analyse topologique des remontages archeologiques : la methode TSAR et le package R archeofrag</a>', <i>BSPF</i>, 122 (3), p. 489-493.</li>
+                  <li><b>Plutniak, S. 2025b</b>. '<a href=https://hal.archives-ouvertes.fr/hal-05352218 target=_blank>Évaluer les unités spatiales et analyser la formation des ensembles archéologiques à partir des remontages : l’application archeofrag.gui, une chaîne opératoire intégrée</a>', <i>BSPF</i>, 122 (3), p. 489-493.</li>
                  <li><b>Plutniak, S. 2025a</b>. 'Making advanced archaeological refitting and spatial analysis easy: the archeofrag open-source software tools', 10th World Archaeological Congress, Darwin (Australia). hal: <a href=https://hal.science/hal-05148935v1 target=_blank>hal-05148935</a>.</li>
                   <li><b>Plutniak, S. 2022a</b>. 'Archeofrag: an R package for Refitting and Spatial Analysis in Archaeology', <i>Journal of Open Source Software</i>, 7 (75), p. 4335. doi: <a href=https://doi.org/10.21105/joss.04335 target=_blank>10.21105/joss.04335</a>.</li>
                   <li><b>Plutniak, S. 2022b</b>. '<a href=https://rzine.gitpages.huma-num.fr/site/ressources/20220811_archeofrag_joss/ target=_blank>Archeofrag: un package R pour les remontages et l'analyse spatiale en archeologie</a>', <i>Rzine</i>.</li>

@@ -7,7 +7,7 @@ server <- function(input, output, session) {
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
     span(`data-toggle` = "tooltip", `data-placement` = "bottom",
-         title = "Enabling parallelization using half of the available cores to speed up computations.",
+         title = "Tick for enabling parallelization to speed up computation.",
           checkboxInput("parallelize",
                         paste0("Parallelize (", foreach::getDoParWorkers(), "/", 
                                                 parallel::detectCores(), " cores)"), value = TRUE)
@@ -541,41 +541,45 @@ server <- function(input, output, session) {
   # spatial units ranking ----
   output$unit.ranks <- renderTable({
     req(stats.table)
-    
     stats.tab <- stats.table()
     if(nrow(stats.tab) == 1) return()
     
-    stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
-    stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
+    rownames(stats.tab) <- stats.tab[, 1]
+    stats.tab <- stats.tab[, c(7, 8)]
     
-    sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
+    archeofrag::frag.cohesion.ranking(stats.tab, add.math.signs = TRUE)
     
-    count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
-    count <- sort(table(count), decreasing = TRUE)
-    count <- t(as.data.frame(count, stringsAsFactors = FALSE))
-    
-    sp.units <- sp.units[ ! sp.units %in% count[1, ]]
-    
-    count <- cbind(count, rbind(sp.units, 0))
-    count2 <- as.numeric(count[2, ])
-    names(count2) <- count[1, ]
-    
-    operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
-    operators.char <- operators
-    operators.char[operators < 0 ] <- ">"
-    operators.char[operators == 0 ] <- "="
-    operators.char <- c(operators.char, "")
-    paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
-    
-    res <- rbind(
-      c(rbind(names(count2), operators.char)),
-      c(rbind(count2, rep("", length(count2))))
-    )
-  
-   res <- data.frame(res)
-   colnames(res) <- res[1,]
-   rownames(res) <- c("", "Count")
-   res[-1, ]
+   #  stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
+   #  stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
+   #  
+   #  sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
+   #  
+   #  count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
+   #  count <- sort(table(count), decreasing = TRUE)
+   #  count <- t(as.data.frame(count, stringsAsFactors = FALSE))
+   #  
+   #  sp.units <- sp.units[ ! sp.units %in% count[1, ]]
+   #  
+   #  count <- cbind(count, rbind(sp.units, 0))
+   #  count2 <- as.numeric(count[2, ])
+   #  names(count2) <- count[1, ]
+   #  
+   #  operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
+   #  operators.char <- operators
+   #  operators.char[operators < 0 ] <- ">"
+   #  operators.char[operators == 0 ] <- "="
+   #  operators.char <- c(operators.char, "")
+   #  paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
+   #  
+   #  res <- rbind(
+   #    c(rbind(names(count2), operators.char)),
+   #    c(rbind(count2, rep("", length(count2))))
+   #  )
+   # 
+   # res <- data.frame(res)
+   # colnames(res) <- res[1,]
+   # rownames(res) <- c("", "Count")
+   # res[-1, ]
   }, rownames=TRUE, align="r")
   
   

@@ -1,5 +1,9 @@
 
 
+# archeofrag.gui 1.1.5
+
+* Use the new function `archeofrag::frag.cohesion.ranking()` instead of in-built similar code.
+
 # archeofrag.gui 1.1.4
 Released: 2026-01-08
 
