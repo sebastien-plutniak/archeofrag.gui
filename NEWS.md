@@ -1,8 +1,14 @@
 
 
-# archeofrag.gui 1.1.5
+# archeofrag.gui 1.2.0
+Released: 2026-09-XX
 
 * Use the new function `archeofrag::frag.cohesion.ranking()` instead of in-built similar code.
+* Exploration of the full graph, with no selection of spatial variable, is now possible and set as the default setting.
+* Fragmentation graphs with only one spatial unit can now display be processed. Results from `archeofrag::frag.layers.cohesion()` are displayed.
+* New internal `.check_weighting_variable()` functions.
+* New 'Datasets' tab displaying summary information about 'archeofrag' embedded datasets.
+* Significantly improved 'Spatial units optimisation' performances.
 
 # archeofrag.gui 1.1.4
 Released: 2026-01-08

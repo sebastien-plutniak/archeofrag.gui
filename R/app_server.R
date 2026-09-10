@@ -3,68 +3,24 @@ server <- function(input, output, session) {
   i <- NULL  
   x <- NULL
   value <- NULL
+  subset.var <- NULL
+  morpho.var <- NULL
+  x.var <- NULL
+  y.var <- NULL
+  z.var <- NULL
   
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
     span(`data-toggle` = "tooltip", `data-placement` = "bottom",
          title = "Tick for enabling parallelization to speed up computation.",
-          checkboxInput("parallelize",
-                        paste0("Parallelize (", foreach::getDoParWorkers(), "/", 
-                                                parallel::detectCores(), " cores)"), value = TRUE)
+         checkboxInput("parallelize",
+                       paste0("Parallelize (", foreach::getDoParWorkers(), "/", 
+                              parallel::detectCores(), " cores)"), value = TRUE)
     )
   })
   
   # rubish generator
-  generate.rubish <- function(){
-    l13 <- archeofrag::frag.simul.process(n.components=24, vertices=70, disturbance=.4, balance = .6)
-    igraph::V(l13)[igraph::V(l13)$layer == "2"]$layer <- "3"
-    
-    l24 <- archeofrag::frag.simul.process(n.components=20, vertices=44, balance=.6, disturbance=0)
-    igraph::V(l24)[igraph::V(l24)$layer == "1"]$layer <- "4"
-    igraph::V(l24)$name <- paste0(igraph::V(l24)$name, "l24")
-    
-    l5 <- archeofrag::frag.simul.process(n.components=5, vertices=20)
-    igraph::V(l5)$layer  <- "5"
-    igraph::V(l5)$name <- paste0(igraph::V(l5)$name, "l5")
-    
-    l6 <- archeofrag::frag.simul.process(n.components=6, vertices=15)
-    igraph::V(l6)$layer  <- "6"
-    igraph::V(l6)$name <- paste0(igraph::V(l6)$name, "l6")
-    
-    # merge
-    g <- igraph::disjoint_union(l13, l24, l5, l6)
-    igraph::graph_attr(g, "frag_type") <- "cr"
-    
-    # add connection between 1 and 2
-    g <- igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 1], 4, replace = F),
-                                      sample(igraph::V(g)[igraph::V(g)$layer == 2], 4, replace = F))))
-    
-    # add connection between 1 and 3
-    g <- igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 1], 6, replace = F),
-                                      sample(igraph::V(g)[igraph::V(g)$layer == 3], 6, replace = F))))
-    
-    # add connection between 2 and 3
-    g <- igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 2], 5, replace = TRUE),
-                                      sample(igraph::V(g)[igraph::V(g)$layer == 3], 5, replace = TRUE))))
-    
-    # add connection between 3 and 4
-    g <- igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 3], 10, replace = TRUE),
-                                      sample(igraph::V(g)[igraph::V(g)$layer == 4], 10, replace = TRUE))))
-    
-    # add connection between 4 and 5
-    g <-  igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 4], 2, replace = TRUE),
-                                       sample(igraph::V(g)[igraph::V(g)$layer == 5], 2, replace = TRUE))))
-    
-    # add connection between 5 and 6
-    g <-  igraph::add_edges(g, c(rbind(sample(igraph::V(g)[igraph::V(g)$layer == 5], igraph::gorder(l6) * 2, replace = TRUE),
-                                       sample(igraph::V(g)[igraph::V(g)$layer == 6], igraph::gorder(l6) * 2, replace = TRUE ))))
-    
-    # extract tables and export
-    list("connection" = igraph::as_edgelist(g), 
-         "fragments" =  data.frame("id" =  igraph::V(g)$name, "layer" =  igraph::V(g)$layer))
-  }
-  
-  rubish <- generate.rubish()
+  rubish <- .make_rubish_data()
   
   output$rubish.text <- renderUI({
     if(input$use_example != "Rubish Site *") return()
@@ -165,6 +121,7 @@ server <- function(input, output, session) {
         edges.df <- utils::read.csv(userEdges()$datapath, header = T, sep=input$sep)
       }
     }
+    
     list("objects.df"=objects.df, "edges.df"=edges.df)
   })
   
@@ -175,19 +132,12 @@ server <- function(input, output, session) {
     g.data <- graph.data()
     objects.df <- g.data$objects.df
     
-    choices.val <- names(objects.df)
+    choices.val <- c("-", names(objects.df))
     choices.val <- choices.val[ ! tolower(choices.val) == "id"]
     names(choices.val) <- names(choices.val)
     
-    default.value <- choices.val[1]
-    if(sum("layer" %in% choices.val) > 0 ){
-      default.value <- "layer"
-    } else if(sum("level" %in% choices.val) > 0 ){
-      default.value <- "level"
-    }
-    
     selectInput("spatial.variable", "Spatial variable",
-                selected = default.value,
+                selected = "-",
                 choices = choices.val, width= "90%")
   })
   
@@ -197,9 +147,12 @@ server <- function(input, output, session) {
     g.data <- graph.data()
     objects.df <- g.data$objects.df
     
-    if( ! input$spatial.variable %in% colnames(objects.df)) return()
+    if(input$spatial.variable == "-" | ! input$spatial.variable %in% colnames(objects.df)){
+      objects.df$spatial.variable <- "Full graph"
+    } else {
+      objects.df$spatial.variable <- as.character(eval(parse(text = paste0("objects.df$", input$spatial.variable ))))
+    }
     
-    objects.df$spatial.variable <- as.character(eval(parse(text = paste0("objects.df$", input$spatial.variable ))))
     
     list("objects.df"=objects.df, "edges.df"=g.data$edges.df)
   })
@@ -238,25 +191,25 @@ server <- function(input, output, session) {
     choices.val <- seq_len(length(g.list))
     names(choices.val) <- names(g.list)
     
-    selectInput("units.pair", "Pair of spatial units to study",
+    selectInput("units.pair", "Subset / pair of units to study",
                 choices = choices.val, width= "90%")
   })
   
   # ... sub-setting variable selector ----
   output$subset.selector <- renderUI({
-      req(graph.data())
-      
-      g.data <- graph.data()
-      objects.df <- g.data$objects.df
-      
-      choices.val <- names(objects.df)
-      choices.val <- choices.val[ ! tolower(choices.val) == "id"]
-      names(choices.val) <- names(choices.val)
-      choices.val <- c("-", choices.val)
-      
-      selectInput("subset.variable", "Subset by (optional)",
-                  choices = choices.val, width= "90%")
-    })
+    req(graph.data())
+    
+    g.data <- graph.data()
+    objects.df <- g.data$objects.df
+    
+    choices.val <- names(objects.df)
+    choices.val <- choices.val[ ! tolower(choices.val) == "id"]
+    names(choices.val) <- names(choices.val)
+    choices.val <- c("-", choices.val)
+    
+    selectInput("subset.variable", "Subset by (optional)",
+                choices = choices.val, width= "90%")
+  })
   
   output$subset.options <- renderUI({
     req(input$subset.variable)
@@ -266,7 +219,7 @@ server <- function(input, output, session) {
     g.data <- graph.data()
     objects.df <- g.data$objects.df
     values <- sort(unique(eval(parse(text = paste0("objects.df$", input$subset.variable)))))
-
+    
     checkboxGroupInput("subset.values", "", choices = values, selected = values) 
   })
   
@@ -314,17 +267,19 @@ server <- function(input, output, session) {
     selectInput("z.variable", "Z coordinates",
                 choices = choices.val, width= "90%")
   })
-
+  
   # MAKE GRAPH LIST----
   graph.complete <- reactiveVal()
   graph.complete.init <- reactiveVal() # save copy to retrieve it with the 'reset' button
-
-  observe({ 
+  
+  observe({
     req(graph.data3, input$spatial.variable)
+    
     g.data <- graph.data3()
     if(is.null(g.data) | is.null(g.data$objects.df)) return()
     
     try(graph <- archeofrag::make_frag_object(g.data$edges.df, fragments = g.data$objects.df), silent = TRUE)
+    
     if( ! exists("graph")){
       showNotification(geterrmessage(), duration = 10, type = "error")
       return()
@@ -332,22 +287,12 @@ server <- function(input, output, session) {
     
     graph <- archeofrag::make_cr_graph(graph)
     
-    # check if the data is complete for weighting parameter
-    check.and.delete.frag <- function(g, var){
-      values <- igraph::vertex_attr(g, var)
-      idx <- is.na(values) | values == ""
-      if(sum(idx)){ 
-        g <- igraph::delete_vertices(graph, idx) 
-        showNotification(paste0("Incomplete values in '", var, "'. ", as.character(sum(idx)), " fragments removed."),
-                         duration = 10, type = "message")
-      }
-      g
-    }
+    if( ! is.null(input$morpho.variable)){ graph <- .check_weighting_variable(graph, input$morpho.variable)}
+    if( ! is.null(input$x.variable)){ graph <- .check_weighting_variable(graph, input$x.variable)}
+    if( ! is.null(input$y.variable)){ graph <- .check_weighting_variable(graph, input$y.variable)}
+    if( ! is.null(input$z.variable)){ graph <- .check_weighting_variable(graph, input$z.variable)}
     
-    if( ! is.null(input$morpho.variable)){ graph <- check.and.delete.frag(graph, input$morpho.variable)}
-    if( ! is.null(input$x.variable)){ graph <- check.and.delete.frag(graph, input$x.variable)}
-    if( ! is.null(input$y.variable)){ graph <- check.and.delete.frag(graph, input$y.variable)}
-    if( ! is.null(input$z.variable)){ graph <- check.and.delete.frag(graph, input$z.variable)}
+    graph <- igraph::set_graph_attr(graph, "subset.name", NA)
     
     graph.complete.init(graph)
     graph.complete(graph)
@@ -360,8 +305,28 @@ server <- function(input, output, session) {
     if(is.null(graph.complete())) return()
     
     graph <- graph.complete()
-
-    pairs <- utils::combn(sort(unique(igraph::V(graph)$spatial.variable)), 2)
+    
+    sp.units <- unique(igraph::V(graph)$spatial.variable)
+    if(length(sp.units) == 1) {
+      
+      if(input$subset.variable != "-"){
+        if(is.null(input$subset.values)) return()
+        
+        g.list <- lapply(input$subset.values, function(x){
+          g  <- igraph::induced_subgraph(graph,
+                                         igraph::vertex_attr(graph, input$subset.variable) == x)
+          g <- igraph::set_graph_attr(g, "subset.name", x)
+        })
+        names(g.list) <- input$subset.values
+        return(g.list)
+      }
+      
+      g.list <- list(graph)
+      names(g.list) <- sp.units
+      return(g.list)
+    }
+    
+    pairs <- utils::combn(sort(sp.units), 2)
     
     morpho.variable <- input$morpho.variable
     x.variable <- input$x.variable
@@ -406,12 +371,13 @@ server <- function(input, output, session) {
   })
   
   output$n.components <- renderUI({
-    req(graph.list()) 
+    req(input.graph.params()) 
     numericInput("n.components", "Initial objects count", value = input.graph.params()$n.components, width = "100%")
   })
   
   output$components.balance <- renderUI({
     req(input.graph.params())
+    if(is.na(input.graph.params()$components.balance)) return()
     sliderInput("components.balance", "Estimated initial objects balance",
                 min = 0, max= 1, step = .01, 
                 value = input.graph.params()$components.balance, width = "100%")
@@ -419,6 +385,7 @@ server <- function(input, output, session) {
   
   output$balance <- renderUI({
     req(input.graph.params())
+    if(is.na(input.graph.params()$balance)) return()
     sliderInput("balance", "Estimated fragments balance",  min = 0, max= 1, step = .01,
                 value = input.graph.params()$balance, width = "100%")
   })
@@ -430,12 +397,14 @@ server <- function(input, output, session) {
   
   output$disturbance <- renderUI({
     req(input.graph.params())
+    if(is.na(input.graph.params()$disturbance)) return()
     sliderInput("disturbance", "Final disturbance", min = 0, max= .5, step = .01, 
                 value = input.graph.params()$disturbance, width = "100%")
   })
   
   output$aggreg.factor <- renderUI({
     req(input.graph.params())
+    if(is.na(input.graph.params()$aggreg.factor)) return()
     sliderInput("aggreg.factor", "Fragments aggregation", min = 0, max= 1, step = .01, 
                 value = input.graph.params()$aggreg.factor, width = "100%")
   })
@@ -446,10 +415,10 @@ server <- function(input, output, session) {
     
     eval(parse(text = paste0(
       "selectInput('asymmetric', 'Unidirectional transport from unit', ",
-                  "choices = c('none' = 'none', '",
-                  gsub("/", "->", units.pair), "' = '1', '",
-                  gsub("^(.*) / (.*)$", "\\2 -> \\1", units.pair), "' = '2'),",
-                  "selected = 'none', width = '100%')"
+      "choices = c('none' = 'none', '",
+      gsub("/", "->", units.pair), "' = '1', '",
+      gsub("^(.*) / (.*)$", "\\2 -> \\1", units.pair), "' = '2'),",
+      "selected = 'none', width = '100%')"
     )))
   })
   
@@ -459,7 +428,7 @@ server <- function(input, output, session) {
     planar <- input.graph.params()$planar
     if(is.na(planar)) { 
       planar <- FALSE 
-      showNotification("The RBGL package is not installed: the `planarity` value cannot be determinated and the 'Generate only planar graphs' is set to FALSE", duration = 10, type = "warning")
+      showNotification("The RBGL package is not installed: the `planarity` value cannot be determinated and 'Generate only planar graphs' is set to FALSE", duration = 10, type = "warning")
     }
     
     checkboxInput("planar", "Generate only planar graphs", value = planar)
@@ -467,6 +436,20 @@ server <- function(input, output, session) {
   
   
   # MEASUREMENT-----
+  
+  #  UI elements ----
+  
+  output$stats.title <- renderUI({
+    req(graph.selected())
+    
+    title <- "<h1>Statistics by pair of spatial units</h1>"
+    if(length(unique(igraph::V(graph.selected())$spatial.variable)) == 1){
+      title <- "<h1>Statistics for a single spatial unit</h1>"
+    }
+    HTML(title)
+  }) 
+  
+  
   # data set presentations ----
   output$dataset.presentation <- renderUI({
     if(input$use_example  %in% data.names) {
@@ -478,14 +461,15 @@ server <- function(input, output, session) {
       HTML(paste0(" <div align=left>
                   <h1>Data set presentation: ", comment(fragments.df)[1], "</h1>",
                   "<ul>",
-                    "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
-                    "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
-                    "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
-                    "<li><b>Fragments count</b>: ", igraph::gorder(graph.complete), "</li>",
-                    "<li><b>Connection count</b>: ", igraph::gsize(graph.complete), "</li>",
-                    "<li><b>Reference</b>: see the 'References' tab</li>",
+                  "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
+                  "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
+                  "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
+                  "<li><b>Fragments count</b>: ", igraph::gorder(graph.complete), "</li>",
+                  "<li><b>Connection count</b>: ", igraph::gsize(graph.complete), "</li>",
+                  "<li><b>Nr of observed spatial variable(s)</b>: ", comment(fragments.df)[4], "</li>",
+                  "<li><b>Dataset DOI</b>: <a href=https://doi.org/",  comment(fragments.df)[5], "  target=_blank>", comment(fragments.df)[5],  "</a> </li>",
                   "</ul></div>"
-           ))
+      ))
     }
   })
   
@@ -493,41 +477,98 @@ server <- function(input, output, session) {
     req(graph.list, input$morpho.variable)
     g.list <- graph.list()
     
-    make.stat.table <- function(g){
+    make.stat.table <- function(g, subset.variable, morpho.variable, x.variable, y.variable, z.variable){
       g.stats <- list(balance = NA, components.balance = NA)
-      if(igraph::gorder(g) > 6){
+      
+      if(igraph::gorder(g) > 6 & igraph::gsize(g) > 2){
         g.stats <- archeofrag::frag.get.parameters(g, layer.attr = "spatial.variable", verbose = FALSE)
-      }
-      cohesion <- round(archeofrag::frag.layers.cohesion(g, "spatial.variable", verbose = FALSE), 2)
+      } else{ return() }
+      
+      cohesion <- archeofrag::frag.layers.cohesion(g, "spatial.variable",
+                                                   morpho.variable,
+                                                   x.variable,
+                                                   y.variable,
+                                                   z.variable,
+                                                   verbose = FALSE)
+      cohesion <- round(cohesion, 2)
+      
       cohesion.diff <- sort(cohesion)
       cohesion.diff <- round(cohesion.diff[2] - cohesion.diff[1], 2)
-      data.frame(
-        "Pair of spatial units" = paste(sort(unique(igraph::V(g)$spatial.variable)), collapse=" / "),
+      
+      cohesion.single <- NA
+      subsets.names <- NA
+      sp.units.names <- "Full graph"
+      
+      if(length(unique(igraph::V(g)$spatial.variable)) == 1){
+        cohesion.single <- cohesion
+        cohesion.diff <- NA
+        cohesion <- NA
+        if(subset.variable != "-"){
+          subsets.names <- g$subset.name
+          sp.units.names <- NA
+        } 
+      } else {
+        sp.units.names <- paste(sort(unique(igraph::V(g)$spatial.variable)), collapse=" / ")
+      }
+      
+      stats.df <- data.frame(
+        "Spatial units" = sp.units.names,
+        "Subset" = subsets.names,
         "N. Objects" =  as.integer(igraph::components(g)$no),
         "N. Fragments" = as.integer(igraph::gorder(g)),
         "N. Relations" = as.integer(igraph::gsize(g)),
         "Frag. Balance" = g.stats$balance,
         "Objects Balance" = g.stats$components.balance,
+        "Cohesion" = cohesion.single,
         "Cohesion 1st unit" = cohesion[1],
         "Cohesion 2nd unit" = cohesion[2],
         "Cohesion diff" = cohesion.diff,
-        "Admixture" =  round(archeofrag::frag.layers.admixture(g, "spatial.variable", verbose = FALSE), 3)
+        "Admixture" =  round(archeofrag::frag.layers.admixture(g, "spatial.variable",
+                                                               morpho.variable,
+                                                               x.variable,
+                                                               y.variable,
+                                                               z.variable,
+                                                               verbose = FALSE), 3)
       )
+      if(length(unique(igraph::V(g)$spatial.variable)) == 1){
+        stats.df <- stats.df[, ! apply(stats.df, 2, is.na)]
+      } else{
+        stats.df <- stats.df[ , ! names(stats.df) %in% c("Subset", "Cohesion")]
+      }
+      stats.df
     }
     
+    showNotification(HTML("<b>Computing... please wait.</b>"), id = "waiting.msg", duration = NULL, type = "message") # see 'removeNotification' below
+    
     if(input$parallelize){
-      df <- foreach::foreach(g = g.list, .combine = "rbind", .errorhandling = "remove") %dopar% { make.stat.table(g) }
+      df <- foreach::foreach(g = g.list, 
+                             subset.var = rep(input$subset.variable, length(g.list)),
+                             morpho.var = rep(input$morpho.variable, length(g.list)),
+                             x.var = rep(input$x.variable, length(g.list)),
+                             y.var = rep(input$y.variable, length(g.list)),
+                             z.var = rep(input$z.variable, length(g.list)),
+                             .combine = "rbind", .errorhandling = "remove") %dopar% {
+                               make.stat.table(g, 
+                                               subset.var, 
+                                               morpho.var,
+                                               x.var,
+                                               y.var,
+                                               z.var) }
     } else{
-      df <- sapply(g.list, function(g) make.stat.table(g))
+      df <- sapply(g.list, function(g) make.stat.table(g, input$subset.variable))
       df <- data.frame(t(df))
       df[, seq(2, ncol(df))] <- apply(df[, seq(2, ncol(df))], 2, as.numeric)
       df[, 1] <- as.character(df[, 1])
     }
-    colnames(df) <- gsub("\\.", " ", colnames(df))
+    colnames(df) <- gsub("\\.\\.", " ", colnames(df))
+    
+    removeNotification("waiting.msg")
+    
     df
   })
   
   output$resultsTab <- DT::renderDT({ 
+    req(stats.table)
     DT::datatable(stats.table(), rownames = FALSE, escape = FALSE, style = "default", selection = 'none',
                   options = list(dom = 'tp'))
   })
@@ -542,50 +583,54 @@ server <- function(input, output, session) {
   output$unit.ranks <- renderTable({
     req(stats.table)
     stats.tab <- stats.table()
-    if(nrow(stats.tab) == 1) return()
+    
+    if(input$spatial.variable == "-") return()
     
     rownames(stats.tab) <- stats.tab[, 1]
     stats.tab <- stats.tab[, c(7, 8)]
     
     archeofrag::frag.cohesion.ranking(stats.tab, add.math.signs = TRUE)
     
-   #  stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
-   #  stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
-   #  
-   #  sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
-   #  
-   #  count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
-   #  count <- sort(table(count), decreasing = TRUE)
-   #  count <- t(as.data.frame(count, stringsAsFactors = FALSE))
-   #  
-   #  sp.units <- sp.units[ ! sp.units %in% count[1, ]]
-   #  
-   #  count <- cbind(count, rbind(sp.units, 0))
-   #  count2 <- as.numeric(count[2, ])
-   #  names(count2) <- count[1, ]
-   #  
-   #  operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
-   #  operators.char <- operators
-   #  operators.char[operators < 0 ] <- ">"
-   #  operators.char[operators == 0 ] <- "="
-   #  operators.char <- c(operators.char, "")
-   #  paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
-   #  
-   #  res <- rbind(
-   #    c(rbind(names(count2), operators.char)),
-   #    c(rbind(count2, rep("", length(count2))))
-   #  )
-   # 
-   # res <- data.frame(res)
-   # colnames(res) <- res[1,]
-   # rownames(res) <- c("", "Count")
-   # res[-1, ]
+    #  stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
+    #  stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
+    #  
+    #  sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
+    #  
+    #  count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
+    #  count <- sort(table(count), decreasing = TRUE)
+    #  count <- t(as.data.frame(count, stringsAsFactors = FALSE))
+    #  
+    #  sp.units <- sp.units[ ! sp.units %in% count[1, ]]
+    #  
+    #  count <- cbind(count, rbind(sp.units, 0))
+    #  count2 <- as.numeric(count[2, ])
+    #  names(count2) <- count[1, ]
+    #  
+    #  operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
+    #  operators.char <- operators
+    #  operators.char[operators < 0 ] <- ">"
+    #  operators.char[operators == 0 ] <- "="
+    #  operators.char <- c(operators.char, "")
+    #  paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
+    #  
+    #  res <- rbind(
+    #    c(rbind(names(count2), operators.char)),
+    #    c(rbind(count2, rep("", length(count2))))
+    #  )
+    # 
+    # res <- data.frame(res)
+    # colnames(res) <- res[1,]
+    # rownames(res) <- c("", "Count")
+    # res[-1, ]
   }, rownames=TRUE, align="r")
   
   
   
   dissimilarityTab <- reactive({  # dissimilarity table ----
-    req(stats.table(), graph.data3())
+    req(stats.table, graph.data3, input$spatial.variable)
+    
+    if(input$spatial.variable == "-") return()
+    
     stats.table <- stats.table()
     
     stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[, 1])
@@ -622,11 +667,11 @@ server <- function(input, output, session) {
   
   
   output$dissimilarityTab <- renderTable({ 
-    req(dissimilarityTab())
+    req(dissimilarityTab)
     dissimilarityTab()
   }, rownames = TRUE, colnames = TRUE, na = "-")
   
-
+  
   output$download.dissimilarityTab <- downloadHandler(
     filename = paste0("archeofrag-dissimilarity-", input$spatial.variable, ".csv"),
     content = function(file) {
@@ -637,10 +682,10 @@ server <- function(input, output, session) {
   
   # tanglegram ----
   
-clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
+  clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single linkage" = "single", "Complete linkage" = "complete",  Ward = "ward.D2")
   
   expected.dendrogram <- reactive({
-    req(dissimilarityTab())
+    req(dissimilarityTab)
     expected.dissimilarityTab <- dissimilarityTab()
     expected.dissimilarityTab[ lower.tri(expected.dissimilarityTab, diag = FALSE) ] <- 1
     diag(expected.dissimilarityTab) <- 0
@@ -660,17 +705,17 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     # compute clusterings and dendrograms: 
     dendrograms.list <- lapply(clustering.method.names, function(method)  
       stats::as.dendrogram(stats::hclust(observed.dissimilarityTab, method = method)))
-  
+    
     names(dendrograms.list) <- clustering.method.names
     dendrograms.list
   })
   
-    
+  
   selected.clustering.method.name <- reactive({
     names(clustering.method.names)[clustering.method.names == input$clustmethod]
   })
   
-
+  
   clustering.stats.df <- reactive({
     req(observed.dendrograms(), expected.dendrogram(), dissimilarityTab())
     
@@ -681,14 +726,14 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     entanglement.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
       dendextend::entanglement(sort(observed.dendrograms[[x]]), sort(expected.dendrogram)))
     entanglement.values <- round(entanglement.values, 2)
-
+    
     # turn dissimilarity tab into distance tab
     observed.dissimilarityTab <- dissimilarityTab()
     observed.dissimilarityTab <- stats::as.dist(observed.dissimilarityTab)
     
     # compute cophenetic correlations:
     cophenetic.cor.values <- sapply(seq_len(length(clustering.method.names)), function(x) 
-    stats::cor(observed.dissimilarityTab, stats::cophenetic(stats::as.hclust(observed.dendrograms[[x]]))))
+      stats::cor(observed.dissimilarityTab, stats::cophenetic(stats::as.hclust(observed.dendrograms[[x]]))))
     cophenetic.cor.values <- round(cophenetic.cor.values, 2)
     
     # compute Baker's Gamma  correlations:
@@ -728,8 +773,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     DT::datatable(tab, container = sketch, rownames = FALSE, style = "default", selection = 'none', options = list(dom = 't'))
   })
-    
-    
+  
+  
   output$admix.clustering.selector <- renderUI({
     clustering.method.options <- clustering.method.names
     selectInput("clustmethod", "Clustering method", choices = clustering.method.options)
@@ -738,7 +783,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   selected.tanglegrams <- reactive({
     req(observed.dendrograms(), expected.dendrogram(), input$clustmethod)
-
+    
     observed.dendrograms <- observed.dendrograms()
     expected.dendrogram <- expected.dendrogram()
     
@@ -761,15 +806,15 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                            main_left = "Observed", main_right = "Expected",
                            highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
     graphics::mtext(paste0("\n\n\n",
-                 "Dissimilarity: 1 - admixture",
-                 "\n",
-                 "Clustering method: ", selected.clustering.method.name(),
-                 "\n",
-                 "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
-                 "\n",
-                 "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
-                 "\n",
-                 "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
+                           "Dissimilarity: 1 - admixture",
+                           "\n",
+                           "Clustering method: ", selected.clustering.method.name(),
+                           "\n",
+                           "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
+                           "\n",
+                           "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
+                           "\n",
+                           "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
     ), side =  1)
   })
   
@@ -780,24 +825,24 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       clustering.stats.df <- clustering.stats.df()
       idx <- clustering.stats.df[, 1] == names(clustering.method.names)[which(clustering.method.names == input$clustmethod)]
       grDevices::svg(file,  width = 10)
-        dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
-                               sort = TRUE,
-                               main = toupper(input$spatial.variable),
-                               margin_bottom = 11, margin_inner = 12,
-                               lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
-                               main_left = "Observed", main_right = "Expected",
-                               highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
-        mtext(paste0("\n\n\n",
-                     "Dissimilarity: 1 - admixture",
-                     "\n",
-                     "Clustering method: ", selected.clustering.method.name(),
-                     "\n",
-                     "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
-                     "\n",
-                     "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
-                     "\n",
-                     "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
-        ), side =  1)
+      dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
+                             sort = TRUE,
+                             main = toupper(input$spatial.variable),
+                             margin_bottom = 11, margin_inner = 12,
+                             lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
+                             main_left = "Observed", main_right = "Expected",
+                             highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+      mtext(paste0("\n\n\n",
+                   "Dissimilarity: 1 - admixture",
+                   "\n",
+                   "Clustering method: ", selected.clustering.method.name(),
+                   "\n",
+                   "Cophenetic correlation: ", clustering.stats.df[idx, ]$"Cophenetic correlation",
+                   "\n",
+                   "Entanglement value: ", clustering.stats.df[idx, ]$Entanglement,
+                   "\n",
+                   "Baker correlation: ", clustering.stats.df[idx, ]$"Baker's Gamma correlation"
+      ), side =  1)
       grDevices::dev.off()
     }
   )
@@ -847,6 +892,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     graph <- graph.selected()
     
     start.time <- Sys.time()  # save start time
+    showNotification(HTML("<b>Computing... please wait.</b>"), id = "waiting.msg", duration = NULL, type = "message") # see 'removeNotification' below
     
     if(input$replications < 30 | input$replications > 1000) {
       showNotification("The number of replication must be in [30, 1000].", type="warning")
@@ -866,25 +912,25 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                    "vertice.loss" = input$vertice.loss)
     
     if( ! is.na(input$seed)){
-       doRNG::registerDoRNG(input$seed) # set seed if required
+      doRNG::registerDoRNG(input$seed) # set seed if required
     }
     
     if(input$parallelize){
       hypothese1.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
                                          .errorhandling = "remove"
-                                         ) %dopar%{
-                                           exec.simulation(initial.layers = 1,
-                                                           n.components = params$n.components,
-                                                           vertices = params$n.final.fragments,  
-                                                           balance = params$balance,
-                                                           components.balance = params$components.balance,
-                                                           disturbance = params$disturbance,
-                                                           aggreg.factor = params$aggreg.factor,
-                                                           planar = params$planar,
-                                                           asymmetric.transport.from = asymmetric,
-                                                           edge.loss = params$edge.loss,
-                                                           vertice.loss = params$vertice.loss)
-                                         }
+      ) %dopar%{
+        exec.simulation(initial.layers = 1,
+                        n.components = params$n.components,
+                        vertices = params$n.final.fragments,  
+                        balance = params$balance,
+                        components.balance = params$components.balance,
+                        disturbance = params$disturbance,
+                        aggreg.factor = params$aggreg.factor,
+                        planar = params$planar,
+                        asymmetric.transport.from = asymmetric,
+                        edge.loss = params$edge.loss,
+                        vertice.loss = params$vertice.loss)
+      }
       
       hypothese2.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
                                          .errorhandling = "remove") %dopar%{
@@ -949,6 +995,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     hypotheses.df <- rbind(hypothese1.res, hypothese2.res)
     exec.time <- Sys.time() - start.time
+    removeNotification("waiting.msg")
     
     comment(hypotheses.df) <- paste(round(as.numeric(exec.time), 0), units(exec.time))
     hypotheses.df
@@ -1130,7 +1177,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$test.simul.objects.block <- renderUI({
     if(is.null(test.simul.objects.plot())) return()
-  
+    
     HTML(paste0(
       h2("Object count"),
       column(10, align="center",
@@ -1138,11 +1185,11 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                    The number of objects (i.e. sets of connected fragments). This value is equal to the 'initial objects count', unless one of the 'Information loss' parameters is not null.
                   </p></div>")
       ),
-    fluidRow(column(10,
-                    imageOutput("test.simul.objects.plot", height = "200px", width= "100%")),
-             column(1, 
-                    downloadButton("objects.plot.download", "as SVG"),
-                    style="padding-top:80px;"))
+      fluidRow(column(10,
+                      imageOutput("test.simul.objects.plot", height = "200px", width= "100%")),
+               column(1, 
+                      downloadButton("objects.plot.download", "as SVG"),
+                      style="padding-top:80px;"))
     ))
   })
   
@@ -1281,32 +1328,32 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                        choices = spatial.units,
                        selected = spatial.units[seq_len(6)],
                        inline = TRUE
-                       )
+    )
   })
   
   
   # ... spatial unit checkboxes grid  ----
   optimisation.sp.merge <- reactive({
-  req(graph.complete, graph.list)
-  graph <- graph.complete()
-  
-  if(is.null(graph)) return()
-  
-  spatial.units <- sort(unique(igraph::V(graph)$spatial.variable))
-  spatial.units2 <- expand.grid(spatial.units, spatial.units)
-  
-  merge.su.pairs <- apply(spatial.units2, 1, function(su){
-    as.character(checkboxInput(inputId = paste0("merge.", su[1], ".", su[2]), label="", width="10px") )
-  })
-  
-  df <- matrix(merge.su.pairs, ncol = length(spatial.units))
-  df <- as.data.frame(df)
-  rownames(df) <- spatial.units
-  colnames(df) <- spatial.units
-  
-  df[upper.tri(df, diag = TRUE)] <- ""
-  
-  df[ -1, -ncol(df)]
+    req(graph.complete, graph.list)
+    graph <- graph.complete()
+    
+    if(is.null(graph)) return()
+    
+    spatial.units <- sort(unique(igraph::V(graph)$spatial.variable))
+    spatial.units2 <- expand.grid(spatial.units, spatial.units)
+    
+    merge.su.pairs <- apply(spatial.units2, 1, function(su){
+      as.character(checkboxInput(inputId = paste0("merge.", su[1], ".", su[2]), label="", width="10px") )
+    })
+    
+    df <- matrix(merge.su.pairs, ncol = length(spatial.units))
+    df <- as.data.frame(df)
+    rownames(df) <- spatial.units
+    colnames(df) <- spatial.units
+    
+    df[upper.tri(df, diag = TRUE)] <- ""
+    
+    df[ -1, -ncol(df)]
   })
   
   
@@ -1336,8 +1383,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     spatial.units <- unique(igraph::V(graph)$spatial.variable)
     spatial.units <- spatial.units[spatial.units %in% input$optimisation.sp]
     
-    if(length(spatial.units) == 2){
-      showNotification("There are only 2 spatial units. No possible merge.", duration = 10, type = "warning")
+    if(length(spatial.units) < 3){
+      showNotification("At least 3 spatial units are required. No possible merge.", duration = 10, type = "warning")
       return()
     } 
     
@@ -1345,32 +1392,24 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       showNotification("Select no more than 8 spatial units to combine.", duration = 10, type = "warning")
       return()
     }
-    if(length(spatial.units) > 5){
-      showNotification("Computation has started... Please wait... It can take several minutes.", duration = 20, type ="message")
-    } 
     
-    pairs  <- .heap_permutation(spatial.units)
+    if(length(spatial.units) == 8){
+      showNotification("Computing... please wait.", id = "waiting.msg1", duration = NULL, type = "message")
+    }
     
     # 1. list all combinations:
-    # eval(parse(text = paste0("pairs <- expand.grid(", paste0(rep("spatial.units, ", length(spatial.units)), collapse = ""),
-    #                           "stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE)")))
-    # pairs <- as.matrix(pairs)
-    # 
-    # # 2. keep only the combinations including all spatial.units
-    # items <- apply(pairs, 1, function(x)  length(unique(x)))  # this step is a little slow
-    # 
-    # items.nr <- length(spatial.units)
-    # pairs <- pairs[ items == items.nr, ]
-
-    # filter duplicated, considering that within a pair the order of the spatial units does not matter:
+    pairs  <- .heap_permutation(spatial.units)
+    
+    # 2. filter duplicated combinations (within a pair the order of the spatial units don't matter)
     n.pairs <- floor(length(spatial.units) / 2)
     n.pairs <- matrix(seq_len(2 * n.pairs), ncol = 2, byrow = TRUE)
     
-    # for each pair of columns, create a tag combining the two labels
+    # ... for each pair of columns, create a tag combining the two labels
     for(row in seq_len(nrow(n.pairs))){
       pairs <- cbind(pairs, apply(pairs, 1, function(x, cols = c(n.pairs[row, ]))  paste0(sort(x[ cols ]), collapse = "")))
     }
-    pairs <- pairs[ ! duplicated(pairs[, seq(length(spatial.units) + 1, ncol(pairs))]), ] 
+    # ... remove duplicated tags
+    pairs <- pairs[ ! duplicated(pairs[, seq(length(spatial.units) + 1, ncol(pairs))]), ]
     
     # clean, remove tags columns
     pairs <- pairs[, seq_len(length(spatial.units))]
@@ -1401,9 +1440,16 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     # duplicate the rows of reference table to get the same row numbers than the recoded table:
     eval(parse(text =  paste0("pairs <- rbind(", paste0(rep("pairs, ", nrow(n.pairs) - 1), collapse = ""), "pairs)")))
     
-    # add a line for no merging at all:
+    # add a line for the non-merged units series:
     pairs <- rbind(spatial.units, pairs, deparse.level = 0)
     recoded.spatial.units <- rbind(spatial.units, recoded.spatial.units, deparse.level = 0)
+    
+    # NeW method : remove duplicates:
+    idx <- t(apply(recoded.spatial.units, 1, sort))
+    idx <- ! duplicated(idx)
+
+    pairs <- pairs[idx, ]
+    recoded.spatial.units <- recoded.spatial.units[idx, ]
     
     # Function which, for each combination of spatial units 
     frag.get.cohesion.dispersion <- function(g, raw.spatial.units.row, recoded.spatial.units.row){
@@ -1412,27 +1458,33 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       additional.sp.units <- additional.sp.units[ ! additional.sp.units %in% raw.spatial.units.row]
       
       igraph::V(g)$sp.u.aggregated <- as.character(factor(igraph::V(g)$spatial.variable,
-                                              levels = c(raw.spatial.units.row, additional.sp.units),
-                                              labels = c(recoded.spatial.units.row, additional.sp.units)))
+                                                          levels = c(raw.spatial.units.row, additional.sp.units),
+                                                          labels = c(recoded.spatial.units.row, additional.sp.units)))
       # 2) computes edges weights
-      g <- archeofrag::frag.edges.weighting(g, "sp.u.aggregated", verbose = FALSE)
+      if(length(unique(V(g)$sp.u.aggregated)) == 2){
+        g <- archeofrag::frag.edges.weighting(g, "sp.u.aggregated", verbose = FALSE)
+      }
       # 3) summarises the difference between cohesion values:
       cohesion.res <- NA
       cohesion.res <- archeofrag::frag.layers.cohesion(graph = g, layer.attr = "sp.u.aggregated", verbose = FALSE)
       cohesion.diff <- apply(cohesion.res, 1, function(x)  sort.int(x)[2] - sort.int(x)[1] )
       admix.res <- apply(cohesion.res, 1, function(x) 1 - sum(x))
-
+      
       c("cohesion.diff.median" = stats::median(cohesion.diff, na.rm = TRUE),
         "cohesion.diff.mad" = stats::mad(cohesion.diff, na.rm = TRUE),
         "admixture.median"  = stats::median(admix.res, na.rm = TRUE),
         "admixture.mad" = stats::mad(admix.res, na.rm = TRUE),
         "admixture.mean"  = mean(admix.res, na.rm = TRUE),
         "admixture.sd" = stats::sd(admix.res, na.rm = TRUE)
-        )
+      )
     }
     
     # ... run computation ----
-    # (Note this the slowest step of the workflow (and it should be improved)
+    # (Note this the slowest step of the workflow (and might be improved)
+    removeNotification("waiting.msg1")
+    showNotification(HTML("Computing values for <b>", nrow(pairs)-1," solutions</b>... please wait."),
+                     id = "waiting.msg2", duration = NULL, type = "message") # cf 'removeNotification'
+    
     if(input$parallelize){
       cohes.diff.res <- foreach::foreach(i = seq_len(nrow(pairs)), .combine = "rbind", .errorhandling = "pass") %dopar%{
         frag.get.cohesion.dispersion(graph, 
@@ -1448,7 +1500,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       cohes.diff.res <- t(cohes.diff.res)
     }
     # remove duplicated merged spatial units labels:
-    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = FALSE) 
+    recoded.spatial.units <- apply(recoded.spatial.units, 1, function(x) {x[which(duplicated(x))] <- "" ; x}, simplify = FALSE)
     recoded.spatial.units <- do.call("rbind", recoded.spatial.units)
     recoded.spatial.units <- data.frame(recoded.spatial.units)
     
@@ -1456,38 +1508,38 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     recoded.spatial.units$type <- "merged"
     recoded.spatial.units[1, ]$type <- "observed"
     recoded.spatial.units[1, seq_len(length(spatial.units))] <- sapply(recoded.spatial.units[1, seq_len(length(spatial.units))], 
-                                                                       function(x) paste0("<i>", x, "</i>"))
+                                                                       function(x) paste0("<font color=Orange>", x, "</font>"))
     
     recoded.spatial.units <- cbind(recoded.spatial.units, cohes.diff.res)
-    
-    # remove duplicates:
-    idx <- apply(recoded.spatial.units[, seq_len(ncol(pairs))], 1, function(x)  paste0(sort.int(x), collapse = ""))
-    recoded.spatial.units <- recoded.spatial.units[ ! duplicated(idx), ]
-    
     recoded.spatial.units[recoded.spatial.units == ""] <- NA
     
-    # sort the contents of the lines:
+    # sort labels by row:
     idx <- seq_len(ncol(pairs))
     recoded.spatial.units[, idx] <- t(apply(recoded.spatial.units[, idx], 1,
-                   function(x) sort(unlist(x), na.last = TRUE)))
+                                            function(x) sort(unlist(x), na.last = TRUE)))
     
     # remove empty columns
     idx <- apply(recoded.spatial.units, 2, function(x) ! all(is.na(x)))
     recoded.spatial.units <- recoded.spatial.units[, idx ]
     
     idx <- seq(which(names(recoded.spatial.units) == "cohesion.diff.median"), ncol(recoded.spatial.units))
+    
     recoded.spatial.units[, idx] <- apply(recoded.spatial.units[, idx], 2, round, 3)
     
     # order the result by cohesion difference median value:
-    idx <- order(recoded.spatial.units$"cohesion.diff.median",
-                 recoded.spatial.units$"admixture.median", recoded.spatial.units[, 1])
+    idx <- order(unlist(recoded.spatial.units$"cohesion.diff.median"),
+                 unlist(recoded.spatial.units$"admixture.median"), 
+                 unlist(recoded.spatial.units[, 1]))
     
     # retrieve execution time:
     exec.time <- Sys.time() - start.time
     exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
     
-    list(recoded.spatial.units[idx, ], exec.time)
-    })  
+    # remove notification
+    removeNotification("waiting.msg2")
+    
+    list(recoded.spatial.units[idx, ], "exec.time" = exec.time)
+  })  
   
   
   # ... merge stats table ----
@@ -1499,10 +1551,10 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     sketch <-  paste0("<table class='display'>
   <thead>
     <tr>",
-       paste0(sapply(seq_len(ncol(tab) - 6),
-         function(x)  paste0('<th rowspan=2>Sp. unit ', x, '</th>' , collapse = "")), collapse = ""),
-      "<th colspan=2>Cohesion differences</th>
-      <th colspan=4>Admixture values</th>
+                      paste0(sapply(seq_len(ncol(tab) - 6),
+                                    function(x)  paste0('<th rowspan=2>Sp. unit ', x, '</th>' , collapse = "")), collapse = ""),
+                      "<th colspan=2>Cohesion difference</th>
+      <th colspan=4>Admixture</th>
     </tr>
     <tr>
       <th>Median</th>
@@ -1518,77 +1570,77 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     DT::datatable(tab, rownames = FALSE, container = sketch, escape = FALSE, style = "default", selection = 'none',
                   options = list(dom = 'tp',
                                  columnDefs = list(list(visible = FALSE, targets ="type")))
-                  )
-    })
-  
-  
-  
-    output$optimisationText <- renderText({
-      req(optimisation.table)
-      
-      optim.results <- optimisation.table()
-      
-      if(is.null(optim.results[[1]])) return()
-      
-      obs.cohes.diff.median <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.median
-      obs.cohes.diff.mad <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.mad
-     
-      min.cohes.diff.median <- min(optim.results[[1]][, ]$cohesion.diff.median)
-      obs.cohes.diff.median.position <- which(optim.results[[1]][, ]$cohesion.diff.median  %in% obs.cohes.diff.median)
-      
-      if(obs.cohes.diff.median == min.cohes.diff.median){
-        comments.str <- "No merging solution has a lower median value for cohesion differences."
-      } else{
-        comments.str <- paste(obs.cohes.diff.median.position - 1, "merging solutions returned lower median value for cohesion differences and must be examined.")
-      }
-      
-      nr.sp.units <- which(names(optim.results[[1]]) == "type") - 1
-      
-      paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]),
-             " merging solutions  from ", nr.sp.units, " spatial units, computed in ", optim.results[[2]], "<br>",
-            "<b>Median of the cohesion differences without merging:</b> ",
-            obs.cohes.diff.median,  " +/- ", obs.cohes.diff.mad, "<br>",
-            "<b>Comment:</b> ", comments.str
-            )
+    )
   })
   
+  
+  
+  output$optimisationText <- renderText({
+    req(optimisation.table)
     
+    optim.results <- optimisation.table()
+    
+    if(is.null(optim.results[[1]])) return()
+    
+    obs.cohes.diff.median <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.median
+    obs.cohes.diff.mad <- optim.results[[1]][optim.results[[1]]$type == "observed", ]$cohesion.diff.mad
+    
+    min.cohes.diff.median <- min(optim.results[[1]][, ]$cohesion.diff.median)
+    obs.cohes.diff.median.nr <- sum(optim.results[[1]][, ]$cohesion.diff.median < obs.cohes.diff.median)
+    
+    if(obs.cohes.diff.median == min.cohes.diff.median){
+      comments.str <- "No merging solution has a lower median value for cohesion differences."
+    } else{
+      comments.str <- paste(obs.cohes.diff.median.nr, "merging solutions returned lower median cohesion difference values than the <font color=Orange>non-merged</font> units series.")
+    }
+    
+    nr.sp.units <- which(names(optim.results[[1]]) == "type") - 1
+    
+    paste0("<b>Computation results:</b> ", nrow(optim.results[[1]]) -1,
+           " merging solutions  from ", nr.sp.units, " spatial units, computed in ", optim.results$exec.time, ".<br>",
+           "<b>Median of the cohesion differences for the non-merged units series:</b> ",
+           obs.cohes.diff.median,  " +/- ", obs.cohes.diff.mad, ".<br>",
+           "<b>Comment:</b> ", comments.str
+    )
+  })
+  
+  
   # ... merge and udpate graph.complete ----
-    observeEvent(input$mergeButton, { 
-      req(optimisation.sp.merge, graph.selected)
-      graph.init <- graph.complete()    # save a copy
-      graph.to.update <- graph.complete()
-      
-      units.to.merge <- optimisation.sp.merge()
-      units.to.merge <- expand.grid(rownames(units.to.merge), colnames(units.to.merge))
-      
-      idx <- apply(units.to.merge, 1, function(su){
-        eval(parse(text = paste0("isTRUE(input$'merge.", su[1], ".", su[2], "')" )))
-      })
-      
-      units.to.merge <- units.to.merge[idx, ]
-      
-      g <- igraph::graph_from_data_frame(units.to.merge)
-      igraph::V(g)$membership <- igraph::components(g)$membership
-      
-      for(cluster in unique(igraph::V(g)$membership)){
-        selected.units <- sort(igraph::V(g)[igraph::V(g)$membership == cluster]$name)
-        igraph::V(graph.to.update)[ igraph::V(graph.to.update)$spatial.variable %in% selected.units]$spatial.variable <- paste0(selected.units, collapse = "+")
-      }
-      
-      if(length(unique(igraph::V(graph.to.update)$spatial.variable)) == 1){
-        showNotification("Merging results in only one spatial units. Change settings.",
-                         duration = 10, type = "warning")
-        graph.complete(graph.init)
-      } else {
-        graph.complete(graph.to.update)
-      }
+  observeEvent(input$mergeButton, { 
+    req(optimisation.sp.merge, graph.selected)
+    graph.init <- graph.complete()    # save a copy
+    graph.to.update <- graph.complete()
+    
+    units.to.merge <- optimisation.sp.merge()
+    units.to.merge <- expand.grid(rownames(units.to.merge), colnames(units.to.merge))
+    
+    idx <- apply(units.to.merge, 1, function(su){
+      eval(parse(text = paste0("isTRUE(input$'merge.", su[1], ".", su[2], "')" )))
     })
     
+    units.to.merge <- units.to.merge[idx, ]
     
-    observeEvent(input$resetMergeButton, {
-      graph.complete(graph.complete.init())
-    })
+    g <- igraph::graph_from_data_frame(units.to.merge)
+    igraph::V(g)$membership <- igraph::components(g)$membership
+    
+    for(cluster in unique(igraph::V(g)$membership)){
+      selected.units <- sort(igraph::V(g)[igraph::V(g)$membership == cluster]$name)
+      igraph::V(graph.to.update)[ igraph::V(graph.to.update)$spatial.variable %in% selected.units]$spatial.variable <- paste0(selected.units, collapse = "+")
+    }
+    
+    if(length(unique(igraph::V(graph.to.update)$spatial.variable)) == 1){
+      showNotification("Merging results in only one spatial units. Change settings.",
+                       duration = 10, type = "warning")
+      graph.complete(graph.init)
+    } else {
+      graph.complete(graph.to.update)
+    }
+  })
+  
+  
+  observeEvent(input$resetMergeButton, {
+    graph.complete(graph.complete.init())
+  })
   
   
   # VISUALISATION ####
@@ -1597,17 +1649,28 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     req(graph.selected())
     g <- graph.selected()
     
-    paste0("Fragmentation graph for spatial units <b>", units.pair, 
-           "</b> from the <b>",  input$spatial.variable, 
-           "</b> variable. 
+    conditional.color.text <- ""
+    conditional.spatial.var.name <- "</b>"
+    
+    if(length(units.pair) == 2){
+      conditional.color.text <- paste0("<li>colors: spatial units associated with the fragments (<b><font color=YellowGreen>green</font></b> for <b>",  
+                                       gsub("^(.*)/.*", "\\1", units.pair), 
+                                       "</b>, <b><font color=purple>purple</font></b> for <b>",
+                                       gsub("^.*/(.*)", "\\1", units.pair), 
+                                       "</b>)</li>")
+      conditional.spatial.var.name <- paste0("</b> from the <b>",
+                                             input$spatial.variable, "</b> variable")
+    }
+    
+    paste0("Fragmentation graph for spatial units: <b>", units.pair, 
+           conditional.spatial.var.name,
+           ". 
             <ul>
               <li>lines: connection relationships (n=", igraph::gsize(g), ")</li> 
-              <li>nodes: fragments (n=", igraph::gorder(g), ")</li> 
-              <li>colors: spatial units associated with the fragments (<b><font color=YellowGreen>green</font></b> for <b>",  
-           gsub("^(.*)/.*", "\\1", units.pair), 
-           "</b>, <b><font color=purple>purple</font></b> for <b>", gsub("^.*/(.*)", "\\1", units.pair), 
-           "</b>)</li></ul>
-           Note that the node positions are only determined by the graph drawing method and do not reflect the archaeological location of the fragments in the site.
+              <li>nodes: fragments (n=", igraph::gorder(g), ")</li>",
+           conditional.color.text,
+           "</ul>
+           Note that node positions are only determined by the graph drawing method and <b>do not</b> reflect fragments location in the archaeological site.
            ")
   })
   
@@ -1619,7 +1682,12 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   })
   
   output$frag.graph.viz.plot <- renderPlot({ 
-    archeofrag::frag.graph.plot(frag.graph.viz(), layer.attr = "spatial.variable") 
+    g <- frag.graph.viz()
+    
+    v.attr <-  names(igraph::vertex_attr(g)) # remove these attributes to avoid unclear conflict with plot() for graph with 1 spatial unit
+    g <-  Reduce(igraph::delete_vertex_attr, v.attr[ v.attr %in%  c("x", "y", "z")], g)
+    
+    archeofrag::frag.graph.plot(g, layer.attr = "spatial.variable", node.size = input$node.size)
   })
   
   
@@ -1628,7 +1696,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       grDevices::svg(file)
-      archeofrag::frag.graph.plot(frag.graph.viz(), layer.attr = "spatial.variable") 
+      par(mar = c(0, 0, 0, 0) )
+      archeofrag::frag.graph.plot(frag.graph.viz(), layer.attr = "spatial.variable", node.size = input$node.size) 
       grDevices::dev.off()
     }
   )
@@ -1660,16 +1729,16 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       connection.to.remove.str <- ""
       if(edge.loss > 0){
         connection.to.remove.str <- paste0("              g <- archeofrag::frag.observer.failure(g, likelihood = ",
-             edge.loss, " / 100,<br>",
-             "                                                     remove.vertices = TRUE)[[1]]<br>")
+                                           edge.loss, " / 100,<br>",
+                                           "                                                     remove.vertices = TRUE)[[1]]<br>")
       }
       
       frag.to.remove.str <- ""
       if(vertice.loss > 0){
         frag.to.remove.str <- paste0("              n.frag.to.remove <- round(",
-                                 input$vertice.loss, " / 100) * igraph::gorder(g), 0)<br>",
-             "              g <- archeofrag::frag.graph.reduce(g, n.frag.to.remove = n.frag.to.remove,<br>",
-             "                                                    conserve.objects.nr = FALSE)<br>")
+                                     input$vertice.loss, " / 100) * igraph::gorder(g), 0)<br>",
+                                     "              g <- archeofrag::frag.graph.reduce(g, n.frag.to.remove = n.frag.to.remove,<br>",
+                                     "                                                    conserve.objects.nr = FALSE)<br>")
       }
       
       paste0("<pre>",
@@ -1681,7 +1750,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
              "                                     components.balance = ", input$components.balance, ",<br>",
              "                                     disturbance = ", input$disturbance, ",<br>",
              "                                     aggreg.factor = ", input$aggreg.factor, ",<br>",
-                                                   asymmetric.str,
+             asymmetric.str,
              "                                     planar = ", input$planar, ")<br>",
              connection.to.remove.str,
              frag.to.remove.str,
@@ -1715,7 +1784,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
            generate.run.code(2, edge.loss = input$edge.loss, vertice.loss = input$vertice.loss),
            "<br><h2>Session info</h2>",
            sessioninfo.str
-           )
+    )
   }) # end reactive
   
   output$r.code <- reactive({r.code()})
@@ -1761,6 +1830,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$OM.fragmentsBalance.val.ui <- renderUI({
     bal <- input.graph.params()$balance
+    if(is.na(bal)) return()
     sliderInput("OM.fragmentsBalance.val", 
                 paste0("Fragments balance (obs. value: ", input.graph.params()$balance, ")"),
                 min = 0.01, max=0.99, step = 0.01, 
@@ -1769,6 +1839,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$OM.objectsBalance.val.ui <- renderUI({
     comp.bal <- input.graph.params()$components.balance
+    if(is.na(comp.bal)) return()
     sliderInput("OM.objectsBalance.val", 
                 paste0("Initial objects balance (obs. value: ", input.graph.params()$components.balance, ")"),
                 min = 0.01, max = 0.99, step = 0.01, 
@@ -1777,6 +1848,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$OM.disturbance.val.ui <- renderUI({
     disturbance <- input.graph.params()$disturbance
+    if(is.na(input.graph.params()$disturbance)) return()
     disturbance.max <- disturbance + .1
     disturbance.min <- disturbance - .1
     if(disturbance.min <= 0){disturbance.min <- 0.01}
@@ -1789,7 +1861,8 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   
   output$OM.aggregFactor.val.ui <- renderUI({
     agreg <- input.graph.params()$aggreg.factor
-
+    if(is.na(input.graph.params()$aggreg.factor)) return()
+    
     sliderInput("OM.aggregFactor.val", 
                 paste0("Fragments aggregation (obs. value: ", input.graph.params()$aggreg.factor, ")"),
                 min = 0, max = 1, step = 0.01, value = c(0, 1))
@@ -1801,7 +1874,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     from1to2  <- gsub("/", "->", units.pair)       
     from2to1 <- gsub("^(.*) / (.*)$", "\\2 -> \\1", units.pair)
-                
+    
     eval(parse(text = paste0(
       "selectInput('OM.asymmetric.val', 'Unidirectional transport from unit', ",
       "choices = c('none' = 'none',",
@@ -1819,7 +1892,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
   openMOLE.code <- reactive({
     req(input$OM.asymmetric.val)
     
-
+    
     # .. origin variables ----
     OM.layerNumber.str <- ""
     OM.objectsNumber.str <- ""
@@ -1901,7 +1974,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     if(length(asymmetric.str) > 1){
       OM.asymmetric.str <- paste0("    asymmetricTransport in Seq(", paste(asymmetric.str, collapse = ", "), "),<br>")
     }
-  
+    
     # For each variable, 4 strings are defined and used only if the variable is selected as an objective:
     # .init.str: variable declaration
     # .map.str: OM variable mapping
@@ -1988,9 +2061,9 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
         OM.relationCountOut.sens <- round(input.graph.params()$edges * input$OM.relationCountOut.sens / 100, 0)
       }
       OM.relationCountOut.obj.str <- paste0("    relationCountOut evaluate \"relationCountOut.map(x => math.abs(x - ",
-                                          input.graph.params()$edges, ")).max\" under ", OM.relationCountOut.sens, ",<br>")
+                                            input.graph.params()$edges, ")).max\" under ", OM.relationCountOut.sens, ",<br>")
     }
-   
+    
     if(input$OM.objectCountOut){
       
       OM.objectCountOut.init.str <- 'val objectCountOut = Val[Int]<br>' 
@@ -2022,7 +2095,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.disturbanceOut.sens <- 0.001
       if(input$OM.disturbanceOut.sens != 0){OM.disturbanceOut.sens <- input$OM.disturbanceOut.sens}
       OM.disturbanceOut.obj.str <- paste0("    disturbanceOut evaluate \"disturbanceOut.map(x => math.abs(x - ",
-                                            input.graph.params()$disturbance, ")).max\" under ", OM.disturbanceOut.sens, ",<br>")
+                                          input.graph.params()$disturbance, ")).max\" under ", OM.disturbanceOut.sens, ",<br>")
     }
     
     if(input$OM.objectsBalanceOut){
@@ -2034,7 +2107,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.objectsBalanceOut.sens <- 0.001
       if(input$OM.objectsBalanceOut.sens != 0){OM.objectsBalanceOut.sens <- input$OM.objectsBalanceOut.sens}
       OM.objectsBalanceOut.obj.str <- paste0("    objectsBalanceOut evaluate \"objectsBalanceOut.map(x => math.abs(x - ",
-                                          input.graph.params()$components.balance, ")).max\" under ", OM.objectsBalanceOut.sens, ",<br>")
+                                             input.graph.params()$components.balance, ")).max\" under ", OM.objectsBalanceOut.sens, ",<br>")
     }
     
     if(input$OM.fragBalanceOut){
@@ -2054,11 +2127,11 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.aggregFactorOut.map.str  <- '  outputs += aggregationOut.mapped,<br>'
       OM.aggregFactorOut.R.init.str <- '            aggregationOut   <- -1.0<br>'
       OM.aggregFactorOut.R.str <- '                aggregationOut   <- frag.params$aggreg.factor<br>'
-        
+      
       OM.aggregFactorOut.sens <- 0.001
       if(input$OM.aggregFactorOut.sens != 0){OM.aggregFactorOut.sens <- input$OM.aggregFactorOut.sens}
       OM.aggregFactorOut.obj.str <- paste0("    aggregationOut evaluate \"aggregationOut.map(x => math.abs(x - ",
-                                      obs.admix, ")).max\" under ", OM.aggregFactorOut.sens, ",<br>")
+                                           obs.admix, ")).max\" under ", OM.aggregFactorOut.sens, ",<br>")
     }
     # if(input$OM.weightsumOut) OM.weightsumOut.str <- paste0("weightsumOut delta", input$TODO, "under", OM.weightsumOut.sens, ",<br>")
     
@@ -2109,7 +2182,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.admixtureOut.obj.str <- paste0("    admixtureOut   evaluate \"admixtureOut.map(x => math.abs(x - ",
                                         obs.admix, ")).max\" under ", OM.admixtureOut.sens, ",<br>")
     }
-
+    
     if(input$OM.fragmentsCountOut.sens > 0){
       OM.finalFragmentCountOut.init.str <-   'val finalFragmentCountOut = Val[Int]<br>' 
       OM.finalFragmentCountOut.map.str  <-   '  outputs += finalFragmentCountOut.mapped,<br>'
@@ -2125,7 +2198,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
       OM.isPlanarOut.R.str <-      '                isPlanarOut      <- frag.params$planar <br>'
     }
     
-
+    
     
     get.param.str <- ""
     if(input$OM.relationCountOut | input$OM.objectCountOut | input$OM.disturbanceOut | input$OM.objectsBalanceOut | input$OM.fragBalanceOut | input$OM.aggregFactorOut){
@@ -2162,7 +2235,7 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     if(input$OM.objectsBalance.val[1] != input$OM.objectsBalance.val[2]){
       OM.objectsBalance.str <- paste0("    objectsBalance in (", input$OM.objectsBalance.val[1], " to ",
-                                         input$OM.objectsBalance.val[2], "),<br>")
+                                      input$OM.objectsBalance.val[2], "),<br>")
     }
     
     if(input$OM.disturbance.val[1] != input$OM.disturbance.val[2]){ 
@@ -2177,9 +2250,9 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     # nfrag string, determining the number of fragments to remove
     frag.reduce.str <- paste0(
-    '                g <- frag.graph.reduce(graph = g,<br>',
-    '                                       n.frag.to.remove = length(g) - finalFragmentsNumberMin,<br>')
-                              
+      '                g <- frag.graph.reduce(graph = g,<br>',
+      '                                       n.frag.to.remove = length(g) - finalFragmentsNumberMin,<br>')
+    
     if(finalFragCountMin != finalFragCountMax){
       frag.reduce.str <- paste0(
         '                n.frag <- igraph::gorder(g) - sample(seq.int(finalFragmentsNumberMin, finalFragmentsNumberMax), 1)<br>',
@@ -2188,9 +2261,9 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     }
     
     frag.reduce.str <- paste0(frag.reduce.str,
-    '                                       conserve.objects.nr = preserveObjectsNumber,<br>',
-    '                                       conserve.fragments.balance = preserveFragmentsBalance,<br>',
-    '                                       conserve.inter.units.connection = preserveInterUnitsConnection)<br>')
+                              '                                       conserve.objects.nr = preserveObjectsNumber,<br>',
+                              '                                       conserve.fragments.balance = preserveFragmentsBalance,<br>',
+                              '                                       conserve.inter.units.connection = preserveInterUnitsConnection)<br>')
     
     # .. settings ----
     OM.islands.str <- ""
@@ -2200,185 +2273,185 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     
     # .. model ----
     om.code <- paste0('<pre>',
-           '// Input values<br>',
-           'val layerNumber = Val[Int]<br>',
-           'val objectsNumber = Val[Int]<br>',
-           'val fragmentsNumber = Val[Int]<br>',
-           'val finalFragmentsNumberMin = Val[Int]<br>',
-           OM.finalFragmentsNumberMax.init.str,
-           'val objectsBalance = Val[Double]<br>',
-           'val fragmentsBalance = Val[Double]<br>',
-           'val disturbance = Val[Double]<br>',
-           'val aggregation = Val[Double]<br>',
-           'val asymmetricTransport = Val[Int]<br>',
-           'val planarGraphsOnly = Val[Boolean]<br>',
-           'val preserveObjectsNumber = Val[Boolean]<br>',
-           'val preserveFragmentsBalance = Val[Boolean]<br>',
-           'val preserveInterUnitsConnection = Val[Boolean]<br>',
-           'val seed = Val[Int]<br>',
-           '<br>',
-           '// Output values<br>',
-           'val seedOut = Val[Int]<br>',
-           OM.cohesion1Out.init.str,
-           OM.cohesion2Out.init.str,
-           OM.admixtureOut.init.str,
-           OM.relationCountOut.init.str,
-           OM.objectCountOut.init.str,
-           OM.objectsBalanceOut.init.str,
-           OM.fragBalanceOut.init.str,
-           OM.disturbanceOut.init.str,
-           OM.aggregFactorOut.init.str,
-           OM.finalFragmentCountOut.init.str,
-           OM.isPlanarOut.init.str,
-           '<br>',
-           'val local = LocalEnvironment(', input$OM.parallelize, ')  // Number of cores to use. Adjust as needed<br>',
-           '<br>',
-           'val archeofrag =  RTask(<br>',
-           '//  containerSystem = SingularityFlatImage(), // optionnal <br>',
-           '  script = """<br>',
-           '            library(archeofrag)<br>',
-           '            # Declare default values:<br>',
-           OM.cohesion1Out.R.init.str,
-           OM.cohesion2Out.R.init.str,
-           OM.admixtureOut.R.init.str,
-           OM.relationCountOut.R.init.str,
-           OM.objectCountOut.R.init.str,
-           OM.objectsBalanceOut.R.init.str,
-           OM.disturbanceOut.R.init.str,
-           OM.fragBalanceOut.R.init.str,
-           OM.aggregFactorOut.R.init.str,
-           OM.finalFragmentCountOut.R.init.str,
-           OM.isPlanarOut.R.init.str,
-           '<br>',
-           '            set.seed(seed)<br>',
-           '            seedOut <- seed<br>',
-           '            try({<br>',
-           '                # Generate fragmentation graph:<br>',
-           '                g <- frag.simul.process(initial.layers = layerNumber,<br>',
-           '                                        n.components = objectsNumber,<br>',
-           '                                        vertices = fragmentsNumber,<br>',
-           '                                        edges = Inf,<br>',
-           '                                        balance = fragmentsBalance,<br>',
-           '                                        components.balance = objectsBalance,<br>',
-           '                                        disturbance = disturbance,<br>',
-           '                                        aggreg.factor = aggregation,<br>',
-           '                                        asymmetric.transport.from = asymmetricTransport,<br>',
-           '                                        planar = planarGraphsOnly <br>',
-           '                                        )<br>',
-           '                # Randomly delete fragments:<br>',
-           frag.reduce.str,
-           
-           '                # compute edge weights:<br>',
-           '                g <- frag.edges.weighting(g, \'layer\')<br><br>',
-           '                # Measure values:<br>',
-           get.param.str,
-           OM.cohesion.R.str,
-           OM.cohesion1Out.R.str,
-           OM.cohesion2Out.R.str,
-           OM.admixtureOut.R.str,
-           OM.relationCountOut.R.str,
-           OM.objectCountOut.R.str,
-           OM.objectsBalanceOut.R.str,
-           OM.disturbanceOut.R.str,
-           OM.fragBalanceOut.R.str,
-           OM.aggregFactorOut.R.str,
-           OM.finalFragmentCountOut.R.str,
-           OM.isPlanarOut.R.str,
-           '            }, silent = FALSE)<br>',
-           '            """,<br>',
-           '  install = Seq(<br>',
-           '    """R --slave -e \'install.packages("BiocManager") ; library("BiocManager") ; BiocManager::install("RBGL")\' """,<br>',
-           '    """R --slave -e \'install.packages("remotes", dependencies = TRUE)\' """,<br>',
-           '    """R --slave -e \'library(remotes); remotes::install_github("sebastien-plutniak/archeofrag", force = TRUE)\' """<br>',
-           '  )<br>',
-           ') set (<br>',
-           '  inputs += seed.mapped,<br>',
-           '  inputs += objectsNumber.mapped,<br>',
-           '  inputs += fragmentsNumber.mapped,<br>',
-           '  inputs += finalFragmentsNumberMin.mapped,<br>',
-           OM.finalFragmentsNumberMax.map.str,
-           '  inputs += preserveObjectsNumber.mapped,<br>',
-           '  inputs += preserveFragmentsBalance.mapped,<br>',
-           '  inputs += preserveInterUnitsConnection.mapped,<br>',
-           '  inputs += fragmentsBalance.mapped,<br>',
-           '  inputs += objectsBalance.mapped,<br>',
-           '  inputs += disturbance.mapped,<br>',
-           '  inputs += layerNumber.mapped,<br>',
-           '  inputs += aggregation.mapped,<br>',
-           '  inputs += planarGraphsOnly.mapped,<br>',
-           '  inputs += asymmetricTransport.mapped,<br>',
-           '  outputs += seedOut.mapped,<br>',
-           OM.cohesion1Out.map.str,
-           OM.cohesion2Out.map.str,
-           OM.admixtureOut.map.str,
-           OM.relationCountOut.map.str,
-           OM.objectCountOut.map.str,
-           OM.objectsBalanceOut.map.str,
-           OM.disturbanceOut.map.str,
-           OM.fragBalanceOut.map.str,
-           OM.aggregFactorOut.map.str,
-           OM.finalFragmentCountOut.map.str,
-           OM.isPlanarOut.map.str,
-           '<br>  // Default settings:<br>',
-           '  seed := 1,<br>',
-           '  layerNumber := 1,<br>',
-           '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
-           '  preserveFragmentsBalance := ', preserveFragmentsBalance.str[1], ',<br>',
-           '  preserveInterUnitsConnection := ', preserveInterUnitsConnection.str[1], ',<br>',
-           '  asymmetricTransport := ', asymmetric.str[1], ',<br>',
-           '<br>  // Default values, based on the studied graph:<br>',
-           '  objectsNumber := ', input.graph.params()$n.components, ',<br>',
-           '  fragmentsNumber := ', input.graph.params()$vertices, ',<br>', 
-           OM.finalFragmentsNumberMinOut.str, 
-           OM.finalFragmentsNumberMaxOut.str, 
-           '  objectsBalance := ', objectsBalance.default, ',<br>', 
-           '  fragmentsBalance := ', fragmentsBalance.default, ',<br>', 
-           '  disturbance := ', disturbance.default, ',<br>', 
-           '  aggregation := ', aggregFactor.default, ',<br>', 
-           '  planarGraphsOnly := ', planarGraphOnly.str[1], '<br>',
-           ')<br>',
-           '<br>',
-           '<br>',
-           '// model settings<br>',
-           'HDOSEEvolution(<br>',
-           '  evaluation = archeofrag,<br>',
-           '  parallelism = ', input$OM.parallelize, ',                  //  nr of workers for parallelization. Adjust as needed<br>',
-           '  termination = ', input$OM.replications, ',                  //  nr of executions. Adjust as needed<br>',
-           '  origin = Seq(<br>',   # .... origin ----
-           OM.layerNumber.str,
-           OM.objectsNumber.str,
-           OM.fragmentsNumber.str,
-           OM.fragmentsBalance.str,
-           OM.objectsBalance.str,
-           OM.disturbance.str,
-           OM.aggregFactor.str,
-           OM.asymmetric.str,
-           OM.preserveObjectsNumber.str,
-           OM.preserveFragmentsBalance.str,
-           OM.preserveInterUnitsConnection.str,
-           OM.planarGraphsOnly.str,
-           '  ),<br>',
-           '  objective = Seq(<br>', # .... objective ----
-           OM.cohesion1Out.obj.str,
-           OM.cohesion2Out.obj.str,
-           OM.admixtureOut.obj.str,
-           OM.relationCountOut.obj.str,
-           OM.objectCountOut.obj.str,
-           OM.disturbanceOut.obj.str,
-           OM.aggregFactorOut.obj.str,
-           OM.objectsBalanceOut.obj.str,
-           OM.fragBalanceOut.obj.str,
-           '  ),<br>',
-           '  stochastic = Stochastic(seed = seed)<br>',
-           ') ', OM.islands.str,
-           'hook (workDirectory / "hdose-results", frequency = 100) on local // adjust execution machine',
-           "</pre>")
+                      '// Input values<br>',
+                      'val layerNumber = Val[Int]<br>',
+                      'val objectsNumber = Val[Int]<br>',
+                      'val fragmentsNumber = Val[Int]<br>',
+                      'val finalFragmentsNumberMin = Val[Int]<br>',
+                      OM.finalFragmentsNumberMax.init.str,
+                      'val objectsBalance = Val[Double]<br>',
+                      'val fragmentsBalance = Val[Double]<br>',
+                      'val disturbance = Val[Double]<br>',
+                      'val aggregation = Val[Double]<br>',
+                      'val asymmetricTransport = Val[Int]<br>',
+                      'val planarGraphsOnly = Val[Boolean]<br>',
+                      'val preserveObjectsNumber = Val[Boolean]<br>',
+                      'val preserveFragmentsBalance = Val[Boolean]<br>',
+                      'val preserveInterUnitsConnection = Val[Boolean]<br>',
+                      'val seed = Val[Int]<br>',
+                      '<br>',
+                      '// Output values<br>',
+                      'val seedOut = Val[Int]<br>',
+                      OM.cohesion1Out.init.str,
+                      OM.cohesion2Out.init.str,
+                      OM.admixtureOut.init.str,
+                      OM.relationCountOut.init.str,
+                      OM.objectCountOut.init.str,
+                      OM.objectsBalanceOut.init.str,
+                      OM.fragBalanceOut.init.str,
+                      OM.disturbanceOut.init.str,
+                      OM.aggregFactorOut.init.str,
+                      OM.finalFragmentCountOut.init.str,
+                      OM.isPlanarOut.init.str,
+                      '<br>',
+                      'val local = LocalEnvironment(', input$OM.parallelize, ')  // Number of cores to use. Adjust as needed<br>',
+                      '<br>',
+                      'val archeofrag =  RTask(<br>',
+                      '//  containerSystem = SingularityFlatImage(), // optionnal <br>',
+                      '  script = """<br>',
+                      '            library(archeofrag)<br>',
+                      '            # Declare default values:<br>',
+                      OM.cohesion1Out.R.init.str,
+                      OM.cohesion2Out.R.init.str,
+                      OM.admixtureOut.R.init.str,
+                      OM.relationCountOut.R.init.str,
+                      OM.objectCountOut.R.init.str,
+                      OM.objectsBalanceOut.R.init.str,
+                      OM.disturbanceOut.R.init.str,
+                      OM.fragBalanceOut.R.init.str,
+                      OM.aggregFactorOut.R.init.str,
+                      OM.finalFragmentCountOut.R.init.str,
+                      OM.isPlanarOut.R.init.str,
+                      '<br>',
+                      '            set.seed(seed)<br>',
+                      '            seedOut <- seed<br>',
+                      '            try({<br>',
+                      '                # Generate fragmentation graph:<br>',
+                      '                g <- frag.simul.process(initial.layers = layerNumber,<br>',
+                      '                                        n.components = objectsNumber,<br>',
+                      '                                        vertices = fragmentsNumber,<br>',
+                      '                                        edges = Inf,<br>',
+                      '                                        balance = fragmentsBalance,<br>',
+                      '                                        components.balance = objectsBalance,<br>',
+                      '                                        disturbance = disturbance,<br>',
+                      '                                        aggreg.factor = aggregation,<br>',
+                      '                                        asymmetric.transport.from = asymmetricTransport,<br>',
+                      '                                        planar = planarGraphsOnly <br>',
+                      '                                        )<br>',
+                      '                # Randomly delete fragments:<br>',
+                      frag.reduce.str,
+                      
+                      '                # compute edge weights:<br>',
+                      '                g <- frag.edges.weighting(g, \'layer\')<br><br>',
+                      '                # Measure values:<br>',
+                      get.param.str,
+                      OM.cohesion.R.str,
+                      OM.cohesion1Out.R.str,
+                      OM.cohesion2Out.R.str,
+                      OM.admixtureOut.R.str,
+                      OM.relationCountOut.R.str,
+                      OM.objectCountOut.R.str,
+                      OM.objectsBalanceOut.R.str,
+                      OM.disturbanceOut.R.str,
+                      OM.fragBalanceOut.R.str,
+                      OM.aggregFactorOut.R.str,
+                      OM.finalFragmentCountOut.R.str,
+                      OM.isPlanarOut.R.str,
+                      '            }, silent = FALSE)<br>',
+                      '            """,<br>',
+                      '  install = Seq(<br>',
+                      '    """R --slave -e \'install.packages("BiocManager") ; library("BiocManager") ; BiocManager::install("RBGL")\' """,<br>',
+                      '    """R --slave -e \'install.packages("remotes", dependencies = TRUE)\' """,<br>',
+                      '    """R --slave -e \'library(remotes); remotes::install_github("sebastien-plutniak/archeofrag", force = TRUE)\' """<br>',
+                      '  )<br>',
+                      ') set (<br>',
+                      '  inputs += seed.mapped,<br>',
+                      '  inputs += objectsNumber.mapped,<br>',
+                      '  inputs += fragmentsNumber.mapped,<br>',
+                      '  inputs += finalFragmentsNumberMin.mapped,<br>',
+                      OM.finalFragmentsNumberMax.map.str,
+                      '  inputs += preserveObjectsNumber.mapped,<br>',
+                      '  inputs += preserveFragmentsBalance.mapped,<br>',
+                      '  inputs += preserveInterUnitsConnection.mapped,<br>',
+                      '  inputs += fragmentsBalance.mapped,<br>',
+                      '  inputs += objectsBalance.mapped,<br>',
+                      '  inputs += disturbance.mapped,<br>',
+                      '  inputs += layerNumber.mapped,<br>',
+                      '  inputs += aggregation.mapped,<br>',
+                      '  inputs += planarGraphsOnly.mapped,<br>',
+                      '  inputs += asymmetricTransport.mapped,<br>',
+                      '  outputs += seedOut.mapped,<br>',
+                      OM.cohesion1Out.map.str,
+                      OM.cohesion2Out.map.str,
+                      OM.admixtureOut.map.str,
+                      OM.relationCountOut.map.str,
+                      OM.objectCountOut.map.str,
+                      OM.objectsBalanceOut.map.str,
+                      OM.disturbanceOut.map.str,
+                      OM.fragBalanceOut.map.str,
+                      OM.aggregFactorOut.map.str,
+                      OM.finalFragmentCountOut.map.str,
+                      OM.isPlanarOut.map.str,
+                      '<br>  // Default settings:<br>',
+                      '  seed := 1,<br>',
+                      '  layerNumber := 1,<br>',
+                      '  preserveObjectsNumber := ', preserveObjectsNumber.str[1], ',<br>',
+                      '  preserveFragmentsBalance := ', preserveFragmentsBalance.str[1], ',<br>',
+                      '  preserveInterUnitsConnection := ', preserveInterUnitsConnection.str[1], ',<br>',
+                      '  asymmetricTransport := ', asymmetric.str[1], ',<br>',
+                      '<br>  // Default values, based on the studied graph:<br>',
+                      '  objectsNumber := ', input.graph.params()$n.components, ',<br>',
+                      '  fragmentsNumber := ', input.graph.params()$vertices, ',<br>', 
+                      OM.finalFragmentsNumberMinOut.str, 
+                      OM.finalFragmentsNumberMaxOut.str, 
+                      '  objectsBalance := ', objectsBalance.default, ',<br>', 
+                      '  fragmentsBalance := ', fragmentsBalance.default, ',<br>', 
+                      '  disturbance := ', disturbance.default, ',<br>', 
+                      '  aggregation := ', aggregFactor.default, ',<br>', 
+                      '  planarGraphsOnly := ', planarGraphOnly.str[1], '<br>',
+                      ')<br>',
+                      '<br>',
+                      '<br>',
+                      '// model settings<br>',
+                      'HDOSEEvolution(<br>',
+                      '  evaluation = archeofrag,<br>',
+                      '  parallelism = ', input$OM.parallelize, ',                  //  nr of workers for parallelization. Adjust as needed<br>',
+                      '  termination = ', input$OM.replications, ',                  //  nr of executions. Adjust as needed<br>',
+                      '  origin = Seq(<br>',   # .... origin ----
+                      OM.layerNumber.str,
+                      OM.objectsNumber.str,
+                      OM.fragmentsNumber.str,
+                      OM.fragmentsBalance.str,
+                      OM.objectsBalance.str,
+                      OM.disturbance.str,
+                      OM.aggregFactor.str,
+                      OM.asymmetric.str,
+                      OM.preserveObjectsNumber.str,
+                      OM.preserveFragmentsBalance.str,
+                      OM.preserveInterUnitsConnection.str,
+                      OM.planarGraphsOnly.str,
+                      '  ),<br>',
+                      '  objective = Seq(<br>', # .... objective ----
+                      OM.cohesion1Out.obj.str,
+                      OM.cohesion2Out.obj.str,
+                      OM.admixtureOut.obj.str,
+                      OM.relationCountOut.obj.str,
+                      OM.objectCountOut.obj.str,
+                      OM.disturbanceOut.obj.str,
+                      OM.aggregFactorOut.obj.str,
+                      OM.objectsBalanceOut.obj.str,
+                      OM.fragBalanceOut.obj.str,
+                      '  ),<br>',
+                      '  stochastic = Stochastic(seed = seed)<br>',
+                      ') ', OM.islands.str,
+                      'hook (workDirectory / "hdose-results", frequency = 100) on local // adjust execution machine',
+                      "</pre>")
     
     gsub("\\(0 ", "\\(0.0 ", om.code)   # format 0 values as double for openMOLE
   }) # end reactive
-
+  
   output$openMOLE.code <- reactive({openMOLE.code()})
-    
+  
   observeEvent(input$OMcode.copy.button, {
     OMCode.plaintext <- openMOLE.code()
     
@@ -2386,6 +2459,49 @@ clustering.method.names <- c("UPGMA" = "average", "WPGMA" = "mcquitty", "Single 
     OMCode.plaintext <- gsub("</?pre>", "", OMCode.plaintext)
     
     session$sendCustomMessage("txt", OMCode.plaintext)
+  })
+  
+  # DATASETS ----
+  
+  refit.datasets <- utils::data(package = "archeofrag")$result[, "Item"]
+  refit.datasets <- gsub("(.*) \\(.*","\\1", refit.datasets)
+  
+  refit.datasets <- refit.datasets[ - grep(".similarity", refit.datasets)]
+  
+  connection.datasets <- refit.datasets[ grep(".connection", refit.datasets)]
+  fragments.datasets <- refit.datasets[ grep(".fragments", refit.datasets)]
+  
+  get.data.comment <- function(dataname, comm.index){
+    eval(parse(text = paste0("comment(archeofrag::", dataname, ")[", comm.index, "]")))
+  }
+  
+  refit.summary <- data.frame(
+    "Name" = sapply(fragments.datasets, get.data.comment,  1),
+    "Fragments" = sapply(fragments.datasets, function(x) eval(parse(text = paste0("nrow(archeofrag::", x, ")")))),
+    "Relations" = sapply(connection.datasets, function(x) eval(parse(text = paste0("nrow(archeofrag::", x, ")")))),
+    "Material" = sapply(fragments.datasets, get.data.comment, 2),
+    "Period" = sapply(fragments.datasets, get.data.comment, 3),
+    "Observed spatial variables" = sapply(fragments.datasets, get.data.comment, 4),
+    "doi" = sapply(fragments.datasets, function(x) paste0("<a href=https://doi.org/",
+                                                          get.data.comment(x, 5),
+                                                          " target=_blank>", 
+                                                          get.data.comment(x, 5),
+                                                          "</a>")),
+    row.names = NULL
+  )
+  
+  
+  output$datasetsTab <- DT::renderDT({ 
+    DT::datatable(refit.summary, rownames = FALSE,
+                  escape = 1:6,
+                  style = "default",
+                  selection = 'none',
+                  options = list(dom = 't',
+                                 pageLength = nrow(refit.summary)
+                  )
+    )
+    
+    
   })
   
 } # end server
