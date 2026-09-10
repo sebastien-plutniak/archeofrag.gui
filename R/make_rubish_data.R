@@ -1,4 +1,4 @@
-.make.rubish.data <- function(){
+.make_rubish_data <- function(){
     l13 <- archeofrag::frag.simul.process(n.components=24, vertices=70, disturbance=.4, balance = .6)
     igraph::V(l13)[igraph::V(l13)$layer == "2"]$layer <- "3"
     
