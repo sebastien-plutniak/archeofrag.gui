@@ -495,7 +495,12 @@ server <- function(input, output, session) {
     refits.df[, c("id", "code", "sample", "X1", "Y1", "Z1", "X2", "Y2", "Z2")]
   })
   
-  
+  output$download.fabryka <- downloadHandler(
+    filename = "fabryka.csv",
+    content = function(file) {
+      utils::write.csv2(fabryka.data(), file, row.names = FALSE)
+    }
+  )
   
   fabryka.url <- reactive({
     req(fabryka.data())
