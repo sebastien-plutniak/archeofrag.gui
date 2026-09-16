@@ -450,6 +450,88 @@ server <- function(input, output, session) {
   }) 
   
   
+  # fabryka export ----
+  
+  fabryka.data <- reactive({
+    req(graph.complete())
+
+    check <- c(input$x.variable, input$y.variable, input$z.variable) %in% names(igraph::vertex_attr(graph.complete()))
+  
+    if( ! sum(check) == 3) return()
+    
+    refits.df <- graph.data3()$edges.df
+    objects.df <- graph.data3()$objects.df
+    
+    
+    idx <- which(colnames(objects.df) %in% c("id", input$subset.variable, "spatial.variable",  "x", "y", "z"))
+    objects.df <- objects.df[ , idx]
+    
+    refits.df <- merge(refits.df, objects.df, by.x="id1", by.y="id")
+    refits.df <- merge(refits.df, objects.df, by.x="id2", by.y="id", suffixes=c(".from", ".to"))
+    
+    # add subset variables and values
+    refits.df$code <- "All"
+    if(input$subset.variable != "-"){
+      code.var <- refits.df[, grep(input$subset.variable, colnames(refits.df))] 
+      code.var <- apply(code.var, 1, function(x){
+        if(x[1] == x[2]){res <- x[1]} 
+        else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
+        res
+      })
+      refits.df$code <- code.var
+    }
+    
+    sample.var <- refits.df[, grep("spatial.variable", colnames(refits.df))] 
+    sample.var <- apply(sample.var, 1, function(x){
+      if(x[1] == x[2]){res <- x[1]} 
+      else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
+      res
+    } )
+    refits.df$sample <- sample.var
+    
+    refits.df$id <- paste(refits.df$id1, refits.df$id2, sep="-")
+    colnames(refits.df)[c(3:5, 7:9)] <- c("X1", "Y1", "Z1", "X2", "Y2", "Z2")
+    
+    refits.df[, c("id", "code", "sample", "X1", "Y1", "Z1", "X2", "Y2", "Z2")]
+  })
+  
+  
+  
+  fabryka.url <- reactive({
+    req(fabryka.data())
+    fabryka.url <- session$registerDataObj(name = "table",
+                                           data = fabryka.data(),
+                                           filterFunc = function(data, req) { 
+                                             shiny::httpResponse(200, "text/csv",
+                                                                 utils::write.csv2(data, row.names=FALSE)
+                                             )
+                                           })
+    object.id2 <- gsub(".*w=(.*)&nonce.*", "\\1", fabryka.url)
+    
+    data.url <- paste0(session$clientData$url_protocol, "//",
+                       session$clientData$url_hostname,
+                       session$clientData$url_pathname,
+                       object.id2, 
+                       "/session/", session$token, "/download/download.fabryka")
+    
+    
+    paste0("https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/?data=", data.url, "&dataType=5")
+  })
+  
+  output$fabryka.export <- renderUI({
+    req(fabryka.url())
+    
+    tagList(
+      "> Click here to ", 
+      actionLink("run.fabryka",
+                 label = "export data to fabryka.",
+                 onclick = paste("window.open('",
+                                 fabryka.url(), "', '_blank')")),
+      "Download data as a",
+      downloadLink("download.fabryka", " CSV"), " file."
+    )
+  })
+  
   # data set presentations ----
   output$dataset.presentation <- renderUI({
     if(input$use_example  %in% data.names) {
@@ -2479,20 +2561,19 @@ server <- function(input, output, session) {
     "Name" = sapply(fragments.datasets, get.data.comment,  1),
     "Fragments" = sapply(fragments.datasets, function(x) eval(parse(text = paste0("nrow(archeofrag::", x, ")")))),
     "Relations" = sapply(connection.datasets, function(x) eval(parse(text = paste0("nrow(archeofrag::", x, ")")))),
-    "Material" = sapply(fragments.datasets, get.data.comment, 2),
+    "Material" = tolower(sapply(fragments.datasets, get.data.comment, 2)),
     "Period" = sapply(fragments.datasets, get.data.comment, 3),
-    "Observed spatial variables" = sapply(fragments.datasets, get.data.comment, 4),
+    "Observed spatial variables" = as.numeric(sapply(fragments.datasets, get.data.comment, 4)),
     "doi" = sapply(fragments.datasets, function(x) paste0("<a href=https://doi.org/",
                                                           get.data.comment(x, 5),
                                                           " target=_blank>", 
                                                           get.data.comment(x, 5),
-                                                          "</a>")),
-    row.names = NULL
+                                                          "</a>"))
   )
-  
+  row.names(refit.summary) <- seq_len(nrow(refit.summary))
   
   output$datasetsTab <- DT::renderDT({ 
-    DT::datatable(refit.summary, rownames = FALSE,
+    DT::datatable(refit.summary, rownames = TRUE,
                   escape = 1:6,
                   style = "default",
                   selection = 'none',
@@ -2500,8 +2581,6 @@ server <- function(input, output, session) {
                                  pageLength = nrow(refit.summary)
                   )
     )
-    
-    
   })
   
 } # end server

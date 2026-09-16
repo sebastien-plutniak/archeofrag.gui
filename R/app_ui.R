@@ -154,9 +154,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   "<div style=width:40%;, align=left>
                                                    <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to account for physical distances between objects findplace (whatever the unit: metre, centimetre, inch, etc.). See   <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a> for details.</p>
                                                    <p>Note that these weighting options are <b>not</b> supported by the simulation function (in 'Simulations' tab), which computes cohesion values from the topology of the connection relationships only.</p>
-                                                  </div>"
+                                                  <p>Datasets with selected XYZ coordinates can be exported to the <a href=https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/ target=_blank><i>fabryka</i></a> application, to apply <a href=https://doi.org/10.5281/zenodo.15236694 target=_blank>fabric analysis</a> methods to the spatial orientation of the refitting relationships under study.</p>
+                                                  </div>",
                                                    ), #end HTML
-                                                   ) #end columns
+                                                  uiOutput("fabryka.export")
+                                                   ), #end column
                                                    ), # end fluidrow
                                                    fluidRow(
                                                    uiOutput("stats.title"),
@@ -907,8 +909,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <h2>About the TSAR method</h2>
                 <p>
                 <ul>
-                  <li><b>Plutniak, S. 2021</b>. '<a href=https://hal.archives-ouvertes.fr/hal-03419952 target=_blank>The Strength of Parthood Ties. Modelling Spatial Units and Fragmented Objects with the TSAR Method - Topological Study of Archaeological Refitting</a>', <i>Journal of Archaeological Science</i>, 136, p. 105501. doi: <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>10.1016/j.jas.2021.105501</a>.</li>
-                  <li><b>Plutniak, S. 2022c</b>. '<a href=http://www.prehistoire.org/offres/doc_inline_src/515/0-BSPF_2022_1_2e_partie_Correspondance_PLUTNIAK.pdf target=_blank>L'analyse topologique des remontages arch&#233;ologiques : la m&#233;thode TSAR et le package R archeofrag</a>', <i>BSPF</i>, 119 (1), p. 110-113.</li>
+                  <li><b>Plutniak, S. 2021</b>. '<a href=https://hal.archives-ouvertes.fr/hal-03419952 target=_blank>The Strength of Parthood Ties. Modelling Spatial Units and Fragmented Objects with the TSAR Method - Topological Study of Archaeological Refitting</a>', <i>Journal of Archaeological Science</i>, 136, 105501. doi: <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>10.1016/j.jas.2021.105501</a>.</li>
+                  <li><b>Plutniak, S. 2022c</b>. 'L'analyse topologique des remontages arch&#233;ologiques : la m&#233;thode TSAR et le package R archeofrag', <i>BSPF</i>, 119 (1), p. 110-113. doi: <a href=http://doi.org/10.3406/bspf.2022.15286 target=_blank>10.3406/bspf.2022.15286</a>.</li>
                   <li><b>Plutniak, S., J. Caro, C. Manen 2023</b>. '<a href=https://hal.science/hal-04355706 target=_blank>Four Problems for Archaeological Fragmentation Studies. Discussion and Application to the Tai Cave's Neolithic Pottery Material (France)</a>', in A. Sorman, A. Noterman, M. Fjellstrom (eds.) <i>Broken Bodies, Places and Objects. New Perspectives on Fragmentation in Archaeology</i>, London: Routledge, p. 124-142. doi: <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>10.4324/9781003350026-11</a>.</li>
                 </ul>
                 </p>
@@ -941,8 +943,16 @@ ui <- shinyUI(fluidPage(  # UI ----
                                           ), #end tabPanel   
                    tabPanel("Datasets", # DATASETS ----  
                             h2("Datasets"),
+                            HTML("Properties of archofrag embedded  datasets:
+                                 <ul>
+                                   <li><b>Material</b>: raw material(s), ordered by frequency.</li>
+                                   <li><b>Observed spatial variable(s)</b>: number of spatial variables documented in the dataset (e.g.  layer, trench, pit, etc.).</li>
+                                </ul>
+                                 "),
+                            br(),
                             column(12, align="center",
                                    DT::DTOutput("datasetsTab",  width="100%"), 
+                                   br()
                             ) # end column
                    ), #end dataset tabPanel      
                                           ), # end  tabsetPanel
