@@ -904,7 +904,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Plutniak, S. 2022a</b>. 'Archeofrag: an R package for Refitting and Spatial Analysis in Archaeology', <i>Journal of Open Source Software</i>, 7 (75), p. 4335. doi: <a href=https://doi.org/10.21105/joss.04335 target=_blank>10.21105/joss.04335</a>.</li>
                   <li><b>Plutniak, S. 2022b</b>. '<a href=https://rzine.gitpages.huma-num.fr/site/ressources/20220811_archeofrag_joss/ target=_blank>Archeofrag: un package R pour les remontages et l'analyse spatiale en arch&#233;ologie</a>', <i>Rzine</i>.</li>
                 </ul>
-                The open source programming code of this software is available on the <a target=_blank, href=https://cran.r-project.org/package=archeofrag>CRAN</a> and on <a target=_blank, href=https://github.com/sebastien-plutniak/archeofrag/>github</a>.
+                The programming code of these software is distributed openly: 
+                <ul>
+                  <li><i>archeofrag</i>: <a target=_blank, href=https://cran.r-project.org/package=archeofrag>CRAN</a>, <a target=_blank, href=https://github.com/sebastien-plutniak/archeofrag/>github</a>,  <a target=_blank, href=https://doi.org/10.5281/zenodo.4271900>zenodo</a> </li>
+                  <li><i>archeofrag.gui</i>: <a target=_blank, href=https://cran.r-project.org/package=archeofrag.gui>CRAN</a>, <a target=_blank, href=https://github.com/sebastien-plutniak/archeofrag.gui/>github</a>,  <a target=_blank, href=https://doi.org/10.5281/zenodo.14554894>zenodo</a></li>
+                  </ul>
                 </p>
                 <h2>About the TSAR method</h2>
                 <p>
@@ -916,8 +920,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                 </p>
                 <h2>Datasets</h2> 
                 <ul>
-                  <li><b>Rue Auguste Isaac 35</b>:  Pasty, J.-F. 2026. <i>Fouille du 35 rue Auguste Isaac (Lyon, France). Donn&#233;es lithiques des occupations &#233;pipal&#233;olithiques et m&#233;solithiques</i>. <i>Zenodo</i>. doi: <a href=https://doi.org/zenodo.22663886 target=_blank>zenodo.22663886</a>.</li>
-                  <li><b>Barger Gulch</b>:  Surovell T. A. 2020. 'Barger Gulch Locality B database. <i>tDAR</i>. doi: <a href=https://doi.org/10.48512/XCV8458541 target=_blank>10.48512/XCV8458541</a>.</li>
+                  <li><b>Barger Gulch</b>:  Surovell T. A. 2020. 'Barger Gulch Locality B database. <i>tDAR</i>. doi: <a href=https://doi.org/10.48512/xcv8458541 target=_blank>10.48512/xcv8458541</a>.</li>
                  <li><b>Bessinaudes</b>:  Chadelle J.-P. 2026. 'Archaeological data from the Bessinaudes (France) Middle Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22813948 target=_blank>10.5281/zenodo.22813948</a>. </li>
                   <li><b>Bout des Vergnes</b>:  Ihuel E. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, N. Mercier, A. Michel, F. Sellami. 2020. <i>Le Bout des Vergnes, Bergerac (Dordogne, Nouvelle-Aquitaine), Contournement ouest de Bergerac, RD 709</i>, Excavation report, Perigueux. </li>
                  <li><b>Champ-Parel 3</b>:  Chadelle J.-P. 2026. 'Archaeological data from the Champ Parel 3 (France) Upper Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22813987 target=_blank>10.5281/zenodo.22813987</a>. </li>
@@ -933,6 +936,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Liang Abu</b>: Plutniak S. 2021. 'Refitting Pottery Fragments from the Liang Abu Rockshelter, Borneo'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.4719577 target=_blank>10.5281/zenodo.4719577</a>.</li>
                   <li><b>Peyrazet</b>: Langlais M., V. Laroulandie, S. Costamagno, J.-B. Mallye, J.-M. P&#233;tillon, S. Rigaud. 2025. 'bdd_Peyrazet_Lot_France_fouilles2008_2015', <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.17870676 target=_blank>10.5281/zenodo.17870676</a>.</li>
                   <li><b>Rue Auguste Isaac 35</b>: Pasty J.-F. 2026. 'Fouille du 45 rue Auguste Isaac (Lyon, France). Donn&#233;es lithiques des occupations &#233;pipal&#233;olithiques et m&#233;solithiques', <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22663886 target=_blank>10.5281/zenodo.22663886</a>.</li>
+                  <li><b>Rue Auguste Isaac 35</b>:  Pasty, J.-F. 2026. <i>Fouille du 35 rue Auguste Isaac (Lyon, France). Donn&#233;es lithiques des occupations &#233;pipal&#233;olithiques et m&#233;solithiques</i>. <i>Zenodo</i>. doi: <a href=https://doi.org/zenodo.22663886 target=_blank>zenodo.22663886</a>.</li>
                   <li><b>St Cesaire 1987</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche &#224; Pierrot site (Saint-C&#233;saire, France), Excavations 1976-1987'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15638561 target=_blank>10.5281/zenodo.15638561</a>.</li>
                   <li><b>St Cesaire 2024</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche &#224; Pierrot site (Saint-C&#233;saire, France), Excavations 2013-2024'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15638691 target=_blank>10.5281/zenodo.15638691</a>.</li>
                   <li><b>Tai Cave</b> and <b>Tai South</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
