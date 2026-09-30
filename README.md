@@ -2,7 +2,7 @@ archeofrag.gui: Spatial Analysis in Archaeology from Refitting Fragments (GUI)
 =====
 
 A 'Shiny' application to access the functionalities and datasets of the 'archeofrag' package for spatial analysis in archaeology from refitting data. Quick and seamless exploration of archaeological refitting datasets, focusing on physical refits only. Features include: built-in documentation and convenient workflow, plot generation and exports, anomaly detection in the spatial distribution of refitting connection, exploration of spatial units merging solutions, simulation of archaeological site formation processes, support for parallel computing, R code generation to re-execute simulations and ensure reproducibility, code generation for the 'openMOLE' model exploration software.
-A demonstration version of the app is available [online](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag).
+A demonstration version of the app is available [online](https://analytics.huma-num.fr/archeofrag/).
 
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -23,7 +23,7 @@ A demonstration version of the app is available [online](https://analytics.huma-
 
 
 The [TSAR](https://doi.org/10.1016/j.jas.2021.105501) method (Topological Study of Archaeological Refitting) is a set of methods to evaluate and validate the distinctions between archaeological spatial units (e.g. layers) from the distribution and the topology of the refitting relationships between the fragments of objects contained in these units. 
-This method is implemented in the [`archeofrag`](https://github.com/sebastien-plutniak/archeofrag) R package, which is complemented by a GUI application, [`archeofrag.gui`](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/). 
+This method is implemented in the [`archeofrag`](https://github.com/sebastien-plutniak/archeofrag) R package, which is complemented by a GUI application, [`archeofrag.gui`](https://analytics.huma-num.fr/archeofrag/). 
 This R Shiny application implements and extend `archeofrag` functionalities, making the exploration of refitting dataset fast and easy. 
 
 [![Click to launch a demonstration](archeofraggui.png "Click to launch the app")](https://analytics.huma-num.fr/Sebastien.Plutniak/archeofrag/)
