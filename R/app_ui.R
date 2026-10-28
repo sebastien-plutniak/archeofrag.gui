@@ -168,15 +168,18 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="left",
                                                    HTML("
                                                         <ul>
+                                                          <li><b>N Objects</b>: number of connected sets of fragments.</li>   
                                                           <li><b>Fragments balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of fragments in the spatial unit whose label comes first alphanumerically.</li>   
                                                           <li><b>Objects balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of objects (i.e. sets of refitted fragments) in the spatial unit whose label comes first alphanumerically.</li>
-                                                          <li><b>Cohesion</b>:
+                                                          <li><b>Cohesion</b>: seing refitting relationships as spatial units' backbone, cohesion reflects how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports the units' identification.
                                                             <ul>
-                                                              <li>for a pair of spatial units, the measure of the consistency of each unit, how it is 'self-adherent' to itself (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>)</li>
-                                                              <li>for a single spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but minimal number of refits).  Weighting options are supported.</li>
+                                                              <li>For a <b>pair</b> of spatial units, a comparative measurement of each unit's cohesion (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>).</li>
+                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but minimal number of refits).</li>
                                                               </ul>
+                                                              Weighting options are supported in both cases.
                                                             </li>
                                                           <li><b>Cohesion diff.(erence)</b>: for a pair of spatial units, highest cohesion value minus lowest cohesion value. (See the 'Spatial units optimisation' tab for details.) </li>
+                                                          <li><b>Admixture</b>: for a pair of spatial units, 1 - (cohesion 1 + cohesion 2).</li>
                                                         </ul>
                                                         "),
                                                    ), # end column
@@ -940,7 +943,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>St Cesaire 1987</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche &#224; Pierrot site (Saint-C&#233;saire, France), Excavations 1976-1987'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15638561 target=_blank>10.5281/zenodo.15638561</a>.</li>
                   <li><b>St Cesaire 2024</b>: Morin E., S. Plutniak. 2025. 'Middle and Upper Palaeolithic Bone Refitting data from La Roche &#224; Pierrot site (Saint-C&#233;saire, France), Excavations 2013-2024'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15638691 target=_blank>10.5281/zenodo.15638691</a>.</li>
                   <li><b>Tai Cave</b> and <b>Tai South</b>:  Caro J., Plutniak S. 2022. 'Refitting and Matching Neolithic Pottery Fragments from the Tai site, France'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.7408706 target=_blank>10.5281/zenodo.7408706</a>.</li>
-                  <li><b>Villetoureix</b>: Chadelle, J.-P. 2026. 'Archaeological data from the Villetoureix (France) Upper Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22813846 target=_blank>10.5281/zenodo.22813846</a>.</li>
+                  <li><b>Villetoureix</b>: Michel A., J.-P Chadelle. 2026. 'Archaeological data from the Villetoureix (France) Upper Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22813846 target=_blank>10.5281/zenodo.22813846</a>.</li>
                   
                   
                   

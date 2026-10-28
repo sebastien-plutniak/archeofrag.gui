@@ -527,12 +527,14 @@ server <- function(input, output, session) {
     req(fabryka.url())
     
     tagList(
-      "> Click here to ", 
+      "> Click to ", 
       actionLink("run.fabryka",
-                 label = "export data to fabryka.",
+                 label = "export data to the 'fabryka' ",
                  onclick = paste("window.open('",
                                  fabryka.url(), "', '_blank')")),
-      "Download data as a",
+      "application.",
+      br(),
+      "> Download fabryka-compliant data as a",
       downloadLink("download.fabryka", " CSV"), " file."
     )
   })
@@ -552,8 +554,9 @@ server <- function(input, output, session) {
                   "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
                   "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
                   "<li><b>Fragments count</b>: ", igraph::gorder(graph.complete), "</li>",
-                  "<li><b>Connection count</b>: ", igraph::gsize(graph.complete), "</li>",
-                  "<li><b>Nr of observed spatial variable(s)</b>: ", comment(fragments.df)[4], "</li>",
+                  "<li><b>Fragment groups (objects) count</b>: ", igraph::count_components(graph.complete), "</li>",
+                  "<li><b>Refitting connection relationships count</b>: ", igraph::gsize(graph.complete), "</li>",
+                  "<li><b>Observed spatial variable(s) count</b>: ", comment(fragments.df)[4], "</li>",
                   "<li><b>Dataset DOI</b>: <a href=https://doi.org/",  comment(fragments.df)[5], "  target=_blank>", comment(fragments.df)[5],  "</a> </li>",
                   "</ul></div>"
       ))
@@ -1567,7 +1570,7 @@ server <- function(input, output, session) {
     }
     
     # ... run computation ----
-    # (Note this the slowest step of the workflow (and might be improved)
+    # (Note this is the slowest step of the workflow (and it might be improved)
     removeNotification("waiting.msg1")
     showNotification(HTML("Computing values for <b>", nrow(pairs)-1," solutions</b>... please wait."),
                      id = "waiting.msg2", duration = NULL, type = "message") # cf 'removeNotification'
