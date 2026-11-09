@@ -74,8 +74,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             HTML("<div style=width:40%;, align=left>
                 <h1><i>archeofrag.gui</i></h1>
                 <br>
-                <img width='100%' src=www/general-idea.png><br><br>
-                <p>
+                <img width='100%' src=www/general-idea.png><br><br>"),
+                uiOutput("dataset.presentation"),                                                
+                HTML("<p>
                 <h3>Aims</h3>
                  <i>archeofrag.gui</i> aids in assessing the <b>distinctions</b> between observed <b>archaeological spatial units</b> (e.g. layers, pits, etc.) and their <b>formation process</b> by examining the refitting relationships between fragments of objects contained in these units.
                  <ul>
@@ -106,20 +107,27 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <p>By default, the full fragmentation graph is studied. However, in the left menu select:
                      <ul>
                       <li>the <b>spatial variable</b>  to consider (i.e. the spatial unit containing the fragments),</li>
-                      <li>the <b>pair of spatial units</b> to consider: this selection determines the plot generated in the 'Visualisation' tab and the simulation presets in the 'Simulation' tab.</li>
+                      <li>the <b>pair of spatial units</b> to consider: this selection determines the plot generated in the 'Visualisation' tab and the simulation presets in the 'Site formation simulation' tab.</li>
                       <li>Optionally, the dataset can be subsetted by selecting a variable and some of its values.</li>
                     </ul>
                   </p>
-                <h3>Measurements</h3>
-                <p>In this tab, statistics are reported for all pairs of spatial units for the selected 'Spatial variable': number of fragments and refitting relationships, etc. The <b>cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results. Using admixture values helps  detecting anomaly in the spatial distribution of refitting connection.</p>
+                <h3>Visualisation & orientation analysis</h3>
+                <p>
+                  In this tab, visualise and check the selected data for first <b>graphical explorations</b>. Fragments and their connection relationships can be ploted to highlight either the  fragmentation graph <b>topology</b> or their spatial distribution in the archaeological s<b>physical</b> space. Furthermore, data can be exported to a third-party application to apply fabrics analysis methods to the <b>orientation</b> of the connection relationships.
+                </p>                  
+                <h3>Spatial units cohesion analysis</h3>
+                <p>In this tab, statistics are reported for all pairs of spatial units documented in the selected 'Spatial variable': number of fragments and refitting relationships, etc.  <b>Cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results.
+                </p>
+                <p>Admixture values helps for <b>anomaly detection</b> in the spatial units ordering and/or spatial distribution of refitting connection.</p>
+                <p>Methods are also offered to assess the <b>sensibility</b> and robustness of the cohesion measure.</p>
                 <h3>Spatial units optimisation</h3>
                 <p> The spatial units defined in the input dataset might need critical revision. This tab allows
                 <ol>
                   <li> for the <b>fast exploration</b> of multiple options to merge those spatial units,</li>
-                  <li>  <b>modifying</b> the dataset by merging a selection of spatial units (which are then available from <i>archeofrag.gui</i>'s functionalities).</li>
+                  <li>  <b>modifying</b> the dataset by merging a selection of spatial units (which are then available from other <i>archeofrag.gui</i>'s functionalities).</li>
                 </ol>  
                   </p>
-                <h3>Comparison with simulated data</h3>
+                <h3>Site formation simulation</h3>
                 <p>This tab presents functions to investigate the formation process of the selected pair of spatial units. 
                 Simulation is used to compare it to similar artificial data while controlling differences in some parameters.
                 Here, the chosen pair of spatial units is compared to simulated data generated under two formation hypotheses:
@@ -133,11 +141,52 @@ ui <- shinyUI(fluidPage(  # UI ----
                 </div>"))
                                                    ) # end column
                                           ), #end tabPanel
-                                          
-                                          tabPanel("Measurements", # MEASUREMENTS ----
+                tabPanel("Visualisation & orientation analysis", # VISUALISATION ----
+                         fluidRow(
+                           h1("Coordinates selection"),
+                           column(2),
+                           column(2, uiOutput("x.plot.selector")),
+                           column(2, uiOutput("y.plot.selector")),
+                           column(2, uiOutput("z.plot.selector"))
+                         ), #end fluidrow
+                         fluidRow(
+                           h1("Orientation analysis"),
+                           column(10, align="center",
+                                  HTML("<div  style=width:50%;, align=left>",
+                                       "To apply <a href=https://doi.org/10.5281/zenodo.15236694 target=_blank>fabric analysis</a> methods to the spatial orientation of the refitting relationships with the <a href=https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/ target=_blank><i>fabryka</i></a> application, select three variables for X, Y, and Z coordinate:
+                                    <ul><li>"),
+                                      uiOutput("fabryka.export2"),
+                                  HTML("</li></li><li>"),
+                                        uiOutput("fabryka.export1"),
+                                  HTML("</li></ul></div>")
+                           )  #end column
+                          ), #end fluidrow
+                           fluidRow(
+                             h1("Fragmentation graph visualisation"),
+                             column(10, align="center",
+                                  HTML("<div  style=width:50%;, align=left>"),
+                                  uiOutput("visualisation.title"),
+                                  HTML("By default, node positions are optimised by the graph drawing method and <b>do not</b> reflect fragments' position in the archaeological space. 
+                                  <ul>
+                                      <li>To represent those positions, select two variables to plot as X and Y coordinates.</li>
+                                  </ul>"),
+                                  HTML("</li></ul></div>")
+                           ) # end column
+                         ), # end fluidrow,
+                         fluidRow(
+                           column(10, align="center",
+                                  sliderInput("node.size", "Node size", min=1, max=6, value=3),
+                                  br(),
+                                  uiOutput("frag.graph.viz.download.button"),
+                                  imageOutput("frag.graph.viz.plot", height = "800px", width= "100%")
+                           ) #end column
+                         ) # end fluidrow
+                ), #end tabPanel                                          
+                                          tabPanel("Spatial units cohesion analysis", # COHESION ANALYSIS ----
+                                               tabsetPanel(id="cohesion", 
+                                                 tabPanel("Measurements", # Measurements ----
                                                    fluidRow(
                                                    column(10, align="center",
-                                                   uiOutput("dataset.presentation"),
                                                    uiOutput("rubish.text"),
                                                    ) # end column
                                                    ), #end fluidrow
@@ -146,18 +195,18 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                      column(2, uiOutput("morpho.selector")),
                                                      column(2, uiOutput("x.selector")),
                                                      column(2, uiOutput("y.selector")),
-                                                     column(2, uiOutput("z.selector"))
+                                                     column(2, uiOutput("z.selector")),
                                                    ), #end fluidrow
                                                    fluidRow(
+                                                   uiOutput("weightingWarning"),
+                                                   br(),
                                                    column(10, align="center",
                                                    HTML(
                                                   "<div style=width:40%;, align=left>
-                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to account for physical distances between objects findplace (whatever the unit: metre, centimetre, inch, etc.). See   <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a> for details.</p>
-                                                   <p>Note that these weighting options are <b>not</b> supported by the simulation function (in 'Simulations' tab), which computes cohesion values from the topology of the connection relationships only.</p>
-                                                  <p>Datasets with selected XYZ coordinates can be exported to the <a href=https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/ target=_blank><i>fabryka</i></a> application, to apply <a href=https://doi.org/10.5281/zenodo.15236694 target=_blank>fabric analysis</a> methods to the spatial orientation of the refitting relationships under study.</p>
+                                                   <p>Use the <b>morphometry</b> variable to include any sort of morpho-metrical information about the objects in the computation (e.g. length, surface, volume, weight). Use at least two <b>coordinates</b> to account for physical distances between objects findplace (whatever the unit: metre, centimetre, inch, etc.). See <a href=https://doi.org/10.4324/9781003350026-1 target=_blank>Plutniak <i>et al.</i> 2023</a> for details.</p>
+                                                   <p>Note that the weighting options are <b>not</b> supported: in the absence of at least two spatial units, and by the simulation functions (in the 'Assemblage formation simulations' tab). In these cases, cohesion values are computed only based on the topology of the connection relationships.</p>
                                                   </div>",
                                                    ), #end HTML
-                                                  uiOutput("fabryka.export")
                                                    ), #end column
                                                    ), # end fluidrow
                                                    fluidRow(
@@ -168,15 +217,14 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    column(10, align="left",
                                                    HTML("
                                                         <ul>
-                                                          <li><b>N Objects</b>: number of connected sets of fragments.</li>   
+                                                          <li><b>N groups</b>: number of connected sets of fragments.</li>   
                                                           <li><b>Fragments balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of fragments in the spatial unit whose label comes first alphanumerically.</li>   
                                                           <li><b>Objects balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of objects (i.e. sets of refitted fragments) in the spatial unit whose label comes first alphanumerically.</li>
-                                                          <li><b>Cohesion</b>: seing refitting relationships as spatial units' backbone, cohesion reflects how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports the units' identification.
+                                                          <li><b>Cohesion</b>: considering refitting relationships as spatial units' backbone, cohesion reflects how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports units' distinction from each other.
                                                             <ul>
                                                               <li>For a <b>pair</b> of spatial units, a comparative measurement of each unit's cohesion (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>).</li>
-                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but minimal number of refits).</li>
+                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but the minimal number of refits. NB: optional weightings are not used.).</li>
                                                               </ul>
-                                                              Weighting options are supported in both cases.
                                                             </li>
                                                           <li><b>Cohesion diff.(erence)</b>: for a pair of spatial units, highest cohesion value minus lowest cohesion value. (See the 'Spatial units optimisation' tab for details.) </li>
                                                           <li><b>Admixture</b>: for a pair of spatial units, 1 - (cohesion 1 + cohesion 2).</li>
@@ -274,21 +322,79 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ) # end column
                                                    ) #end fluidrow
                                           ), #end tabPanel
-                                          tabPanel("Visualisation", # VISUALISATION ----
+                                          tabPanel("Sensibility analysis", # Sensibility ----
                                                    fluidRow(
-                                                     h1("Fragmentation graph"),
+                                                     h1("Sensibility analysis"),
                                                      column(10, align="center",
-                                                       br(),
-                                                       HTML("<div  style=width:50%;, align=left>"),
-                                                       uiOutput("visualisation.title"),
-                                                       HTML("</div>"),
-                                                       br(),
-                                                       sliderInput("node.size", "Node size", min=1, max=6, value=3),
-                                                       br(),
-                                                       uiOutput("frag.graph.viz.download.button"),
-                                                       imageOutput("frag.graph.viz.plot", height = "800px", width= "100%")
-                                                     ) #end column
+                                                            HTML("<div  style=width:40%;, align=left>"),
+                                                            HTML("
+                                                            <h2>Presentation</h2>
+                                                            <h3>Question and method</h3>
+                                                            <p>
+                                                              "),
+                                                            uiOutput("sensibility.txt"),
+                                                            HTML("
+                                                              How robust is this result, considering that archaeological observations are certainly missing? The sensibility of the cohesion measure to missing observation is evaluated here by examining its variation under various percentages of connection relationships deletion from the fragmentation graph. 
+                                                            </p>
+                                                            <h3>Results interpretation</h3>
+                                                            <h4>General examination</h4>
+                                                            <p>
+                          Do the distribution eventually overlap from a certain percentage of removed connection relationships? 
+                          <ul>
+                            <li><b>No</b>, suggesting a robust ranking of the cohesion measures results.</li>
+                            <li><b>Yes</b>, suggesting a less reliable cohesion measure.</li>
+                          </ul>
+                          <i>Method: Compare the purple and green boxplots on the figure.</i>
+                          </p>
+                          
+                          <h4>Detailed examination</h4>
+                          <p>
+                          Do increasing the percentage of non observed connection relationships lead to:
+                          <ul>
+                            <li><b>Increased</b> or <b>reduced</b> cohesion differences from a paricular percentage in the series. This value offers a quantitative evaluation of the cohesion measure robustness.</li>
+                            <li> <b>No significant difference</b>, suggesting an overall robust and reliable cohesion measure</li>
+                          </ul>
+                          <i>Method: Compare the boxplots and the horizontal dotted red lines, corresponding to the initial measured cohesion values.</i>
+                                                              
+                                                            </p>      
+                                                            <h2>Parameters</h2>
+                                                           </div>")
+                                                     ) # end column,
+                                                   ), #end fluidrow
+                                                   fluidRow(
+                                                     column(2,
+                                                            sliderInput("sensibilityRange",
+                                                                        label = "Missing information (%)",
+                                                                        min = 0, max=50,
+                                                                        value = c(0, 25),
+                                                                        step = 1)),
+                                                     column(1,
+                                                            sliderInput("sensibilityStep",
+                                                                        label = "Step (%)",
+                                                                        min = 1, max=10,
+                                                                        value = 5,
+                                                                        step = 1)),
+                                                     column(1,
+                                                            numericInput("sensibilityReplications",
+                                                                         label = "Replications",
+                                                                         min=30, max=1000,
+                                                                         value = 60)),
+                                                     column(1,
+                                                            numericInput("sensibilitySeed", "Seed", value=NULL, min=1, max=50),
+                                                            ),
+                                                     column(1,
+                                                            actionButton("goSensibility", "Run"), style="padding:27px;")
+                                                   ), #end fluidrow
+                                                   fluidRow(
+                                                     column(12, align="center",
+                                                            imageOutput("sensibility.plot", height = "500px"),
+                                                            br(),
+                                                            uiOutput("sensibility.plot.download.button"),
+                                                            br()
+                                                            ) #end column
                                                    ) # end fluidrow
+                                          ), #end tabPanel
+                                        ), #end tabSetpanel
                                           ), #end tabPanel
                                           tabPanel("Spatial units optimisation", # SPATIAL UNITS OPTIMISATION ----
                                                    fluidRow(
@@ -351,7 +457,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ) # end column
                                                    )#end fluidrow
                                           ), #end tabPanel
-                                          tabPanel("Simulations", # SIMULATIONS ---- 
+                                          tabPanel("Site formation simulation", # SITE FORMATION SIMULATION ---- 
                                                    tabsetPanel(id="simul", 
                                                    tabPanel("Introduction", # Introduction ----  
                                                    fluidRow(
@@ -894,6 +1000,20 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ), #end 'OM code' tabPanel
                                                    ), # end tabsetPanel
                                           ), # end tabPanel
+                   tabPanel("Datasets", # DATASETS ----  
+                            h2("Datasets"),
+                            HTML("Properties of archofrag embedded  datasets:
+                                 <ul>
+                                   <li><b>Material</b>: raw material(s), ordered by frequency.</li>
+                                   <li><b>Observed spatial variable(s)</b>: number of spatial variables documented in the dataset (e.g.  layer, trench, pit, etc.).</li>
+                                </ul>
+                                 "),
+                            br(),
+                            column(12, align="center",
+                                   DT::DTOutput("datasetsTab",  width="100%"), 
+                                   br()
+                            ) # end column
+                   ), #end dataset tabPanel  
                                           tabPanel("References", # REFERENCES ----  
                                                    column(10, align="center",
                                                           tags$div(
@@ -928,6 +1048,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                   <li><b>Bout des Vergnes</b>:  Ihuel E. (dir.),  M. Baillet, A. Barbeyron, M. Brenet, H. Camus, E. Claud, N. Mercier, A. Michel, F. Sellami. 2020. <i>Le Bout des Vergnes, Bergerac (Dordogne, Nouvelle-Aquitaine), Contournement ouest de Bergerac, RD 709</i>, Excavation report, Perigueux. </li>
                  <li><b>Champ-Parel 3</b>:  Chadelle J.-P. 2026. 'Archaeological data from the Champ Parel 3 (France) Upper Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22813987 target=_blank>10.5281/zenodo.22813987</a>. </li>
                   <li><b>Chauzeys</b>: Chadelle J.-P. 2026. 'Archaeological data from the Chauzeys (France) Palaeolithic occupation (lithic material description and refits)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22814035 target=_blank>10.5281/zenodo.22814035</a>. </li>
+                  <li><b>Cova Gran 7P</b>: Sanchez-Martinez J. 2026. 'Needle-thin: reconstructing on-edge microblade production and contextual integrity through lithic refitting in the Magdalenian of Cova Gran de Santa Linya (SE Pyrenees)'. <i>OSF</i>. doi: <a href=https://doi.org/10.17605/osf.io/zu4e3 target=_blank>10.17605/osf.io/zu4e3</a>. </li>
                   <li><b>Cuzoul de Gramat</b>: Gardeur M. 2025. 'Bone refits from the Cuzoul de Gramat Mesolithic layers (archaeological site, France)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.14975910 target=_blank>10.5281/zenodo.14975910</a>.</li>
                   <li><b>Eaton</b>: Engelbrecht W. 2014. 'Madison Point Refits'. <i>tDAR</i>. doi: <a href=https://doi.org/10.6067/xcv8t43v1j target=_blank>10.6067/xcv8t43v1j</a>. See also Plutniak S. 2025. 'Reprocessing script for William Engelbrecht's 'Madison Point Refits' dataset (including generated tables and figures)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.15091301 target=_blank>10.5281/zenodo.15091301</a>.</li> 
                   <li><b>Etiolles D71</b>: Caron-Laviolette E. 2026. 'Lithic data from the D71 dwellings at Etiolles palaeolithic site (stone industries description and refitting)'. <i>Zenodo</i>. doi: <a href=https://doi.org/10.5281/zenodo.22663797 target=_blank>10.5281/zenodo.22663797</a>.</li>
@@ -953,20 +1074,6 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                                  </div>"))
                                                    ) # end column
                                           ), #end tabPanel   
-                   tabPanel("Datasets", # DATASETS ----  
-                            h2("Datasets"),
-                            HTML("Properties of archofrag embedded  datasets:
-                                 <ul>
-                                   <li><b>Material</b>: raw material(s), ordered by frequency.</li>
-                                   <li><b>Observed spatial variable(s)</b>: number of spatial variables documented in the dataset (e.g.  layer, trench, pit, etc.).</li>
-                                </ul>
-                                 "),
-                            br(),
-                            column(12, align="center",
-                                   DT::DTOutput("datasetsTab",  width="100%"), 
-                                   br()
-                            ) # end column
-                   ), #end dataset tabPanel      
                                           ), # end  tabsetPanel
                               width=10) # end mainPanel
                           ) #sidebarLayout

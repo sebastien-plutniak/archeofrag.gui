@@ -8,6 +8,7 @@ server <- function(input, output, session) {
   x.var <- NULL
   y.var <- NULL
   z.var <- NULL
+  edges.to.remove <- NULL
   
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
@@ -96,6 +97,13 @@ server <- function(input, output, session) {
   })
   
   
+  spatial.variable <- reactiveVal("-")
+  graph.complete <- reactiveVal()
+  graph.complete.init <- reactiveVal()
+  graph.list <- reactiveVal()
+  sensibility.res <- reactiveVal()
+  sensibility.plot <- reactiveVal()
+  
   graph.data <- reactive({
     req(input$use_example)
     
@@ -122,8 +130,15 @@ server <- function(input, output, session) {
       }
     }
     
+    spatial.variable("-")  
+    graph.complete(NULL) 
+    graph.complete.init(NULL)
+    sensibility.res(NULL)
+    sensibility.plot(NULL)
+    
     list("objects.df"=objects.df, "edges.df"=edges.df)
   })
+  
   
   # spatial variable selector ----
   output$variable.selector <- renderUI({
@@ -141,16 +156,22 @@ server <- function(input, output, session) {
                 choices = choices.val, width= "90%")
   })
   
+  
+  observe({
+    req(input$spatial.variable)
+    spatial.variable(input$spatial.variable)
+  })
+  
   graph.data2 <- reactive({ # add spatial variable ----
-    req(graph.data, input$spatial.variable)
+    req(graph.data, spatial.variable())
     
     g.data <- graph.data()
     objects.df <- g.data$objects.df
     
-    if(input$spatial.variable == "-" | ! input$spatial.variable %in% colnames(objects.df)){
+    if(spatial.variable() == "-" | ! spatial.variable() %in% colnames(objects.df)){
       objects.df$spatial.variable <- "Full graph"
     } else {
-      objects.df$spatial.variable <- as.character(eval(parse(text = paste0("objects.df$", input$spatial.variable ))))
+      objects.df$spatial.variable <- as.character(eval(parse(text = paste0("objects.df$", spatial.variable() ))))
     }
     
     
@@ -268,12 +289,44 @@ server <- function(input, output, session) {
                 choices = choices.val, width= "90%")
   })
   
-  # MAKE GRAPH LIST----
-  graph.complete <- reactiveVal()
-  graph.complete.init <- reactiveVal() # save copy to retrieve it with the 'reset' button
+  # ... x.plot selector ----
+  output$x.plot.selector <- renderUI({
+    req(graph.data3())
+    
+    choices.val <- c("-", names(graph.data()$objects.df))
+    choices.val <- choices.val[ ! tolower(choices.val) == "id"]
+    
+    selectInput("x.plot.variable", "X coordinates",
+                choices = choices.val, width= "90%")
+  })
   
+  # ... y.plot selector ----
+  output$y.plot.selector <- renderUI({
+    req(graph.data3())
+    
+    choices.val <- c("-", names(graph.data()$objects.df))
+    choices.val <- choices.val[ ! tolower(choices.val) == "id"]
+    
+    selectInput("y.plot.variable", "Y coordinates",
+                choices = choices.val, width= "90%")
+  })
+  
+  # ... z.plot selector ----
+  output$z.plot.selector <- renderUI({
+    req(graph.data3())
+    
+    choices.val <- c("-", names(graph.data()$objects.df))
+    choices.val <- choices.val[ ! tolower(choices.val) == "id"]
+    
+    selectInput("z.plot.variable", "Z coordinates",
+                choices = choices.val, width= "90%")
+  })
+  
+  
+  # MAKE GRAPH LIST----
+
   observe({
-    req(graph.data3, input$spatial.variable)
+    req(graph.data3, spatial.variable())
     
     g.data <- graph.data3()
     if(is.null(g.data) | is.null(g.data$objects.df)) return()
@@ -435,8 +488,35 @@ server <- function(input, output, session) {
   })
   
   
-  # MEASUREMENT-----
   
+  # data set presentations ----
+  output$dataset.presentation <- renderUI({
+    req(graph.data(), graph.complete())
+    
+    if(input$use_example  %in% data.names) {
+      graph.data <- graph.data()
+      fragments.df <- graph.data$objects.df
+      edges.df <- graph.data$edges.df
+      graph.complete <- graph.complete()
+      
+      HTML(paste0(" <div align=left>
+                  <h1>Data presentation: ", comment(fragments.df)[1], "</h1>",
+                  "<ul>",
+                  "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
+                  "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
+                  "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
+                  "<li><b>Fragments</b>: ", igraph::gorder(graph.complete), "</li>",
+                  "<li><b>Fragment groups</b>: ", igraph::count_components(graph.complete), "</li>",
+                  "<li><b>Refitting connection relationships</b>: ", igraph::gsize(graph.complete), "</li>",
+                  "<li><b>Observed spatial variable(s)</b>: ", comment(fragments.df)[4], "</li>",
+                  "<li><b>Dataset DOI</b>: <a href=https://doi.org/",  comment(fragments.df)[5], "  target=_blank>", comment(fragments.df)[5],  "</a> </li>",
+                  "</ul></div>"
+      ))
+    }
+  })
+  
+  # COHESION ANALYSIS-----
+# 1) Measurements ----
   #  UI elements ----
   
   output$stats.title <- renderUI({
@@ -450,125 +530,15 @@ server <- function(input, output, session) {
   }) 
   
   
-  # fabryka export ----
-  
-  fabryka.data <- reactive({
-    req(graph.complete())
-
-    check <- c(input$x.variable, input$y.variable, input$z.variable) %in% names(igraph::vertex_attr(graph.complete()))
-  
-    if( ! sum(check) == 3) return()
-    
-    refits.df <- graph.data3()$edges.df
-    objects.df <- graph.data3()$objects.df
-    
-    
-    idx <- which(colnames(objects.df) %in% c("id", input$subset.variable, "spatial.variable",  "x", "y", "z"))
-    objects.df <- objects.df[ , idx]
-    
-    refits.df <- merge(refits.df, objects.df, by.x="id1", by.y="id")
-    refits.df <- merge(refits.df, objects.df, by.x="id2", by.y="id", suffixes=c(".from", ".to"))
-    
-    # add subset variables and values
-    refits.df$code <- "All"
-    if(input$subset.variable != "-"){
-      code.var <- refits.df[, grep(input$subset.variable, colnames(refits.df))] 
-      code.var <- apply(code.var, 1, function(x){
-        if(x[1] == x[2]){res <- x[1]} 
-        else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
-        res
-      })
-      refits.df$code <- code.var
-    }
-    
-    sample.var <- refits.df[, grep("spatial.variable", colnames(refits.df))] 
-    sample.var <- apply(sample.var, 1, function(x){
-      if(x[1] == x[2]){res <- x[1]} 
-      else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
-      res
-    } )
-    refits.df$sample <- sample.var
-    
-    refits.df$id <- paste(refits.df$id1, refits.df$id2, sep="-")
-    colnames(refits.df)[c(3:5, 7:9)] <- c("X1", "Y1", "Z1", "X2", "Y2", "Z2")
-    
-    refits.df[, c("id", "code", "sample", "X1", "Y1", "Z1", "X2", "Y2", "Z2")]
-  })
-  
-  output$download.fabryka <- downloadHandler(
-    filename = "fabryka.csv",
-    content = function(file) {
-      utils::write.csv2(fabryka.data(), file, row.names = FALSE)
-    }
-  )
-  
-  fabryka.url <- reactive({
-    req(fabryka.data())
-    fabryka.url <- session$registerDataObj(name = "table",
-                                           data = fabryka.data(),
-                                           filterFunc = function(data, req) { 
-                                             shiny::httpResponse(200, "text/csv",
-                                                                 utils::write.csv2(data, row.names=FALSE)
-                                             )
-                                           })
-    object.id2 <- gsub(".*w=(.*)&nonce.*", "\\1", fabryka.url)
-    
-    data.url <- paste0(session$clientData$url_protocol, "//",
-                       session$clientData$url_hostname,
-                       session$clientData$url_pathname,
-                       object.id2, 
-                       "/session/", session$token, "/download/download.fabryka")
-    
-    
-    paste0("https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/?data=", data.url, "&dataType=5")
-  })
-  
-  output$fabryka.export <- renderUI({
-    req(fabryka.url())
-    
-    tagList(
-      "> Click to ", 
-      actionLink("run.fabryka",
-                 label = "export data to the 'fabryka' ",
-                 onclick = paste("window.open('",
-                                 fabryka.url(), "', '_blank')")),
-      "application.",
-      br(),
-      "> Download fabryka-compliant data as a",
-      downloadLink("download.fabryka", " CSV"), " file."
-    )
-  })
-  
-  # data set presentations ----
-  output$dataset.presentation <- renderUI({
-    if(input$use_example  %in% data.names) {
-      graph.data <- graph.data()
-      fragments.df <- graph.data$objects.df
-      edges.df <- graph.data$edges.df
-      graph.complete <- graph.complete()
-      
-      HTML(paste0(" <div align=left>
-                  <h1>Data set presentation: ", comment(fragments.df)[1], "</h1>",
-                  "<ul>",
-                  "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
-                  "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
-                  "<li><b>Material</b>: ", comment(fragments.df)[2], "</li>",
-                  "<li><b>Fragments count</b>: ", igraph::gorder(graph.complete), "</li>",
-                  "<li><b>Fragment groups (objects) count</b>: ", igraph::count_components(graph.complete), "</li>",
-                  "<li><b>Refitting connection relationships count</b>: ", igraph::gsize(graph.complete), "</li>",
-                  "<li><b>Observed spatial variable(s) count</b>: ", comment(fragments.df)[4], "</li>",
-                  "<li><b>Dataset DOI</b>: <a href=https://doi.org/",  comment(fragments.df)[5], "  target=_blank>", comment(fragments.df)[5],  "</a> </li>",
-                  "</ul></div>"
-      ))
-    }
-  })
   
   stats.table <- reactive({    # stats table ----
-    req(graph.list, input$morpho.variable)
+    req(graph.list(), input$morpho.variable)
     g.list <- graph.list()
     
     make.stat.table <- function(g, subset.variable, morpho.variable, x.variable, y.variable, z.variable){
       g.stats <- list(balance = NA, components.balance = NA)
+      
+      only.one.spatial.value <- length(unique(igraph::V(g)$spatial.variable)) == 1
       
       if(igraph::gorder(g) > 6 & igraph::gsize(g) > 2){
         g.stats <- archeofrag::frag.get.parameters(g, layer.attr = "spatial.variable", verbose = FALSE)
@@ -589,7 +559,8 @@ server <- function(input, output, session) {
       subsets.names <- NA
       sp.units.names <- "Full graph"
       
-      if(length(unique(igraph::V(g)$spatial.variable)) == 1){
+      
+      if(only.one.spatial.value){
         cohesion.single <- cohesion
         cohesion.diff <- NA
         cohesion <- NA
@@ -604,7 +575,7 @@ server <- function(input, output, session) {
       stats.df <- data.frame(
         "Spatial units" = sp.units.names,
         "Subset" = subsets.names,
-        "N. Objects" =  as.integer(igraph::components(g)$no),
+        "N. Groups" =  as.integer(igraph::components(g)$no),
         "N. Fragments" = as.integer(igraph::gorder(g)),
         "N. Relations" = as.integer(igraph::gsize(g)),
         "Frag. Balance" = g.stats$balance,
@@ -620,7 +591,7 @@ server <- function(input, output, session) {
                                                                z.variable,
                                                                verbose = FALSE), 3)
       )
-      if(length(unique(igraph::V(g)$spatial.variable)) == 1){
+      if(only.one.spatial.value){
         stats.df <- stats.df[, ! apply(stats.df, 2, is.na)]
       } else{
         stats.df <- stats.df[ , ! names(stats.df) %in% c("Subset", "Cohesion")]
@@ -657,6 +628,21 @@ server <- function(input, output, session) {
     df
   })
   
+  
+  output$weightingWarning <- renderUI({
+    req(graph.complete())
+    
+    g <- graph.complete()
+    
+    only.one.spatial.value <- length(unique(igraph::V(g)$spatial.variable)) == 1
+    optional.weightings.are.used <- any(c(input$morpho.variable, input$x.variable, input$y.variable, input$z.variable) != "-")
+    
+    if(only.one.spatial.value & optional.weightings.are.used) {
+     "NB: There is only 1 spatial unit under study, optional weightings are not used."
+    }
+  })
+  
+  
   output$resultsTab <- DT::renderDT({ 
     req(stats.table)
     DT::datatable(stats.table(), rownames = FALSE, escape = FALSE, style = "default", selection = 'none',
@@ -664,7 +650,7 @@ server <- function(input, output, session) {
   })
   
   output$download.measurements.tab <- downloadHandler(
-    filename = paste0("archeofrag-measurements-", input$spatial.variable, ".csv"),
+    filename = paste0("archeofrag-measurements-", spatial.variable(), ".csv"),
     content = function(file) {
       write.csv(stats.table(), file, row.names = TRUE)
     }
@@ -674,7 +660,7 @@ server <- function(input, output, session) {
     req(stats.table)
     stats.tab <- stats.table()
     
-    if(input$spatial.variable == "-") return()
+    if(spatial.variable() == "-") return()
     
     rownames(stats.tab) <- stats.tab[, 1]
     stats.tab <- stats.tab[, c(7, 8)]
@@ -717,9 +703,9 @@ server <- function(input, output, session) {
   
   
   dissimilarityTab <- reactive({  # dissimilarity table ----
-    req(stats.table, graph.data3, input$spatial.variable)
+    req(stats.table, graph.data3, spatial.variable())
     
-    if(input$spatial.variable == "-") return()
+    if(spatial.variable() == "-" | nrow(stats.table()) == 1) return()
     
     stats.table <- stats.table()
     
@@ -763,7 +749,7 @@ server <- function(input, output, session) {
   
   
   output$download.dissimilarityTab <- downloadHandler(
-    filename = paste0("archeofrag-dissimilarity-", input$spatial.variable, ".csv"),
+    filename = paste0("archeofrag-dissimilarity-", spatial.variable(), ".csv"),
     content = function(file) {
       write.csv(dissimilarityTab(), file, row.names = TRUE)
     }
@@ -890,7 +876,7 @@ server <- function(input, output, session) {
     
     dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
                            sort = TRUE,
-                           main = toupper(input$spatial.variable),
+                           main = toupper(spatial.variable()),
                            margin_bottom = 11, margin_inner = 12,
                            lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                            main_left = "Observed", main_right = "Expected",
@@ -910,14 +896,14 @@ server <- function(input, output, session) {
   
   
   output$tanglegram.download <- downloadHandler(
-    filename = paste0("archeofrag-dissimilarity-tanglegram-", input$spatial.variable, "-",  selected.clustering.method.name(), ".svg"),
+    filename = paste0("archeofrag-dissimilarity-tanglegram-", spatial.variable(), "-",  selected.clustering.method.name(), ".svg"),
     content = function(file) {
       clustering.stats.df <- clustering.stats.df()
       idx <- clustering.stats.df[, 1] == names(clustering.method.names)[which(clustering.method.names == input$clustmethod)]
       grDevices::svg(file,  width = 10)
       dendextend::tanglegram(selected.tanglegrams()[[1]], selected.tanglegrams()[[2]],
                              sort = TRUE,
-                             main = toupper(input$spatial.variable),
+                             main = toupper(spatial.variable()),
                              margin_bottom = 11, margin_inner = 12,
                              lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                              main_left = "Observed", main_right = "Expected",
@@ -940,6 +926,152 @@ server <- function(input, output, session) {
   output$tanglegram.download.button <- renderUI({
     downloadButton("tanglegram.download", "Download as SVG")
   })
+  
+  
+  # 2) Sensibility -----
+  
+  sensibility.obs.cohesion <- reactive({
+    req(graph.selected())
+    
+    if(spatial.variable() == "-") return()
+    
+    g <- graph.selected()
+    g <- frag.edges.weighting(g, "spatial.variable")    
+    frag.layers.cohesion(g, "spatial.variable")
+  })
+  
+  
+  output$sensibility.txt <- renderText({
+    req(sensibility.obs.cohesion())
+    
+    sensibility.obs.cohesion <- sensibility.obs.cohesion()
+    
+    sp.units <- sort(unique(igraph::V(graph.selected())$spatial.variable))
+    
+   paste("Considering the selected pair of spatial units from the  <b>", spatial.variable(), "</b> variable,",
+          "the cohesion values computed from archaeologically observed data are:
+          <ul>
+              <li>", sensibility.obs.cohesion[1], 
+                    "for <font color=YellowGreen><b>", sp.units[1], "</b></font></li>",
+             "<li>", sensibility.obs.cohesion[2], 
+                   "for <font color=Purple><b>",       sp.units[2], "</b></font></li>",
+          "</ul>"
+          )  
+  })
+    
+  exec.sensibility <- function(g, edges.to.remove){
+    g <- igraph::delete_edges(g, sample(seq_len(igraph::gsize(g)), edges.to.remove, replace=FALSE))
+    igraph::delete_vertices(g, igraph::degree(g) == 0)
+  }
+  
+
+  
+observeEvent(input$goSensibility, { # run sensibility ####
+    req(input$sensibilityRange, graph.selected())
+
+    g <- graph.selected()
+
+    if( (input$sensibilityRange[2] - input$sensibilityRange[1]) / input$sensibilityStep < 1){
+      showNotification(HTML("Increase the <b>range values</b> or decrease the <b>step value</b>."),
+                       duration = 5, type = "warning")
+      return()
+    }
+    
+    edges.to.remove.perc <- seq(input$sensibilityRange[1],
+                                input$sensibilityRange[2], by = input$sensibilityStep) / 100
+
+    start.time <- Sys.time()  # save start time
+    showNotification(HTML("<b>Computing... please wait.</b>"), id = "waiting.msg", duration = NULL, type = "message") # see 'removeNotification' below
+
+    if(input$sensibilityReplications < 30 | input$sensibilityReplications > 1000) {
+      showNotification("The number of replication must be in [30, 1000].", type="warning")
+      return(NULL)
+    }
+
+    if( ! is.na(input$sensibilitySeed)){
+      doRNG::registerDoRNG(input$sensibilitySeed) # set seed if required
+    }
+
+
+    if(input$parallelize){
+      res <- foreach::foreach(edges.to.remove = edges.to.remove.perc, .combine='rbind') %:%
+        foreach::foreach(i = seq_len(input$sensibilityReplications),
+                                          .combine = "rbind", .errorhandling = "remove") %dopar%{
+                                            g <- exec.sensibility(g, ceiling(igraph::gsize(g) * edges.to.remove))
+                                            g <- frag.edges.weighting(g, "spatial.variable")
+                                            c(edges.to.remove, frag.layers.cohesion(g, "spatial.variable"))
+        }
+      } else {
+        res <- foreach::foreach(edges.to.remove = edges.to.remove.perc, .combine='rbind') %:%
+          foreach::foreach(i = seq_len(input$sensibilityReplications),
+                           .combine = "rbind", .errorhandling = "remove") %do%{
+                             g <- exec.sensibility(g, ceiling(igraph::gsize(g) * edges.to.remove))
+                             g <- frag.edges.weighting(g, "spatial.variable")
+                             c(edges.to.remove, frag.layers.cohesion(g, "spatial.variable"))
+                           }
+      }
+    
+      exec.time <- Sys.time() - start.time
+      removeNotification("waiting.msg")
+      
+      sp.units <- sort(unique(V(g)$spatial.variable))
+      res <- rbind(data.frame("perc" = res[, 1],
+                              "cohesion" = res[, 2], 
+                              "spatial.unit" = sp.units[1]),
+                   data.frame("perc" = res[, 1], 
+                              "cohesion" = res[, 3], 
+                              "spatial.unit" =  sp.units[2])
+      )
+      sensibility.res(res)
+  })
+
+
+observeEvent(input$goSensibility, {
+    req(sensibility.res())
+
+    sensibility.res <- sensibility.res()
+    if(is.null(sensibility.res)) return()
+    
+    sensibility.obs.cohesion <- sensibility.obs.cohesion()
+    
+    p <- ggplot2::ggplot(sensibility.res, 
+                    ggplot2::aes(x = factor(paste0(sprintf("%02s", .data[["perc"]] * 100), "%")),
+                                 y = .data[["cohesion"]], 
+                                 fill = .data[["spatial.unit"]],
+                                 )) +
+      ggplot2::theme_light(base_size = 12) +
+      ggplot2::geom_boxplot(show.legend = TRUE, linewidth=.3, size=.7, shape=21,
+                            position="nudge", alpha = .8) +
+      ggplot2::geom_hline(yintercept = sensibility.obs.cohesion[1], color = "red", linetype = 2) +
+      ggplot2::geom_hline(yintercept = sensibility.obs.cohesion[2], color = "red", linetype = 3) +
+      ggplot2::scale_fill_manual("Spatial units", values = c("yellowgreen", "purple")) +
+      ggplot2::xlab("% of deleted connection relationships") +
+      ggplot2::ggtitle(paste0("Sensibility analysis for: ",
+                              spatial.variable(), ", ",
+                              names(graph.list())[as.integer(input$units.pair)]))
+    
+    sensibility.plot(p)
+  })
+  
+
+output$sensibility.plot <- renderPlot({ sensibility.plot() })
+  
+
+output$sensibility.plot.download <- downloadHandler(
+    filename = paste0("archeofrag-sensibility-", spatial.variable(), "-",
+                      gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
+    content = function(file) {
+      ggplot2::ggsave(file, plot = sensibility.plot(), device = "svg", width=10, height=5, pointsize = 14)
+    }
+  )
+
+output$sensibility.plot.download.button <- renderUI({
+  if(is.null(sensibility.plot())) return()
+  downloadButton("sensibility.plot.download", "as SVG") 
+})
+
+
+  
   
   # SIMULATION ####
   
@@ -1161,7 +1293,7 @@ server <- function(input, output, session) {
   output$test.simul.cohesion.plot <- renderPlot({test.simul.cohesion.plot()})
   
   output$cohesion.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-cohesion-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-cohesion-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.cohesion.plot(), device = "svg", width=10, height=5, pointsize = 14)
@@ -1194,7 +1326,7 @@ server <- function(input, output, session) {
   output$test.simul.admixture.plot <- renderPlot({ test.simul.admixture.plot()  })
   
   output$admixture.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-admixture-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-admixture-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.admixture.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1224,7 +1356,7 @@ server <- function(input, output, session) {
   output$test.simul.edges.plot <- renderPlot({test.simul.edges.plot()})
   
   output$edges.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-relation-count-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-relation-count-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.edges.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1257,7 +1389,7 @@ server <- function(input, output, session) {
   output$test.simul.objects.plot <- renderPlot({test.simul.objects.plot()})
   
   output$objects.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-object-count-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-object-count-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.objects.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1306,7 +1438,7 @@ server <- function(input, output, session) {
   output$test.simul.frag.plot <- renderPlot({test.simul.frag.plot()})
   
   output$frag.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-fragment-count-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-fragment-count-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.frag.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1365,7 +1497,7 @@ server <- function(input, output, session) {
   output$test.simul.weights.plot <-  renderPlot({test.simul.weights.plot()})
   
   output$weights.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-weights-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-weights-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.weights.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1394,7 +1526,7 @@ server <- function(input, output, session) {
   output$test.simul.balance.plot <- renderPlot({test.simul.balance.plot()})
   
   output$balance.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-fragment-balance-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-fragment-balance-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       ggplot2::ggsave(file, plot = test.simul.balance.plot(), device = "svg", width=10, height=3, pointsize = 14)
@@ -1734,67 +1866,223 @@ server <- function(input, output, session) {
   
   
   # VISUALISATION ####
+  
+  # fabryka export ----
+  
+  fabryka.data <- reactive({
+    req(graph.complete())
+    
+    check <- c(input$x.plot.variable, input$y.plot.variable, input$z.plot.variable) %in% names(igraph::vertex_attr(graph.complete()))
+    
+    if( ! sum(check) == 3) return()
+    
+    refits.df <- graph.data3()$edges.df
+    objects.df <- graph.data3()$objects.df
+    
+    
+    idx <- which(colnames(objects.df) %in% c("id", input$subset.variable, "spatial.variable",  "x", "y", "z"))
+    objects.df <- objects.df[ , idx]
+    
+    refits.df <- merge(refits.df, objects.df, by.x="id1", by.y="id")
+    refits.df <- merge(refits.df, objects.df, by.x="id2", by.y="id", suffixes=c(".from", ".to"))
+    
+    # add subset variables and values
+    refits.df$code <- "All"
+    if(input$subset.variable != "-"){
+      code.var <- refits.df[, grep(input$subset.variable, colnames(refits.df))] 
+      code.var <- apply(code.var, 1, function(x){
+        if(x[1] == x[2]){res <- x[1]} 
+        else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
+        res
+      })
+      refits.df$code <- code.var
+    }
+    
+    sample.var <- refits.df[, grep("spatial.variable", colnames(refits.df))] 
+    sample.var <- apply(sample.var, 1, function(x){
+      if(x[1] == x[2]){res <- x[1]} 
+      else {res <- paste(sort(c(x[1], x[2])), collapse="-")}
+      res
+    } )
+    refits.df$sample <- sample.var
+    
+    refits.df$id <- paste(refits.df$id1, refits.df$id2, sep="-")
+    colnames(refits.df)[c(3:5, 7:9)] <- c("X1", "Y1", "Z1", "X2", "Y2", "Z2")
+    
+    refits.df[, c("id", "code", "sample", "X1", "Y1", "Z1", "X2", "Y2", "Z2")]
+  })
+  
+  output$download.fabryka <- downloadHandler(
+    filename = "fabryka.csv",
+    content = function(file) {
+      utils::write.csv2(fabryka.data(), file, row.names = FALSE)
+    }
+  )
+  
+  fabryka.url <- reactive({
+    req(fabryka.data())
+    fabryka.url <- session$registerDataObj(name = "table",
+                                           data = fabryka.data(),
+                                           filterFunc = function(data, req) { 
+                                             shiny::httpResponse(200, "text/csv",
+                                                                 utils::write.csv2(data, row.names=FALSE)
+                                             )
+                                           })
+    object.id2 <- gsub(".*w=(.*)&nonce.*", "\\1", fabryka.url)
+    
+    data.url <- paste0(session$clientData$url_protocol, "//",
+                       session$clientData$url_hostname,
+                       session$clientData$url_pathname,
+                       object.id2, 
+                       "/session/", session$token, "/download/download.fabryka")
+    
+    
+    paste0("https://analytics.huma-num.fr/Sebastien.Plutniak/fabryka/?data=", data.url, "&dataType=5")
+  })
+  
+  
+  output$fabryka.export1 <- renderUI({
+    req(graph.complete())
+    
+    fabryka.str <- HTML("<font color=grey>Click to export data to the 'fabryka' application.</font>")
+    
+    check <- c(input$x.plot.variable, input$y.plot.variable, input$z.plot.variable) %in% names(igraph::vertex_attr(graph.complete()))
+    
+    if(sum(check) == 3){
+      fabryka.str <- tagList(
+        "Click to ", 
+        actionLink("run.fabryka",
+                   label = "export data to the 'fabryka' ",
+                   onclick = paste("window.open('",
+                                   fabryka.url(), "', '_blank')")),
+        "application."
+      )
+    }
+    
+    fabryka.str
+  })
+  
+  
+  output$fabryka.export2 <- renderUI({
+    req(graph.complete())
+    
+    fabryka.str <- HTML("<font color=grey>Download fabryka-compliant data as a CSV file. </font>")
+    
+    check <- c(input$x.plot.variable, input$y.plot.variable, input$z.plot.variable) %in% names(igraph::vertex_attr(graph.complete()))
+    
+    if(sum(check) == 3){
+      fabryka.str <- tagList(
+        "Download fabryka-compliant data as a",
+        downloadLink("download.fabryka", " CSV"), " file.",
+      )
+    }
+    
+    fabryka.str
+  })
+  
+  # visualisation text ----
   output$visualisation.title <- renderText({
-    units.pair <- names(graph.list())[as.numeric(input$units.pair)]
     req(graph.selected())
+    
+    units.pair <- names(graph.list())[as.numeric(input$units.pair)]
     g <- graph.selected()
     
     conditional.color.text <- ""
     conditional.spatial.var.name <- "</b>"
     
-    if(length(units.pair) == 2){
+    if(length(unique(V(g)$spatial.variable)) == 2){
       conditional.color.text <- paste0("<li>colors: spatial units associated with the fragments (<b><font color=YellowGreen>green</font></b> for <b>",  
                                        gsub("^(.*)/.*", "\\1", units.pair), 
                                        "</b>, <b><font color=purple>purple</font></b> for <b>",
                                        gsub("^.*/(.*)", "\\1", units.pair), 
                                        "</b>)</li>")
       conditional.spatial.var.name <- paste0("</b> from the <b>",
-                                             input$spatial.variable, "</b> variable")
+                                             spatial.variable(), "</b> variable")
     }
     
-    paste0("Fragmentation graph for spatial units: <b>", units.pair, 
+    paste0("Fragmentation graph for spatial units <b>", units.pair, 
            conditional.spatial.var.name,
-           ". 
+           "</b> 
             <ul>
               <li>lines: connection relationships (n=", igraph::gsize(g), ")</li> 
               <li>nodes: fragments (n=", igraph::gorder(g), ")</li>",
            conditional.color.text,
-           "</ul>
-           Note that node positions are only determined by the graph drawing method and <b>do not</b> reflect fragments location in the archaeological site.
-           ")
+           "</ul>")
   })
   
+  
   frag.graph.viz <- reactive({   
-    req(graph.selected())
+    req(input$x.plot.variable, graph.selected())
+    
     g <- graph.selected()
-    igraph::E(g)$weight <- 1 # temporary workaround to deal with unexpected 'negative' weights from frag.edge.weight
+    igraph::E(g)$weight <- 1 # TODO: temporary workaround to deal with unexpected 'negative' weights from frag.edge.weight
+    use.coords <- input$x.plot.variable != "-" & input$y.plot.variable != "-"
+    if(use.coords){
+      
+      
+      coords <- cbind(igraph::vertex_attr(g, input$x.plot.variable),
+                      igraph::vertex_attr(g, input$y.plot.variable))
+      
+      v.to.delete <- ! complete.cases(coords)
+      
+      if(sum(v.to.delete) > 0){
+        coords <- coords[ ! v.to.delete, ]
+        g <- igraph::delete_vertices(g, v.to.delete)
+        
+        showNotification(HTML(paste0("Incomplete coordinates, ", 
+                                     sum(v.to.delete), " fragments removed.")), 
+                         duration = 5, type = "message")
+      }
+      
+      g$layout <- scale(as.matrix(coords))
+    }
+    
+    # remove the X,Y,Z attributes to avoid  conflict with plot() for graph with 1 spatial unit
+    v.attr <-  names(igraph::vertex_attr(g)) 
+    g <-  Reduce(igraph::delete_vertex_attr, v.attr[ v.attr %in%  c("x", "y", "z")], g)
+    
     g
   })
   
   output$frag.graph.viz.plot <- renderPlot({ 
-    g <- frag.graph.viz()
-    
-    v.attr <-  names(igraph::vertex_attr(g)) # remove these attributes to avoid unclear conflict with plot() for graph with 1 spatial unit
-    g <-  Reduce(igraph::delete_vertex_attr, v.attr[ v.attr %in%  c("x", "y", "z")], g)
-    
-    archeofrag::frag.graph.plot(g, layer.attr = "spatial.variable", node.size = input$node.size)
+    archeofrag::frag.graph.plot(frag.graph.viz(),
+                                layer.attr = "spatial.variable",
+                                node.size = input$node.size,
+                                main = gsub("-: ", "",
+                                            paste0(spatial.variable(), ": ", 
+                                                   names(graph.list())[as.numeric(input$units.pair)],
+                                                   "\n", 
+                                                   igraph::gorder(frag.graph.viz()), " fragments, ",
+                                                   igraph::gsize(frag.graph.viz()), " relationships")
+                                ) # end gsub
+    ) #end plot
   })
   
   
   output$frag.graph.viz.download <- downloadHandler(
-    filename = paste0("archeofrag-frag-graph-", input$spatial.variable, "-",
+    filename = paste0("archeofrag-frag-graph-", spatial.variable(), "-",
                       gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
     content = function(file) {
       grDevices::svg(file)
-      par(mar = c(0, 0, 0, 0) )
-      archeofrag::frag.graph.plot(frag.graph.viz(), layer.attr = "spatial.variable", node.size = input$node.size) 
+      par(mar = c(0, 0, 0, 0))
+      archeofrag::frag.graph.plot(frag.graph.viz(),
+                                  layer.attr = "spatial.variable",
+                                  node.size = input$node.size,
+                                  main = gsub("-: ", "",
+                                              paste0(spatial.variable(), ": ", 
+                                                     names(graph.list())[as.numeric(input$units.pair)],
+                                                     "\n", 
+                                                     igraph::gorder(frag.graph.viz()), " fragments, ",
+                                                     igraph::gsize(frag.graph.viz()), " relationships")
+                                  ) # end gsub
+      ) #end plot
       grDevices::dev.off()
     }
   )
   
   output$frag.graph.viz.download.button <- renderUI({
     if(is.null(frag.graph.viz())) return()
-    downloadButton("frag.graph.viz.download", "Download as SVG")
+    downloadButton("frag.graph.viz.download", "Download plot as SVG")
   })
   
   
