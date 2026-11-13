@@ -166,7 +166,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                              column(10, align="center",
                                   HTML("<div  style=width:50%;, align=left>"),
                                   uiOutput("visualisation.title"),
-                                  HTML("By default, node positions are optimised by the graph drawing method and <b>do not</b> reflect fragments' position in the archaeological space. 
+                                  HTML("By default, node positions are optimised by the graph drawing method and <b>do not</b> reflect their position within the archaeological space. 
                                   <ul>
                                       <li>To represent those positions, select two variables to plot as X and Y coordinates.</li>
                                   </ul>"),
@@ -223,7 +223,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <li><b>Cohesion</b>: considering refitting relationships as spatial units' backbone, cohesion reflects how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports units' distinction from each other.
                                                             <ul>
                                                               <li>For a <b>pair</b> of spatial units, a comparative measurement of each unit's cohesion (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>).</li>
-                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but the minimal number of refits. NB: optional weightings are not used.).</li>
+                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but the minimal number of refits. NB: optional weightings are not used).</li>
                                                               </ul>
                                                             </li>
                                                           <li><b>Cohesion diff.(erence)</b>: for a pair of spatial units, highest cohesion value minus lowest cohesion value. (See the 'Spatial units optimisation' tab for details.) </li>
@@ -279,16 +279,19 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         <ul>
                                                           <li>on the left, the clustering result obtained from <b>observed</b> refitting data,</li> 
                                                           <li>on the right, the clustering result obtained from the <b>expected</b> ordering of the spatial units (assuming no perturbation and an equal number of refits for all spatial units),</li>
-                                                          <li> in the middle of the figure, the lines connect the location of the spatial units in the two clustering results, highlighting differences.</li>
+                                                          <li> in the middle of the figure, connecting  lines join spatial units in the two clustering results.</li>
                                                       </ul>
-                                                          The difference between these results is evaluated using
+                                                        Red branches and connecting lines hightlight similar spatial units subgroups in the two dendrograms. 
+                                                        </p>
+                                                        <p>
+                                                          The quality of the comparison can be  evaluated using
                                                         <ul>
                                                          <li>
                                                         "),
                                                                span(`data-toggle` = "tooltip", `data-placement` = "left", title = " The cophenetic distance between two observations that have been clustered is defined to be the intergroup dissimilarity at which the two observations are first combined into a single cluster. A dendrogram is an appropriate summary of some data if the correlation between the original distances and the cophenetic distances is high. Click for more information.",
                                                           HTML("<a href=https://en.wikipedia.org/wiki/Cophenetic_correlation target=_blank>Cophenetic correlation</a>")
                                                                ), #end span
-                                                          HTML(": a quality measure for the dendrogram about observed refitting data (correlation between the observed dissimilarity and the dendrogram cophenetic distances). Values range between -1 to 1, with near 0 values meaning low quality.</li>
+                                                          HTML(": a quality measure regarding the 'observed refitting data' dendrogram   (correlation between the observed dissimilarity and the dendrogram cophenetic distances). Values range between -1 to 1, with near 0 values meaning low quality.</li>
                                                           <li>"),
                                                    span(`data-toggle` = "tooltip", `data-placement` = "left", title = "Entanglement measures how well the labels of two dendrograms are aligned, from 0 (fully aligned labels) to 1 (fully mismatched labels). It is computed by numbering the labels (1 to the total number of labels) of each dendrogram, and then computing the L-norm distance between these two vectors. Click for more information.",
                                                           HTML("<a href=https://cran.r-project.org/web/packages/dendextend/vignettes/dendextend.html#tanglegram target=_blank>Entanglement</a>")
@@ -352,7 +355,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                           Do increasing the percentage of non observed connection relationships lead to:
                           <ul>
                             <li><b>Increased</b> or <b>reduced</b> cohesion differences from a paricular percentage in the series. This value offers a quantitative evaluation of the cohesion measure robustness.</li>
-                            <li> <b>No significant difference</b>, suggesting an overall robust and reliable cohesion measure</li>
+                            <li> <b>No significant difference</b>, suggesting an overall robust and reliable cohesion measure.</li>
                           </ul>
                           <i>Method: Compare the boxplots and the horizontal dotted red lines, corresponding to the initial measured cohesion values.</i>
                                                               
@@ -1002,10 +1005,11 @@ ui <- shinyUI(fluidPage(  # UI ----
                                           ), # end tabPanel
                    tabPanel("Datasets", # DATASETS ----  
                             h2("Datasets"),
-                            HTML("Properties of archofrag embedded  datasets:
+                            HTML("Properties of the published refit datasets duplicated in the  <i>archeofrag</i> package:
                                  <ul>
+                                   <li><b>Relations</b>: number of connection relationships (i.e. physical refits)</li>
                                    <li><b>Material</b>: raw material(s), ordered by frequency.</li>
-                                   <li><b>Observed spatial variable(s)</b>: number of spatial variables documented in the dataset (e.g.  layer, trench, pit, etc.).</li>
+                                   <li><b>Spatial variable(s)</b>: number of archaeologically observed spatial variables (e.g. layer, trench, pit, etc.). NB: artificial spatial units are excluded (e.g. grid squares, excavation spits, etc.)</li>
                                 </ul>
                                  "),
                             br(),

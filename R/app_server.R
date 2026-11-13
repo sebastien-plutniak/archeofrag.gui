@@ -368,6 +368,7 @@ server <- function(input, output, session) {
         g.list <- lapply(input$subset.values, function(x){
           g  <- igraph::induced_subgraph(graph,
                                          igraph::vertex_attr(graph, input$subset.variable) == x)
+          g <- igraph::delete_vertices(g, igraph::degree(g) == 0)
           g <- igraph::set_graph_attr(g, "subset.name", x)
         })
         names(g.list) <- input$subset.values
@@ -379,6 +380,7 @@ server <- function(input, output, session) {
       return(g.list)
     }
     
+    if(length(sp.units) < 2) return()
     pairs <- utils::combn(sort(sp.units), 2)
     
     morpho.variable <- input$morpho.variable
@@ -667,37 +669,6 @@ server <- function(input, output, session) {
     
     archeofrag::frag.cohesion.ranking(stats.tab, add.math.signs = TRUE)
     
-    #  stats.tab$unit1 <- gsub("^(.*) / (.*)$", "\\1", stats.tab[, 1])
-    #  stats.tab$unit2 <- gsub("^(.*) / (.*)$", "\\2", stats.tab[, 1])
-    #  
-    #  sp.units <- unique(c(stats.tab$unit1, stats.tab$unit2))
-    #  
-    #  count <- apply(stats.tab, 1, function(x) x[c(11, 12)][order(x[c(7, 8)])[2] ] )
-    #  count <- sort(table(count), decreasing = TRUE)
-    #  count <- t(as.data.frame(count, stringsAsFactors = FALSE))
-    #  
-    #  sp.units <- sp.units[ ! sp.units %in% count[1, ]]
-    #  
-    #  count <- cbind(count, rbind(sp.units, 0))
-    #  count2 <- as.numeric(count[2, ])
-    #  names(count2) <- count[1, ]
-    #  
-    #  operators <- sapply(seq_len(length(count2) -1) ,  function(x)  count2[x + 1] - count2[x])
-    #  operators.char <- operators
-    #  operators.char[operators < 0 ] <- ">"
-    #  operators.char[operators == 0 ] <- "="
-    #  operators.char <- c(operators.char, "")
-    #  paste0(c(rbind(names(count2), operators.char)), collapse = " " ) 
-    #  
-    #  res <- rbind(
-    #    c(rbind(names(count2), operators.char)),
-    #    c(rbind(count2, rep("", length(count2))))
-    #  )
-    # 
-    # res <- data.frame(res)
-    # colnames(res) <- res[1,]
-    # rownames(res) <- c("", "Count")
-    # res[-1, ]
   }, rownames=TRUE, align="r")
   
   
@@ -712,7 +683,8 @@ server <- function(input, output, session) {
     stats.table$unit1 <- gsub("(.*) / .*", "\\1", stats.table[, 1])
     stats.table$unit2 <- gsub("^.* / (.*$)", "\\1", stats.table[, 1])
     
-    pairs <- utils::combn(sort(unique(c(stats.table$unit1, stats.table$unit2))), 2)
+    pairs <- sort(unique(c(stats.table$unit1, stats.table$unit2)))
+    pairs <- utils::combn(pairs, 2)
     pairs <- t(as.data.frame(pairs))
     pairs <- rbind(pairs, pairs[, c(2, 1)])
     
@@ -880,7 +852,10 @@ server <- function(input, output, session) {
                            margin_bottom = 11, margin_inner = 12,
                            lab.cex = 1.4, cex_main = 1.6, cex_sub = 1,
                            main_left = "Observed", main_right = "Expected",
-                           highlight_branches_lwd = FALSE, highlight_distinct_edges = FALSE)
+                           common_subtrees_color_branches = TRUE,
+                           common_subtrees_color_lines = T,
+                           highlight_branches_lwd = FALSE, 
+                           highlight_distinct_edges = FALSE)
     graphics::mtext(paste0("\n\n\n",
                            "Dissimilarity: 1 - admixture",
                            "\n",
@@ -2859,7 +2834,7 @@ output$sensibility.plot.download.button <- renderUI({
     "Relations" = sapply(connection.datasets, function(x) eval(parse(text = paste0("nrow(archeofrag::", x, ")")))),
     "Material" = tolower(sapply(fragments.datasets, get.data.comment, 2)),
     "Period" = sapply(fragments.datasets, get.data.comment, 3),
-    "Observed spatial variables" = as.numeric(sapply(fragments.datasets, get.data.comment, 4)),
+    "Spatial variables" = as.numeric(sapply(fragments.datasets, get.data.comment, 4)),
     "doi" = sapply(fragments.datasets, function(x) paste0("<a href=https://doi.org/",
                                                           get.data.comment(x, 5),
                                                           " target=_blank>", 

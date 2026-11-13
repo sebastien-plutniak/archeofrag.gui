@@ -2,9 +2,10 @@
 # archeofrag.gui 1.3.0
 Released: 
 
-* In the visualisation tab, coordinates can be used to plot the fragmentation graph.
 * Tabs are renamed and reorganised.
 * New 'Sensibility analysis' tab, to test the robustness of the cohesion measure.
+* In the visualisation tab, coordinates can be used to plot the fragmentation graph.
+* Fix bug: isolated nodes are now removed in single spatial unit graphs.   
 
 # archeofrag.gui 1.2.0
 Released: 2026-09-16
