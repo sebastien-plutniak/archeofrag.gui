@@ -119,7 +119,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                 <p>In this tab, statistics are reported for all pairs of spatial units documented in the selected 'Spatial variable': number of fragments and refitting relationships, etc.  <b>Cohesion</b> and <b>admixture</b> values are calculated using the TSAR method. Tables and figures facilitate the exploration of the results.
                 </p>
                 <p>Admixture values helps for <b>anomaly detection</b> in the spatial units ordering and/or spatial distribution of refitting connection.</p>
-                <p>Methods are also offered to assess the <b>sensibility</b> and robustness of the cohesion measure.</p>
+                <p>Methods are also offered to assess the <b>robustness</b> of the cohesion measures.</p>
                 <h3>Spatial units optimisation</h3>
                 <p> The spatial units defined in the input dataset might need critical revision. This tab allows
                 <ol>
@@ -220,14 +220,14 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                           <li><b>N groups</b>: number of connected sets of fragments.</li>   
                                                           <li><b>Fragments balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of fragments in the spatial unit whose label comes first alphanumerically.</li>   
                                                           <li><b>Objects balance</b>: considering only the fragments with connection relationships within their spatial unit, the proportion of objects (i.e. sets of refitted fragments) in the spatial unit whose label comes first alphanumerically.</li>
-                                                          <li><b>Cohesion</b>: considering refitting relationships as spatial units' backbone, cohesion reflects how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports units' distinction from each other.
+                                                          <li><b>Cohesion</b>: considering the network of refitting relationships as spatial units' backbone, cohesion measures reflect how much spatial units 'internally adhere' to themselves; in other words, the extent in which the available archaeological information (i.e. refits) supports units' distinction from each other  (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a> for details). Cohesion is a comparative measurement and can be computed in two ways:
                                                             <ul>
-                                                              <li>For a <b>pair</b> of spatial units, a comparative measurement of each unit's cohesion (see <a href=https://doi.org/10.1016/j.jas.2021.105501 target=_blank>Plutniak 2021</a>).</li>
-                                                              <li>For a <b>single</b> spatial unit, cohesion is computed by comparing the unit to its minimized copy (i.e. having the same number of fragments but the minimal number of refits. NB: optional weightings are not used).</li>
+                                                              <li>by <b>pair of spatial units</b>: a relative measurement of each unit's cohesion.</li>
+                                                              <li>by <b>spatial unit</b>: the unit is  compared to its minimized copy (i.e. having the same number of fragments but the minimal number of refits. NB: optional weightings are not used).</li>
                                                               </ul>
                                                             </li>
                                                           <li><b>Cohesion diff.(erence)</b>: for a pair of spatial units, highest cohesion value minus lowest cohesion value. (See the 'Spatial units optimisation' tab for details.) </li>
-                                                          <li><b>Admixture</b>: for a pair of spatial units, 1 - (cohesion 1 + cohesion 2).</li>
+                                                          <li><b>Admixture</b>: for a pair of spatial units 'A' and 'B', admixture is equal to <i>1 - (cohesion A + cohesion B)</i>.</li>
                                                         </ul>
                                                         "),
                                                    ), # end column
@@ -239,7 +239,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                   h1("Ranking of spatial units by cohesion"), # .. ranking ----
                                                   column(10, align="center",
                                                          HTML("<div  style=width:40%;, align=left> 
-                                                              Considering the series of spatial units pairs, the units are ranked based on the number of pairs where they have the higher cohesion value. Higher values suggest relatively better defined and reliable units in the series:
+                                                              Considering the series of spatial units pairs, the individual units are ranked based on the number of pairs where they have the higher cohesion value. Higher values suggest relatively better defined and reliable units in the series:
                                                               </div>"),
                                                          br(),
                                                          tableOutput("unit.ranks")
@@ -325,9 +325,9 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                    ) # end column
                                                    ) #end fluidrow
                                           ), #end tabPanel
-                                          tabPanel("Sensibility analysis", # Sensibility ----
+                                          tabPanel("Cohesion robustness analysis", # Robustness ----
                                                    fluidRow(
-                                                     h1("Sensibility analysis"),
+                                                     h1("Robustness analysis"),
                                                      column(10, align="center",
                                                             HTML("<div  style=width:40%;, align=left>"),
                                                             HTML("
@@ -335,64 +335,81 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             <h3>Question and method</h3>
                                                             <p>
                                                               "),
-                                                            uiOutput("sensibility.txt"),
+                                                            uiOutput("robustness.txt"),
                                                             HTML("
-                                                              How robust is this result, considering that archaeological observations are certainly missing? The sensibility of the cohesion measure to missing observation is evaluated here by examining its variation under various percentages of connection relationships deletion from the fragmentation graph. 
+                                                              However, this result is certainly based on incomplete archaeological information. How robust it is to missing observations? Here, the robustness of cohesion measurements is evaluated by examining their variation when different proportion  of connection relationships are removed from the fragmentation graph. To do so, use the 'range' and 'steps' value to define a series of missing observations percentages to evaluate and 'run' the computation.
                                                             </p>
-                                                            <h3>Results interpretation</h3>
-                                                            <h4>General examination</h4>
                                                             <p>
-                          Do the distribution eventually overlap from a certain percentage of removed connection relationships? 
+                                                              To make the computation reproducible, set a numerical value to use as a 'seed' for the random numbers generator. 
+                                                            </p>
+                                                            <h2>Results interpretation</h2>
+                                                            <h3>General examination</h3>
+                                                            <p>
+                          Do the two distributions overlap from a given percentage of removed connection relationships? 
                           <ul>
                             <li><b>No</b>, suggesting a robust ranking of the cohesion measures results.</li>
-                            <li><b>Yes</b>, suggesting a less reliable cohesion measure.</li>
+                            <li><b>Yes</b>, suggesting less reliable cohesion measurements.</li>
                           </ul>
-                          <i>Method: Compare the purple and green boxplots on the figure.</i>
+                          <i>Method: Compare the <font color=Purple>purple</font> and <font color=YellowGreen>green</font> results on the boxplot and density curves plot.</i>
                           </p>
                           
-                          <h4>Detailed examination</h4>
+                          <h3>Detailed examination</h3>
                           <p>
                           Do increasing the percentage of non observed connection relationships lead to:
                           <ul>
                             <li><b>Increased</b> or <b>reduced</b> cohesion differences from a paricular percentage in the series. This value offers a quantitative evaluation of the cohesion measure robustness.</li>
                             <li> <b>No significant difference</b>, suggesting an overall robust and reliable cohesion measure.</li>
                           </ul>
-                          <i>Method: Compare the boxplots and the horizontal dotted red lines, corresponding to the initial measured cohesion values.</i>
+                          <i>Method: Compare the initial measured cohesion values (red lines) and the generated values in the boxplots and the density curve plot.</i>
                                                               
                                                             </p>      
-                                                            <h2>Parameters</h2>
                                                            </div>")
                                                      ) # end column,
                                                    ), #end fluidrow
                                                    fluidRow(
+                                                     h1("Parameters"), # .. parameters ----
                                                      column(2,
-                                                            sliderInput("sensibilityRange",
-                                                                        label = "Missing information (%)",
+                                                            sliderInput("robustnessRange",
+                                                                        label = "Missing observation range (%)",
                                                                         min = 0, max=50,
                                                                         value = c(0, 25),
                                                                         step = 1)),
                                                      column(1,
-                                                            sliderInput("sensibilityStep",
+                                                            sliderInput("robustnessStep",
                                                                         label = "Step (%)",
                                                                         min = 1, max=10,
                                                                         value = 5,
                                                                         step = 1)),
                                                      column(1,
-                                                            numericInput("sensibilityReplications",
+                                                            numericInput("robustnessReplications",
                                                                          label = "Replications",
                                                                          min=30, max=1000,
                                                                          value = 60)),
                                                      column(1,
-                                                            numericInput("sensibilitySeed", "Seed", value=NULL, min=1, max=50),
+                                                            numericInput("robustnessSeed", "Seed", value=NULL, min=1, max=50),
                                                             ),
                                                      column(1,
-                                                            actionButton("goSensibility", "Run"), style="padding:27px;")
+                                                            actionButton("goRobustness", "Run"),
+                                                            style="padding:27px;")  #end column
                                                    ), #end fluidrow
                                                    fluidRow(
+                                                     h1("Results"), # .. results ----
+                                                     column(5, align="left",
+                                                            uiOutput("robustnessText")),
+                                                     column(1, align="left",
+                                                            uiOutput("robustness.res.download.button")
+                                                            ) #end column
+                                                   ), # end fluidrow
+                                                   fluidRow(
                                                      column(12, align="center",
-                                                            imageOutput("sensibility.plot", height = "500px"),
                                                             br(),
-                                                            uiOutput("sensibility.plot.download.button"),
+                                                            imageOutput("robustness.boxplot", height = "500px"),
+                                                            br(),
+                                                            uiOutput("robustness.boxplot.download.button"),
+                                                            br(),br(),
+                                                            imageOutput("robustness.densplot", height = "700px"),
+                                                            br(),
+                                                            uiOutput("robustness.densplot.download.button"),
                                                             br()
                                                             ) #end column
                                                    ) # end fluidrow
@@ -435,7 +452,8 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                             br(),
                                                             ), #end column
                                                      column(10, align="center",
-                                                            DT::DTOutput("optimisationTab",  width="90%"),
+                                                            DT::DTOutput("optimisationTab", width="90%"),
+                                                            downloadButton("optimisation.res.download", "as CSV")
                                                      ),
                                                      column(10, align="left",
                                                             HTML("
@@ -448,7 +466,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                         "),
                                                      ) #end column
                                                    ), # end fluidrow
-                                                   fluidRow( # merge units -----
+                                                   fluidRow( # .. merge units -----
                                                      h1(" Merge units"),
                                                      column(12, align = "center",
                                                             actionButton("mergeButton",
@@ -563,7 +581,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                     <p>
                       This tool enables simulating the formation process of two spatial units. Its advantages includes:
                       <ul>
-                        <li>Robustness: the parameters are based on observed evidence, no assumptions are required.</li>
+                        <li>Robustness: the parameters are based on observed evidence, no assumption is required.</li>
                         <li>Fast computation: it can be run on a personal computer.</li>
                       </ul>
                       However, it simulates what might have happen during the period of time spaning from a moment (undetermined) in the 'alteration phase' to the excavation event. (In other words, it does not cover not the assemblage's entire timespan from the deposition event to the excavation event.)
@@ -687,7 +705,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                       column(1,
                                                         span(`data-toggle` = "tooltip", `data-placement` = "bottom",
                                                            title = "If non null, seed for pseudorandom number generation. Executions with the same seed return the same results.",
-                                                           numericInput("seed", "Seed", value=NULL, min=1, max=50, width = "100%"),
+                                                           numericInput("simulSeed", "Seed", value=NULL, min=1, max=50, width = "100%"),
                                                         ), #end span
                                                       ), #end column
                                                       # column(2, 
@@ -706,7 +724,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                     h2("Cohesion by spatial unit"),
                                                     column(10, align="center",
                                                            HTML("<div style=width:40%;, align=left><p>
-                                                                Comparing cohesion values is the main purpose of the TSAR method. Because cohesion is a complex measurement combining multiple aspects, it is likely to reveal differences between compared hypotheses useful for archaeological interpretation. For each hypothesis (top and bottom part of the chart), compare the cohesion values observed for each spatial unit on the empirical graph (purple and yellow vertical bars) and the simulated values (purple and yellow density curves and boxplots).
+                                                                Comparing cohesion values is the main purpose of the TSAR method. Because cohesion is a complex measurement combining multiple aspects, it is likely to reveal differences between compared hypotheses useful for archaeological interpretation. For each hypothesis (top and bottom part of the chart), compare the cohesion values observed for each spatial unit on the empirical graph (<font color=Purple>purple</font> and <font color=YellowGreen>green</font> vertical bars) and the simulated values (<font color=Purple>purple</font> and <font color=YellowGreen>green</font> density curves and boxplots).
                                                                 </p></div>")
                                                            )),
                                                   fluidRow(column(10,

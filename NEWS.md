@@ -3,9 +3,10 @@
 Released: 
 
 * Tabs are renamed and reorganised.
-* New 'Sensibility analysis' tab, to test the robustness of the cohesion measure.
+* New 'Robustness analysis' tab, to test the stability of cohesion measures to missing information.
 * In the visualisation tab, coordinates can be used to plot the fragmentation graph.
 * Fix bug: isolated nodes are now removed in single spatial unit graphs.   
+* Revise seed management in 'Site formation simulation', ensuring identical results from parallel and sequential computation.
 
 # archeofrag.gui 1.2.0
 Released: 2026-09-16

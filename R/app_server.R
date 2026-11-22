@@ -9,6 +9,19 @@ server <- function(input, output, session) {
   y.var <- NULL
   z.var <- NULL
   edges.to.remove <- NULL
+  cohesion  <- NULL
+  random.seed <- NULL
+  
+  spatial.variable <- reactiveVal("-")
+  graph.complete <- reactiveVal()
+  graph.complete.init <- reactiveVal()
+  graph.list <- reactiveVal()
+  robustness.res <- reactiveVal()
+  robustness.densplot <- reactiveVal()
+  robustness.boxplot <- reactiveVal()
+  rng.robustness <- reactiveVal()
+  rng.simul <- reactiveVal()
+  robustness.exec.time <- reactiveVal()
   
   # parallelize box, count n workers
   output$parallelize.box <- renderUI({
@@ -97,13 +110,6 @@ server <- function(input, output, session) {
   })
   
   
-  spatial.variable <- reactiveVal("-")
-  graph.complete <- reactiveVal()
-  graph.complete.init <- reactiveVal()
-  graph.list <- reactiveVal()
-  sensibility.res <- reactiveVal()
-  sensibility.plot <- reactiveVal()
-  
   graph.data <- reactive({
     req(input$use_example)
     
@@ -133,8 +139,9 @@ server <- function(input, output, session) {
     spatial.variable("-")  
     graph.complete(NULL) 
     graph.complete.init(NULL)
-    sensibility.res(NULL)
-    sensibility.plot(NULL)
+    robustness.res(NULL)
+    robustness.boxplot(NULL)
+    robustness.densplot(NULL)
     
     list("objects.df"=objects.df, "edges.df"=edges.df)
   })
@@ -502,7 +509,7 @@ server <- function(input, output, session) {
       graph.complete <- graph.complete()
       
       HTML(paste0(" <div align=left>
-                  <h1>Data presentation: ", comment(fragments.df)[1], "</h1>",
+                  <h2>Data presentation: ", comment(fragments.df)[1], "</h2>",
                   "<ul>",
                   "<li><b>Site</b>: ", comment(fragments.df)[1], "</li>",
                   "<li><b>Period</b>: ", comment(fragments.df)[3], "</li>",
@@ -903,9 +910,9 @@ server <- function(input, output, session) {
   })
   
   
-  # 2) Sensibility -----
+  # 2) sensibility -----
   
-  sensibility.obs.cohesion <- reactive({
+  robustness.obs.cohesion <- reactive({
     req(graph.selected())
     
     if(spatial.variable() == "-") return()
@@ -915,78 +922,105 @@ server <- function(input, output, session) {
     frag.layers.cohesion(g, "spatial.variable")
   })
   
-  
-  output$sensibility.txt <- renderText({
-    req(sensibility.obs.cohesion())
+  ## presentation text -----
+  output$robustness.txt <- renderText({
+    req(robustness.obs.cohesion())
     
-    sensibility.obs.cohesion <- sensibility.obs.cohesion()
+    robustness.obs.cohesion <- round(robustness.obs.cohesion(), 2)
     
     sp.units <- sort(unique(igraph::V(graph.selected())$spatial.variable))
     
-   paste("Considering the selected pair of spatial units from the  <b>", spatial.variable(), "</b> variable,",
-          "the cohesion values computed from archaeologically observed data are:
+   paste("Considering the selected pair of spatial units from the <b>", spatial.variable(), "</b> variable,",
+          "the cohesion values measured for archaeologically observed data are:
           <ul>
-              <li>", sensibility.obs.cohesion[1], 
+              <li>", robustness.obs.cohesion[1], 
                     "for <font color=YellowGreen><b>", sp.units[1], "</b></font></li>",
-             "<li>", sensibility.obs.cohesion[2], 
+             "<li>", robustness.obs.cohesion[2], 
                    "for <font color=Purple><b>",       sp.units[2], "</b></font></li>",
           "</ul>"
           )  
   })
     
-  exec.sensibility <- function(g, edges.to.remove){
+  exec.robustness <- function(g, edges.to.remove){
     g <- igraph::delete_edges(g, sample(seq_len(igraph::gsize(g)), edges.to.remove, replace=FALSE))
     igraph::delete_vertices(g, igraph::degree(g) == 0)
   }
   
 
+  ## generate random numbers -----
+observe({
+  req(input$robustnessReplications, input$robustnessSeed)
   
-observeEvent(input$goSensibility, { # run sensibility ####
-    req(input$sensibilityRange, graph.selected())
+  edges.to.remove.perc <- seq(input$robustnessRange[1],
+                              input$robustnessRange[2], by = input$robustnessStep) / 100
+  my.seed <- input$robustnessSeed
+  if(is.na(input$robustnessSeed)){
+    my.seed <- sample(seq_len(1000), 1)
+  }
+  rng.robustness(rngtools::RNGseq(length(edges.to.remove.perc) * input$robustnessReplications,
+                                   seed = my.seed))
+})
+  
+## run robustness ####
+observeEvent(input$goRobustness, { 
+    req(input$robustnessReplications, input$robustnessRange, graph.selected())
 
     g <- graph.selected()
+    rng.robustness <- rng.robustness()
+    
 
-    if( (input$sensibilityRange[2] - input$sensibilityRange[1]) / input$sensibilityStep < 1){
+    if( (input$robustnessRange[2] - input$robustnessRange[1]) / input$robustnessStep < 1){
       showNotification(HTML("Increase the <b>range values</b> or decrease the <b>step value</b>."),
                        duration = 5, type = "warning")
       return()
     }
     
-    edges.to.remove.perc <- seq(input$sensibilityRange[1],
-                                input$sensibilityRange[2], by = input$sensibilityStep) / 100
 
     start.time <- Sys.time()  # save start time
     showNotification(HTML("<b>Computing... please wait.</b>"), id = "waiting.msg", duration = NULL, type = "message") # see 'removeNotification' below
 
-    if(input$sensibilityReplications < 30 | input$sensibilityReplications > 1000) {
+    if(input$robustnessReplications < 30 | input$robustnessReplications > 1000) {
       showNotification("The number of replication must be in [30, 1000].", type="warning")
-      return(NULL)
+      return()
     }
 
-    if( ! is.na(input$sensibilitySeed)){
-      doRNG::registerDoRNG(input$sensibilitySeed) # set seed if required
-    }
-
-
-    if(input$parallelize){
-      res <- foreach::foreach(edges.to.remove = edges.to.remove.perc, .combine='rbind') %:%
-        foreach::foreach(i = seq_len(input$sensibilityReplications),
-                                          .combine = "rbind", .errorhandling = "remove") %dopar%{
-                                            g <- exec.sensibility(g, ceiling(igraph::gsize(g) * edges.to.remove))
-                                            g <- frag.edges.weighting(g, "spatial.variable")
-                                            c(edges.to.remove, frag.layers.cohesion(g, "spatial.variable"))
-        }
-      } else {
-        res <- foreach::foreach(edges.to.remove = edges.to.remove.perc, .combine='rbind') %:%
-          foreach::foreach(i = seq_len(input$sensibilityReplications),
-                           .combine = "rbind", .errorhandling = "remove") %do%{
-                             g <- exec.sensibility(g, ceiling(igraph::gsize(g) * edges.to.remove))
-                             g <- frag.edges.weighting(g, "spatial.variable")
-                             c(edges.to.remove, frag.layers.cohesion(g, "spatial.variable"))
-                           }
-      }
+    edges.to.remove.perc <- seq(input$robustnessRange[1],
+                                input$robustnessRange[2], by = input$robustnessStep) / 100
     
+    # if the use doesn't set up a seed, change it:
+    if(is.na(input$robustnessSeed)){
+      my.seed <- sample(seq_len(100), 1)
+      rng.robustness <- rngtools::RNGseq(length(edges.to.remove.perc) * input$robustnessReplications,
+                                          seed = my.seed)
+    }
+    
+    if(input$parallelize){
+        doParallel::registerDoParallel()
+        res <- foreach::foreach(i = seq_len(length(edges.to.remove.perc)), .combine='rbind') %:%
+          foreach::foreach(replications = seq_len(input$robustnessReplications),
+                           random.seed = rng.robustness[(i - 1) * input$robustnessReplications + seq_len(input$robustnessReplications)],
+                           .combine = "rbind", .errorhandling = "remove") %dopar%{
+                             rngtools::setRNG(random.seed)
+                             
+                             g.sub <- exec.robustness(g, ceiling(igraph::gsize(g) * edges.to.remove.perc[i]))
+                             g.sub <- archeofrag::frag.edges.weighting(g.sub, "spatial.variable")
+                             c(edges.to.remove.perc[i], archeofrag::frag.layers.cohesion(g.sub, "spatial.variable"))
+                           }
+      } else {
+        idx <- 1
+        res <- foreach::foreach(edges.to.remove = edges.to.remove.perc, .combine='rbind') %:%
+          foreach::foreach(replications = seq_len(input$robustnessReplications),
+                           .combine = "rbind", .errorhandling = "remove") %do%{
+                             rngtools::setRNG(rng.robustness[[idx]])
+                             idx <- idx + 1
+                             g.sub <- exec.robustness(g, ceiling(igraph::gsize(g) * edges.to.remove))
+                             g.sub <- archeofrag::frag.edges.weighting(g.sub, "spatial.variable")
+                             c(edges.to.remove, archeofrag::frag.layers.cohesion(g.sub, "spatial.variable"))
+        }
+    }
       exec.time <- Sys.time() - start.time
+      exec.time <- paste(round(as.numeric(exec.time), 0), units(exec.time))
+      robustness.exec.time(exec.time)
       removeNotification("waiting.msg")
       
       sp.units <- sort(unique(V(g)$spatial.variable))
@@ -997,59 +1031,140 @@ observeEvent(input$goSensibility, { # run sensibility ####
                               "cohesion" = res[, 3], 
                               "spatial.unit" =  sp.units[2])
       )
-      sensibility.res(res)
+      robustness.res(res)
   })
 
 
-observeEvent(input$goSensibility, {
-    req(sensibility.res())
+observeEvent(input$goRobustness, {
+    req(robustness.res())
 
-    sensibility.res <- sensibility.res()
-    if(is.null(sensibility.res)) return()
+    robustness.res <- robustness.res()
+    if(is.null(robustness.res)) return()
     
-    sensibility.obs.cohesion <- sensibility.obs.cohesion()
+    robustness.obs.cohesion <- robustness.obs.cohesion()
+
     
-    p <- ggplot2::ggplot(sensibility.res, 
-                    ggplot2::aes(x = factor(paste0(sprintf("%02s", .data[["perc"]] * 100), "%")),
-                                 y = .data[["cohesion"]], 
-                                 fill = .data[["spatial.unit"]],
-                                 )) +
+    boxplot <- ggplot2::ggplot(robustness.res, 
+                               ggplot2::aes(x = factor(paste0(sprintf("%02s", .data[["perc"]] * 100), "%")),
+                                            y = .data[["cohesion"]], 
+                                            fill = .data[["spatial.unit"]],
+                               )) +
       ggplot2::theme_light(base_size = 12) +
       ggplot2::geom_boxplot(show.legend = TRUE, linewidth=.3, size=.7, shape=21,
                             position="nudge", alpha = .8) +
-      ggplot2::geom_hline(yintercept = sensibility.obs.cohesion[1], color = "red", linetype = 2) +
-      ggplot2::geom_hline(yintercept = sensibility.obs.cohesion[2], color = "red", linetype = 3) +
+      ggplot2::geom_hline(yintercept = robustness.obs.cohesion[1], color = "red", linetype = 2) +
+      ggplot2::geom_hline(yintercept = robustness.obs.cohesion[2], color = "red", linetype = 3) +
       ggplot2::scale_fill_manual("Spatial units", values = c("yellowgreen", "purple")) +
       ggplot2::xlab("% of deleted connection relationships") +
-      ggplot2::ggtitle(paste0("Sensibility analysis for: ",
+      ggplot2::ggtitle(paste0("Robustness analysis of cohesion measurements for: ",
                               spatial.variable(), ", ",
                               names(graph.list())[as.integer(input$units.pair)]))
     
-    sensibility.plot(p)
+    robustness.boxplot(boxplot)
+    
+    
+    if(length(unique(robustness.res$perc)) > 11){
+      robustness.densplot(NULL)
+      return()
+    }
+    
+    robustness.res <- robustness.res[ which(robustness.res$perc != 0), ]
+        
+    robustness.obs.cohesion2 <- data.frame(sort(unique(robustness.res$spatial.unit)), 
+                                           t(robustness.obs.cohesion))
+    colnames(robustness.obs.cohesion2) <- c("spatial.unit", "cohesion")
+
+    densplot <- ggplot2::ggplot(robustness.res, 
+                     ggplot2::aes(fill = factor(paste0(sprintf("%02s", .data[["perc"]] * 100), "%")),
+                                      x = .data[["cohesion"]], 
+                         )) +
+      ggplot2::theme_light(base_size = 12) +
+      geom_density(alpha=.5) +
+      ggplot2::geom_vline(data = robustness.obs.cohesion2, aes(xintercept = cohesion), color="red") +
+      facet_wrap(~spatial.unit, ncol=1, scales="free_x") +
+      ggplot2::scale_fill_viridis_d("% of deleted connection relationships:") +
+      ggplot2::ylab("Cohesion") +
+      ggplot2::ggtitle(paste0("Robustness analysis of cohesion measurements for: ",
+                              spatial.variable(), ", ",
+                              names(graph.list())[as.integer(input$units.pair)])) +
+      ggplot2::theme(legend.position = "bottom", legend.direction = "horizontal") +
+      ggplot2::guides(fill = ggplot2::guide_legend(nrow = 1))
+    
+    robustness.densplot(densplot)
   })
   
 
-output$sensibility.plot <- renderPlot({ sensibility.plot() })
+## plot robustness ----
+output$robustness.boxplot <- renderPlot({ robustness.boxplot() })
+output$robustness.densplot <- renderPlot({ robustness.densplot() })
   
 
-output$sensibility.plot.download <- downloadHandler(
-    filename = paste0("archeofrag-sensibility-", spatial.variable(), "-",
-                      gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
-    content = function(file) {
-      ggplot2::ggsave(file, plot = sensibility.plot(), device = "svg", width=10, height=5, pointsize = 14)
-    }
-  )
+output$robustness.boxplot.download <- downloadHandler(
+  filename = paste0("archeofrag-robustness-boxplot-", spatial.variable(), "-",
+                    gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
+  content = function(file) {
+    ggplot2::ggsave(file, plot = robustness.boxplot(), device = "svg", width=10, height=5, pointsize = 14)
+  }
+)
 
-output$sensibility.plot.download.button <- renderUI({
-  if(is.null(sensibility.plot())) return()
-  downloadButton("sensibility.plot.download", "as SVG") 
+output$robustness.boxplot.download.button <- renderUI({
+  if(is.null(robustness.boxplot())) return()
+  downloadButton("robustness.boxplot.download", "as SVG") 
 })
 
 
+
+output$robustness.densplot.download <- downloadHandler(
+  filename = paste0("archeofrag-robustness-density-plot-", spatial.variable(), "-",
+                    gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".svg"),
+  content = function(file) {
+    ggplot2::ggsave(file, plot = robustness.densplot(), device = "svg", width=10, height=5, pointsize = 14)
+  }
+)
+
+output$robustness.densplot.download.button <- renderUI({
+  if(is.null(robustness.densplot())) return()
+  downloadButton("robustness.densplot.download", "as SVG") 
+})
+
+
+## dl robustness table ----
+output$robustness.res.download <- downloadHandler(
+  filename =  paste0("archeofrag-robustness-", spatial.variable(), "-",
+                     gsub(" / ", "-", names(graph.list())[as.numeric(input$units.pair)]), ".csv"),
+  content = function(file) {
+    utils::write.csv(robustness.res(), file, row.names = FALSE)
+  }
+)
   
+output$robustness.res.download.button <- renderUI({
+  if(is.null(robustness.boxplot())) return()
+  downloadButton("robustness.res.download", "as CSV") 
+})
+
   
+## robustness result text ----
+robustnessText <- eventReactive(input$goRobustness, {
+  req(robustness.res)
+  
+  if(is.null(robustness.res())) return()
+
+  range.start <- input$robustnessRange[1]
+  if(range.start == 0) range.start <- 1
+  
+  sens.graph.nr <- seq(range.start, 
+                       input$robustnessRange[2],
+                       by = input$robustnessStep)
+  sens.graph.nr <- length(sens.graph.nr) * input$robustnessReplications
+  
+  paste0("<b>Computation results:</b> ", sens.graph.nr, " graphs and cohesion measures computed in ",
+         robustness.exec.time(), ".<br>")
+})
+
+output$robustnessText <- renderText({robustnessText()})
+
   # SIMULATION ####
-  
+
   # Function to execute the simulation and retrieve some measures:
   exec.simulation  <- function(initial.layers, n.components, vertices,
                                balance, components.balance, disturbance,
@@ -1081,12 +1196,26 @@ output$sensibility.plot.download.button <- renderUI({
     )    
   }
   
+
+ ## generate random numbers -----
+  observe({
+    req(input$replications, input$simulSeed)
+    
+    seed.simul <- input$simulSeed
+    if(is.na(input$simulSeed)){
+      seed.simul <- sample(seq_len(100), 1)
+    }
+    rng.simul(rngtools::RNGseq(input$replications * 2, seed = seed.simul))
+  })
+  
   
   hypotheses <- eventReactive(input$goButton, { # run simulation ####
     
     req(input$replications)
     req(graph.selected())
     graph <- graph.selected()
+    rng.simul <- rng.simul()
+    
     
     start.time <- Sys.time()  # save start time
     showNotification(HTML("<b>Computing... please wait.</b>"), id = "waiting.msg", duration = NULL, type = "message") # see 'removeNotification' below
@@ -1108,14 +1237,17 @@ output$sensibility.plot.download.button <- renderUI({
                    "edge.loss" = input$edge.loss,
                    "vertice.loss" = input$vertice.loss)
     
-    if( ! is.na(input$seed)){
-      doRNG::registerDoRNG(input$seed) # set seed if required
+    # if the user doesn't set up a seed, change it:
+    if(is.na(input$simulSeed)){
+      seed.simul <- sample(seq_len(1000), 1)
+      rng.simul(rngtools::RNGseq(input$replications * 2, seed = seed.simul))
     }
     
     if(input$parallelize){
-      hypothese1.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
-                                         .errorhandling = "remove"
-      ) %dopar%{
+      hypothese1.res <- foreach::foreach(i = seq_len(input$replications),
+                                         .combine = "rbind",
+                                         .errorhandling = "remove") %dopar%{
+        rngtools::setRNG(rng.simul[[i]])
         exec.simulation(initial.layers = 1,
                         n.components = params$n.components,
                         vertices = params$n.final.fragments,  
@@ -1129,51 +1261,58 @@ output$sensibility.plot.download.button <- renderUI({
                         vertice.loss = params$vertice.loss)
       }
       
-      hypothese2.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
+      hypothese2.res <- foreach::foreach(i = seq_len(input$replications),
+                                         .combine = "rbind",
                                          .errorhandling = "remove") %dopar%{
-                                           exec.simulation(initial.layers = 2,
-                                                           n.components = params$n.components,
-                                                           vertices = params$n.final.fragments,  
-                                                           balance = params$balance,
-                                                           components.balance = params$components.balance,
-                                                           disturbance = params$disturbance,
-                                                           aggreg.factor = params$aggreg.factor,
-                                                           planar = params$planar,
-                                                           asymmetric.transport.from = asymmetric,
-                                                           edge.loss = params$edge.loss,
-                                                           vertice.loss = params$vertice.loss)
-                                         }
+         rngtools::setRNG(rng.simul[[i + input$replications]])
+         exec.simulation(initial.layers = 2,
+                         n.components = params$n.components,
+                         vertices = params$n.final.fragments,  
+                         balance = params$balance,
+                         components.balance = params$components.balance,
+                         disturbance = params$disturbance,
+                         aggreg.factor = params$aggreg.factor,
+                         planar = params$planar,
+                         asymmetric.transport.from = asymmetric,
+                         edge.loss = params$edge.loss,
+                         vertice.loss = params$vertice.loss)
+       }
       
     } else {
+      idx <- 1
       hypothese1.res <- foreach::foreach(i = seq_len(input$replications),  .combine = "rbind",
                                          .errorhandling = "remove") %do%{
-                                           exec.simulation(initial.layers = 1,
-                                                           n.components = params$n.components,
-                                                           vertices = params$n.final.fragments,  
-                                                           balance = params$balance,
-                                                           components.balance = params$components.balance,
-                                                           disturbance = params$disturbance,
-                                                           aggreg.factor = params$aggreg.factor,
-                                                           planar = params$planar,
-                                                           asymmetric.transport.from = asymmetric,
-                                                           edge.loss = params$edge.loss,
-                                                           vertice.loss = params$vertice.loss)
-                                         }
+         rngtools::setRNG(rng.simul[[idx]])
+         idx <- idx + 1
+         exec.simulation(initial.layers = 1,
+                         n.components = params$n.components,
+                         vertices = params$n.final.fragments,  
+                         balance = params$balance,
+                         components.balance = params$components.balance,
+                         disturbance = params$disturbance,
+                         aggreg.factor = params$aggreg.factor,
+                         planar = params$planar,
+                         asymmetric.transport.from = asymmetric,
+                         edge.loss = params$edge.loss,
+                         vertice.loss = params$vertice.loss)
+       }
       
       hypothese2.res <- foreach::foreach(i = seq_len(input$replications), .combine = "rbind",
                                          .errorhandling = "remove") %do%{
-                                           exec.simulation(initial.layers = 2,
-                                                           n.components = params$n.components,
-                                                           vertices = params$n.final.fragments,  
-                                                           balance = params$balance,
-                                                           components.balance = params$components.balance,
-                                                           disturbance = params$disturbance,
-                                                           aggreg.factor = params$aggreg.factor,
-                                                           planar = params$planar,
-                                                           asymmetric.transport.from = asymmetric,
-                                                           edge.loss = params$edge.loss,
-                                                           vertice.loss = params$vertice.loss)
-                                         }
+         rngtools::setRNG(rng.simul[[idx]])
+         idx <- idx + 1
+         exec.simulation(initial.layers = 2,
+                         n.components = params$n.components,
+                         vertices = params$n.final.fragments,  
+                         balance = params$balance,
+                         components.balance = params$components.balance,
+                         disturbance = params$disturbance,
+                         aggreg.factor = params$aggreg.factor,
+                         planar = params$planar,
+                         asymmetric.transport.from = asymmetric,
+                         edge.loss = params$edge.loss,
+                         vertice.loss = params$vertice.loss)
+       }
     } # end else
     
     if(is.null(hypothese1.res) | is.null(hypothese2.res)){
@@ -1769,6 +1908,15 @@ output$sensibility.plot.download.button <- renderUI({
                                  columnDefs = list(list(visible = FALSE, targets ="type")))
     )
   })
+  
+  output$optimisation.res.download <- downloadHandler(
+    filename =  paste0("archeofrag-spatial-units-optimisation-", 
+                       gsub("^-$", "", spatial.variable()),
+                       ".csv"),,
+    content = function(file) {
+      utils::write.csv(optimisation.table()[[1]], file, row.names = FALSE)
+    }
+  )
   
   
   
@@ -2845,7 +2993,7 @@ output$sensibility.plot.download.button <- renderUI({
   
   output$datasetsTab <- DT::renderDT({ 
     DT::datatable(refit.summary, rownames = TRUE,
-                  escape = 1:6,
+                  escape = seq(1, 6),
                   style = "default",
                   selection = 'none',
                   options = list(dom = 't',
