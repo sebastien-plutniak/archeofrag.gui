@@ -910,7 +910,7 @@ server <- function(input, output, session) {
   })
   
   
-  # 2) sensibility -----
+  # 2) Robustness -----
   
   robustness.obs.cohesion <- reactive({
     req(graph.selected())
@@ -967,6 +967,12 @@ observeEvent(input$goRobustness, {
 
     g <- graph.selected()
     rng.robustness <- rng.robustness()
+    
+    if(length(unique(V(g)$spatial.variable)) == 1){
+      showNotification("Select a spatial variable and a pair of spatial units.",
+                       duration = 10, type = "warning")
+      return()
+    }
     
 
     if( (input$robustnessRange[2] - input$robustnessRange[1]) / input$robustnessStep < 1){

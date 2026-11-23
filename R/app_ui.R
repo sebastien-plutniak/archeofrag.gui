@@ -340,7 +340,7 @@ ui <- shinyUI(fluidPage(  # UI ----
                                                               However, this result is certainly based on incomplete archaeological information. How robust it is to missing observations? Here, the robustness of cohesion measurements is evaluated by examining their variation when different proportion  of connection relationships are removed from the fragmentation graph. To do so, use the 'range' and 'steps' value to define a series of missing observations percentages to evaluate and 'run' the computation.
                                                             </p>
                                                             <p>
-                                                              To make the computation reproducible, set a numerical value to use as a 'seed' for the random numbers generator. 
+                                                              To make the computation reproducible, set a numerical value to use as a 'seed' for the random number generator. 
                                                             </p>
                                                             <h2>Results interpretation</h2>
                                                             <h3>General examination</h3>
